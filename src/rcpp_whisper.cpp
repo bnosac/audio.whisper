@@ -180,12 +180,20 @@ void whisper_print_segment_callback(struct whisper_context * ctx, int n_new, voi
     }
 }
 
+// [[Rcpp::export]]
+SEXP whisper_load_model(std::string model) {
+    // Load language model and return the pointer to be used by whisper_encode
+    struct whisper_context * ctx = whisper_init(model.c_str());
+    Rcpp::XPtr<whisper_context> ptr(ctx, true);
+    return ptr;
+}
+    
 
 // [[Rcpp::export]]
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0, bool trace = false) {
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0, bool trace = false) {
     whisper_params params;
     params.language = language;
-    params.model = model;
+    //params.model = model;
     params.translate = translate;
     params.print_special = print_special;
     params.duration_ms = duration;
@@ -204,7 +212,8 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
     }
     
     // whisper init
-    struct whisper_context * ctx = whisper_init(params.model.c_str());
+    Rcpp::XPtr<whisper_context> ctx(model);
+    //struct whisper_context * ctx = whisper_init(params.model.c_str());
     for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
         const auto fname_inp = params.fname_inp[f];
         std::vector<float> pcmf32; // mono-channel F32 PCM

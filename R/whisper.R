@@ -25,7 +25,7 @@
 predict.whisper <- function(object, newdata, language = "en", ...){
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
-  whisper_encode(model = object$file, path = newdata, language = language, ...)
+  whisper_encode(model = object$model, path = newdata, language = language, ...)
 }
 
 
@@ -65,6 +65,7 @@ whisper <- function(x, ...){
   }else{
     out        <- list(file = x)  
   }
+  out$model <- whisper_load_model(out$file)
   class(out) <- "whisper"
   out
 }

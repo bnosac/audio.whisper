@@ -5,13 +5,24 @@
 
 using namespace Rcpp;
 
-// whisper_encode
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special, int duration, int offset, bool trace);
-RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP) {
+// whisper_load_model
+SEXP whisper_load_model(std::string model);
+RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model));
+    return rcpp_result_gen;
+END_RCPP
+}
+// whisper_encode
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special, int duration, int offset, bool trace);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type model(modelSEXP);
     Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
     Rcpp::traits::input_parameter< std::string >::type language(languageSEXP);
     Rcpp::traits::input_parameter< bool >::type token_timestamps(token_timestampsSEXP);
@@ -26,6 +37,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 1},
     {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 9},
     {NULL, NULL, 0}
 };
