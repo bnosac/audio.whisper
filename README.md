@@ -20,7 +20,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 ## Example
 
-Load the model either by providing the full path to the model or specify the shorthand which will download the model
+**Load the model** either by providing the full path to the model or specify the shorthand which will download the model
   - see the help of `whisper_download_model` for a list of available models and to download a model
 
 ```{r}
@@ -32,7 +32,9 @@ model <- whisper("medium")
 model <- whisper("large")
 ```
 
-Transcribe a `.wav` audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
+**Transcribe a `.wav` audio file** 
+  - using `predict(model, "path-to-file.wav")` and 
+  - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
 
 ```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
