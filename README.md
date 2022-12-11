@@ -79,9 +79,18 @@ Note about that the audio file needs to be a **`16-bit .wav` file**.
 
 ```{r}
 library(av)
-av_audio_convert("00-intro.wmv", output = "output.wav", format = "wav", sample_rate = 16000)
-predict(model, newdata = "output.wav", language = "en")
+download.file(url = "https://www.ubu.com/media/sound/dec_francis/Dec-Francis-E_rant1.mp3", 
+              destfile = "rant1.mp3", mode = "wb")
+av_audio_convert("rant1.mp3", output = "output.wav", format = "wav", sample_rate = 16000)
 ```
+
+<details>
+  <summary>Transcription</summary>
+  ```{r}
+  predict(model, newdata = "output.wav", language = "en", duration = 100000)
+  ```
+</details>
+
   - or alternatively, use `ffmpeg` to create one if you have another format. 
 
 ```{bash}
