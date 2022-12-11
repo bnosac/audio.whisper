@@ -5,7 +5,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 ![](tools/logo-audio-whisper-x100.png)
 
 - The package allows to transcribe audio files using the ["Whisper" Automatic Speech Recognition model](https://github.com/openai/whisper)
-- The package is a direct C++ inference engine based on C++11, no external software is needed, so that you can directly install and use it from R
+- The package is based on a direct C++ inference engine written in C++11, no external software is needed, so that you can directly install and use it from R
 
 
 ## Available models
@@ -23,7 +23,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 Load the model either by providing the full path to the model or specify the shorthand which will download the model
   - see the help of `whisper_download_model` for a list of available models and to download a model
 
-```
+```{r}
 library(audio.whisper)
 model <- whisper("tiny")
 model <- whisper("base")
@@ -34,7 +34,7 @@ model <- whisper("large")
 
 - Transcribe a `.wav` audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
 
-```
+```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio, language = "en")
 trans$data
@@ -42,13 +42,20 @@ trans$data
   And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
 ```
 
-- Note: the audio file needs to be a `16-bit .wav` file. Use `ffmpeg` to create one if you have another format. E.g. as follows:
+- Note: the audio file needs to be a `16-bit .wav` file. You can use R package [`av`](https://cran.r-project.org/package=av) to convert to that format or alternatively, use `ffmpeg` to create one if you have another format. 
 
+```{r}
+library(av)
+av_audio_convert("00-intro.wmv", output = "output.wav", format = "wav", verbose = TRUE, sample_rate = 16000)
+predict(model, newdata = "output.wav", language = "nl")
 ```
-ffmpeg                 -i 00-intro.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav
-ffmpeg                 -i input.mp3    -ar 16000 -ac 1 -c:a pcm_s16le output.wav
-ffmpeg -loglevel -0 -y -i hp0.ogg      -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+
+```{bash}
+ffmpeg                 -i input.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+ffmpeg                 -i input.mp3 -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+ffmpeg -loglevel -0 -y -i input.ogg -ar 16000 -ac 1 -c:a pcm_s16le output.wav
 ```
+
 
 ### Installation
 
