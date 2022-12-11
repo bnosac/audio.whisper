@@ -291,7 +291,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bo
                     Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
                 }
             }
-            Rcpp::Rcout << "Processing" << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << "\n";
+            Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << "\n";
         }
         
         // run the inference
