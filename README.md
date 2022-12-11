@@ -33,7 +33,7 @@ model <- whisper("large")
 ```
 
 **Transcribe a `.wav` audio file** 
-  - using `predict(model, "path-to-file.wav")` and 
+  - using `predict(model, "path/to/audio/file.wav")` and 
   - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
 
 ```{r}
