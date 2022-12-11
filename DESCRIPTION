@@ -15,7 +15,7 @@ Description: The "Whisper" models are trained for speech recognition and transla
     There are 10 pretrained models available of different sizes and language capabilities.
     "Whisper" is explained in the paper: 'Robust Speech Recognition via Large-Scale Weak Supervision' by Radford et al. (2022), available at <arXiv:2212.04356>.
 License: MIT + file LICENSE
-  URL: https://github.com/bnosac/audio.whisper
+URL: https://github.com/bnosac/audio.whisper
 Encoding: UTF-8
 Depends:
     R (>= 2.10)
