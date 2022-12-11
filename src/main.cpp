@@ -672,12 +672,14 @@ int main(int argc, char ** argv) {
 #include <Rcpp.h>
 
 // [[Rcpp::export]]
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false) {
+Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0) {
     whisper_params params;
     params.language = language;
     params.model = model;
     params.translate = translate;
     params.print_special = print_special;
+    params.duration_ms = duration;
+    params.offset_t_ms = offset;
     params.fname_inp.push_back(path);
     
     
@@ -960,6 +962,8 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
                                            Rcpp::Named("params") = Rcpp::List::create(
                                                Rcpp::Named("audio") = path,
                                                Rcpp::Named("language") = params.language, 
+                                               Rcpp::Named("offset") = offset,
+                                               Rcpp::Named("duration") = duration,
                                                Rcpp::Named("translate") = params.translate,
                                                Rcpp::Named("token_timestamps") = token_timestamps,
                                                Rcpp::Named("word_threshold") = params.word_thold));

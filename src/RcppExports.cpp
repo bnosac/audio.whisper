@@ -6,8 +6,8 @@
 using namespace Rcpp;
 
 // whisper_encode
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special);
-RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP) {
+Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special, int duration, int offset);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP, SEXP durationSEXP, SEXP offsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -17,13 +17,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type token_timestamps(token_timestampsSEXP);
     Rcpp::traits::input_parameter< bool >::type translate(translateSEXP);
     Rcpp::traits::input_parameter< bool >::type print_special(print_specialSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, print_special));
+    Rcpp::traits::input_parameter< int >::type duration(durationSEXP);
+    Rcpp::traits::input_parameter< int >::type offset(offsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, print_special, duration, offset));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 6},
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 8},
     {NULL, NULL, 0}
 };
 
