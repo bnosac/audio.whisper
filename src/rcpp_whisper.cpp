@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "whisper.h"
 
 // third-party utilities
@@ -434,245 +435,10 @@ bool output_wts(struct whisper_context * ctx, const char * fname, const char * f
     return true;
 }
 
-int main(int argc, char ** argv) {
-    whisper_params params;
-    
-    if (whisper_params_parse(argc, argv, params) == false) {
-        return 1;
-    }
-    
-    if (params.fname_inp.empty()) {
-        fprintf(stderr, "error: no input files specified\n");
-        whisper_print_usage(argc, argv, params);
-        return 2;
-    }
-    
-    if (whisper_lang_id(params.language.c_str()) == -1) {
-        fprintf(stderr, "error: unknown language '%s'\n", params.language.c_str());
-        whisper_print_usage(argc, argv, params);
-        exit(0);
-    }
-    
-    // whisper init
-    
-    struct whisper_context * ctx = whisper_init(params.model.c_str());
-    
-    if (ctx == nullptr) {
-        fprintf(stderr, "error: failed to initialize whisper context\n");
-        return 3;
-    }
-    
-    for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
-        const auto fname_inp = params.fname_inp[f];
-        
-        std::vector<float> pcmf32; // mono-channel F32 PCM
-        std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
-        
-        // WAV input
-        {
-            drwav wav;
-            std::vector<uint8_t> wav_data; // used for pipe input from stdin
-            
-            if (fname_inp == "-") {
-                {
-                    uint8_t buf[1024];
-                    while (true)
-                    {
-                        const size_t n = fread(buf, 1, sizeof(buf), stdin);
-                        if (n == 0) {
-                            break;
-                        }
-                        wav_data.insert(wav_data.end(), buf, buf + n);
-                    }
-                }
-                
-                if (drwav_init_memory(&wav, wav_data.data(), wav_data.size(), NULL) == false) {
-                    fprintf(stderr, "error: failed to open WAV file from stdin\n");
-                    return 4;
-                }
-                
-                fprintf(stderr, "%s: read %zu bytes from stdin\n", __func__, wav_data.size());
-            }
-            else if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
-                fprintf(stderr, "error: failed to open '%s' as WAV file\n", fname_inp.c_str());
-                return 5;
-            }
-            
-            if (wav.channels != 1 && wav.channels != 2) {
-                fprintf(stderr, "%s: WAV file '%s' must be mono or stereo\n", argv[0], fname_inp.c_str());
-                return 6;
-            }
-            
-            if (params.diarize && wav.channels != 2 && params.no_timestamps == false) {
-                fprintf(stderr, "%s: WAV file '%s' must be stereo for diarization and timestamps have to be enabled\n", argv[0], fname_inp.c_str());
-                return 6;
-            }
-            
-            if (wav.sampleRate != WHISPER_SAMPLE_RATE) {
-                fprintf(stderr, "%s: WAV file '%s' must be 16 kHz\n", argv[0], fname_inp.c_str());
-                return 8;
-            }
-            
-            if (wav.bitsPerSample != 16) {
-                fprintf(stderr, "%s: WAV file '%s' must be 16-bit\n", argv[0], fname_inp.c_str());
-                return 9;
-            }
-            
-            const uint64_t n = wav_data.empty() ? wav.totalPCMFrameCount : wav_data.size()/(wav.channels*wav.bitsPerSample/8);
-            
-            std::vector<int16_t> pcm16;
-            pcm16.resize(n*wav.channels);
-            drwav_read_pcm_frames_s16(&wav, n, pcm16.data());
-            drwav_uninit(&wav);
-            
-            // convert to mono, float
-            pcmf32.resize(n);
-            if (wav.channels == 1) {
-                for (int i = 0; i < n; i++) {
-                    pcmf32[i] = float(pcm16[i])/32768.0f;
-                }
-            } else {
-                for (int i = 0; i < n; i++) {
-                    pcmf32[i] = float(pcm16[2*i] + pcm16[2*i + 1])/65536.0f;
-                }
-            }
-            
-            if (params.diarize) {
-                // convert to stereo, float
-                pcmf32s.resize(2);
-                
-                pcmf32s[0].resize(n);
-                pcmf32s[1].resize(n);
-                for (int i = 0; i < n; i++) {
-                    pcmf32s[0][i] = float(pcm16[2*i])/32768.0f;
-                    pcmf32s[1][i] = float(pcm16[2*i + 1])/32768.0f;
-                }
-            }
-        }
-        
-        // print system information
-        {
-            fprintf(stderr, "\n");
-            fprintf(stderr, "system_info: n_threads = %d / %d | %s\n",
-                    params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());
-        }
-        
-        // print some info about the processing
-        {
-            fprintf(stderr, "\n");
-            if (!whisper_is_multilingual(ctx)) {
-                if (params.language != "en" || params.translate) {
-                    params.language = "en";
-                    params.translate = false;
-                    fprintf(stderr, "%s: WARNING: model is not multilingual, ignoring language and translation options\n", __func__);
-                }
-            }
-            fprintf(stderr, "%s: processing '%s' (%d samples, %.1f sec), %d threads, %d processors, lang = %s, task = %s, timestamps = %d ...\n",
-                    __func__, fname_inp.c_str(), int(pcmf32.size()), float(pcmf32.size())/WHISPER_SAMPLE_RATE,
-                    params.n_threads, params.n_processors,
-                    params.language.c_str(),
-                    params.translate ? "translate" : "transcribe",
-                    params.no_timestamps ? 0 : 1);
-            
-            fprintf(stderr, "\n");
-        }
-        
-        
-        // run the inference
-        {
-            whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-            
-            wparams.print_realtime   = false;
-            wparams.print_progress   = false;
-            wparams.print_timestamps = !params.no_timestamps;
-            wparams.print_special    = params.print_special;
-            wparams.translate        = params.translate;
-            wparams.language         = params.language.c_str();
-            wparams.n_threads        = params.n_threads;
-            wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
-            wparams.offset_ms        = params.offset_t_ms;
-            wparams.duration_ms      = params.duration_ms;
-            
-            wparams.token_timestamps = params.output_wts || params.max_len > 0;
-            wparams.thold_pt         = params.word_thold;
-            wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
-            
-            wparams.speed_up         = params.speed_up;
-            
-            whisper_print_user_data user_data = { &params, &pcmf32s };
-            
-            // this callback is called on each new segment
-            if (!wparams.print_realtime) {
-                wparams.new_segment_callback           = whisper_print_segment_callback;
-                wparams.new_segment_callback_user_data = &user_data;
-            }
-            
-            // example for abort mechanism
-            // in this example, we do not abort the processing, but we could if the flag is set to true
-            // the callback is called before every encoder run - if it returns false, the processing is aborted
-            {
-                static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-                
-                wparams.encoder_begin_callback = [](struct whisper_context * ctx, void * user_data) {
-                    bool is_aborted = *(bool*)user_data;
-                    return !is_aborted;
-                };
-                wparams.encoder_begin_callback_user_data = &is_aborted;
-            }
-            
-            if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
-                fprintf(stderr, "%s: failed to process audio\n", argv[0]);
-                return 10;
-            }
-        }
-        
-        // output stuff
-        {
-            printf("\n");
-            
-            // output to text file
-            if (params.output_txt) {
-                const auto fname_txt = fname_inp + ".txt";
-                output_txt(ctx, fname_txt.c_str());
-            }
-            
-            // output to VTT file
-            if (params.output_vtt) {
-                const auto fname_vtt = fname_inp + ".vtt";
-                output_vtt(ctx, fname_vtt.c_str());
-            }
-            
-            // output to SRT file
-            if (params.output_srt) {
-                const auto fname_srt = fname_inp + ".srt";
-                output_srt(ctx, fname_srt.c_str(), params);
-            }
-            
-            // output to WTS file
-            if (params.output_wts) {
-                const auto fname_wts = fname_inp + ".wts";
-                output_wts(ctx, fname_wts.c_str(), fname_inp.c_str(), params, float(pcmf32.size() + 1000)/WHISPER_SAMPLE_RATE);
-            }
-        }
-    }
-    
-    whisper_print_timings(ctx);
-    whisper_free(ctx);
-    
-    return 0;
-}
 
-
-
-
-
-
-
-
-#include <Rcpp.h>
 
 // [[Rcpp::export]]
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0) {
+Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0, bool trace = false) {
     whisper_params params;
     params.language = language;
     params.model = model;
@@ -772,14 +538,14 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
                     Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
                 }
             }
-            Rcpp::Rcout << "Processing" << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps;
+            Rcpp::Rcout << "Processing" << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << "\n";
         }
         
         // run the inference
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
             
-            wparams.print_realtime   = false;
+            wparams.print_realtime   = trace;
             wparams.print_progress   = false;
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;
@@ -822,36 +588,6 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
                 Rcpp::stop("failed to process audio");
             }
         }
-        /*
-        // output stuff
-        {
-            printf("\n");
-            
-            // output to text file
-            if (params.output_txt) {
-                const auto fname_txt = fname_inp + ".txt";
-                output_txt(ctx, fname_txt.c_str());
-            }
-            
-            // output to VTT file
-            if (params.output_vtt) {
-                const auto fname_vtt = fname_inp + ".vtt";
-                output_vtt(ctx, fname_vtt.c_str());
-            }
-            
-            // output to SRT file
-            if (params.output_srt) {
-                const auto fname_srt = fname_inp + ".srt";
-                output_srt(ctx, fname_srt.c_str(), params);
-            }
-            
-            // output to WTS file
-            if (params.output_wts) {
-                const auto fname_wts = fname_inp + ".wts";
-                output_wts(ctx, fname_wts.c_str(), fname_inp.c_str(), params, float(pcmf32.size() + 1000)/WHISPER_SAMPLE_RATE);
-            }
-        }
-         */
     }
     
     // Get the data back in R
