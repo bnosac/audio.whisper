@@ -44,6 +44,8 @@ trans$data
   And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
 ```
 
+### Format of the audio
+
 Note about that the audio file needs to be a **`16-bit .wav` file**. 
   - you can use R package [`av`](https://cran.r-project.org/package=av) to convert to that format 
   - or alternatively, use `ffmpeg` to create one if you have another format. 
