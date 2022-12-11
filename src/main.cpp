@@ -686,7 +686,7 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
     //std::string language  = "en";
     //std::string model     = "models/ggml-base.en.bin";
     if (params.fname_inp.empty()) {
-        fprintf(stderr, "error: no input files specified\n");
+        Rcpp::stop("error: no input files specified");
     }
     
     if (whisper_lang_id(params.language.c_str()) == -1) {
@@ -704,49 +704,24 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
             drwav wav;
             std::vector<uint8_t> wav_data; // used for pipe input from stdin
             
-            if (fname_inp == "-") {
-                {
-                    uint8_t buf[1024];
-                    while (true)
-                    {
-                        const size_t n = fread(buf, 1, sizeof(buf), stdin);
-                        if (n == 0) {
-                            break;
-                        }
-                        wav_data.insert(wav_data.end(), buf, buf + n);
-                    }
-                }
-                
-                if (drwav_init_memory(&wav, wav_data.data(), wav_data.size(), NULL) == false) {
-                    fprintf(stderr, "error: failed to open WAV file from stdin\n");
-                    return 4;
-                }
-                
-                fprintf(stderr, "%s: read %zu bytes from stdin\n", __func__, wav_data.size());
-            }
-            else if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
-                fprintf(stderr, "error: failed to open '%s' as WAV file\n", fname_inp.c_str());
-                return 5;
+            if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
+                Rcpp::stop("Failed to open the file as WAV file: ", fname_inp);
             }
             
             if (wav.channels != 1 && wav.channels != 2) {
-                fprintf(stderr, "WAV file '%s' must be mono or stereo\n", fname_inp.c_str());
-                return 6;
+                Rcpp::stop("WAV file must be mono or stereo: ", fname_inp);
             }
             
             if (params.diarize && wav.channels != 2 && params.no_timestamps == false) {
-                fprintf(stderr, "WAV file '%s' must be stereo for diarization and timestamps have to be enabled\n", fname_inp.c_str());
-                return 6;
+                Rcpp::stop("WAV file must be stereo for diarization and timestamps have to be enabled: ", fname_inp);
             }
             
             if (wav.sampleRate != WHISPER_SAMPLE_RATE) {
-                fprintf(stderr, "WAV file '%s' must be 16 kHz\n", fname_inp.c_str());
-                return 8;
+                Rcpp::stop("WAV file must be 16 kHz: ", fname_inp);
             }
             
             if (wav.bitsPerSample != 16) {
-                fprintf(stderr, "WAV file '%s' must be 16-bit\n", fname_inp.c_str());
-                return 9;
+                Rcpp::stop("WAV file must be 16 bit: ", fname_inp);
             }
             
             const uint64_t n = wav_data.empty() ? wav.totalPCMFrameCount : wav_data.size()/(wav.channels*wav.bitsPerSample/8);
@@ -781,33 +756,24 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
             }
         }
         
+        /*
         // print system information
         {
             fprintf(stderr, "\n");
             fprintf(stderr, "system_info: n_threads = %d / %d | %s\n",
                     params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());
         }
-        
-        // print some info about the processing
+        */
         {
-            fprintf(stderr, "\n");
             if (!whisper_is_multilingual(ctx)) {
                 if (params.language != "en" || params.translate) {
                     params.language = "en";
                     params.translate = false;
-                    fprintf(stderr, "%s: WARNING: model is not multilingual, ignoring language and translation options\n", __func__);
+                    Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
                 }
             }
-            fprintf(stderr, "%s: processing '%s' (%d samples, %.1f sec), %d threads, %d processors, lang = %s, task = %s, timestamps = %d ...\n",
-                    __func__, fname_inp.c_str(), int(pcmf32.size()), float(pcmf32.size())/WHISPER_SAMPLE_RATE,
-                    params.n_threads, params.n_processors,
-                    params.language.c_str(),
-                    params.translate ? "translate" : "transcribe",
-                    params.no_timestamps ? 0 : 1);
-            
-            fprintf(stderr, "\n");
+            Rcpp::Rcout << "Processing" << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps;
         }
-        
         
         // run the inference
         {
@@ -853,11 +819,10 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
             }
             
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
-                fprintf(stderr, "failed to process audio\n");
-                return 10;
+                Rcpp::stop("failed to process audio");
             }
         }
-        
+        /*
         // output stuff
         {
             printf("\n");
@@ -886,6 +851,7 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
                 output_wts(ctx, fname_wts.c_str(), fname_inp.c_str(), params, float(pcmf32.size() + 1000)/WHISPER_SAMPLE_RATE);
             }
         }
+         */
     }
     
     // Get the data back in R
@@ -915,11 +881,8 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
                     continue;
                 }
             }
-        
             const char * text = whisper_full_get_token_text(ctx, i, j);
             const float  p    = whisper_full_get_token_p   (ctx, i, j);
-            //const int col = std::max(0, std::min((int) k_colors.size(), (int) (std::pow(p, 3)*float(k_colors.size()))));
-            //printf("%s%s%s", k_colors[col].c_str(), text, "\033[0m");
             token_segment_nr.push_back(i + 1);
             std::string str(text);
             token_segment_text.push_back(str);
