@@ -11,8 +11,8 @@ Authors@R: c(
 Description: The "Whisper" models are trained for speech recognition and translation tasks, 
     capable of transcribing speech audio into the text in the language it is spoken (Automatic Speech Recognition) 
     as well as translated into English (speech translation). 
-    The package is in "Rcpp" wrapper around the standalone C++ implementation provided at <https://github.com/ggerganov/whisper.cpp>.
-    There are 10 models available of different sizes and capabilities.
+    The package is an "Rcpp" wrapper around the standalone C++ implementation provided at <https://github.com/ggerganov/whisper.cpp>. 
+    There are 10 pretrained models available of different sizes and language capabilities.
     "Whisper" is explained in the paper: 'Robust Speech Recognition via Large-Scale Weak Supervision' by Radford et al. (2022), available at <arXiv:2212.04356>.
 License: MIT + file LICENSE
   URL: https://github.com/bnosac/audio.whisper

@@ -52,7 +52,7 @@ Note about that the audio file needs to be a **`16-bit .wav` file**.
 ```{r}
 library(av)
 av_audio_convert("00-intro.wmv", output = "output.wav", format = "wav", sample_rate = 16000)
-predict(model, newdata = "output.wav", language = "nl")
+predict(model, newdata = "output.wav", language = "en")
 ```
   - or alternatively, use `ffmpeg` to create one if you have another format. 
 
