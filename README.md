@@ -35,13 +35,41 @@ model <- whisper("large")
 **Transcribe a `.wav` audio file** 
   - using `predict(model, "path/to/audio/file.wav")` and 
   - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
+  - the result contains the segments and the tokens
 
 ```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio, language = "en")
-trans$data
+trans$segments
                                                                                                        text         from           to
   And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
+  
+trans$tokens
+
+ segment      token token_prob
+       1        And  0.7476438
+       1         so  0.9042299
+       1         my  0.6872202
+       1     fellow  0.9984470
+       1  Americans  0.9589157
+       1        ask  0.2573057
+       1        not  0.7678108
+       1       what  0.6542882
+       1       your  0.9386917
+       1    country  0.9854987
+       1        can  0.9813995
+       1         do  0.9937403
+       1        for  0.9791515
+       1        you  0.9925495
+       1        ask  0.3058807
+       1       what  0.8303462
+       1        you  0.9735528
+       1        can  0.9711444
+       1         do  0.9616748
+       1        for  0.9778513
+       1       your  0.9604713
+       1    country  0.9923630
+       1          .  0.4983074
 ```
 
 ### Format of the audio

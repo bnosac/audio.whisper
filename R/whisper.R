@@ -5,17 +5,26 @@
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
 #' @param language the language of the audio. Defaults to 'en'
-#' @param ... further arguments, not used currently
+#' @param ... further arguments, for expert usage only
 #' @return a list with the following elements:
 #' \itemize{
-#' \item{segments: the number of audio segments}
-#' \item{data: a data.frame with the transcription with columns text, from and to}
-#' \item{params: a list with parameters}
+#' \item{n_segments: the number of audio segments}
+#' \item{segments: a data.frame with the transcription with columns segment, text, from and to}
+#' \item{tokens: a data.frame with the transcription tokens with columns segment, token, token_prob indicating the token probability given the context}
+#' \item{params: a list with parameters used for inference}
 #' }
 #' @export
 #' @seealso \code{\link{whisper}}
+#' \dontrun{ 
+#' model <- whisper("tiny")
+#' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
+#' trans <- predict(model, newdata = audio)
+#' trans <- predict(model, newdata = audio, token_timestamps = TRUE)
+#' }
 predict.whisper <- function(object, newdata, language = "en", ...){
-  whisper_encode(model = object$file, path = newdata, language = language)
+  stopifnot(length(newdata) == 1)
+  stopifnot(file.exists(newdata))
+  whisper_encode(model = object$file, path = newdata, language = language, ...)
 }
 
 

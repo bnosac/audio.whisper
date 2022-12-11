@@ -13,14 +13,15 @@
 
 \item{language}{the language of the audio. Defaults to 'en'}
 
-\item{...}{further arguments, not used currently}
+\item{...}{further arguments, for expert usage only}
 }
 \value{
 a list with the following elements:
 \itemize{
-\item{segments: the number of audio segments}
-\item{data: a data.frame with the transcription with columns text, from and to}
-\item{params: a list with parameters}
+\item{n_segments: the number of audio segments}
+\item{segments: a data.frame with the transcription with columns segment, text, from and to}
+\item{tokens: a data.frame with the transcription tokens with columns segment, token, token_prob indicating the token probability given the context}
+\item{params: a list with parameters used for inference}
 }
 }
 \description{
@@ -28,4 +29,10 @@ Automatic Speech Recognition using Whisper on 16-bit WAV files
 }
 \seealso{
 \code{\link{whisper}}
+\dontrun{ 
+model <- whisper("tiny")
+audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
+trans <- predict(model, newdata = audio)
+trans <- predict(model, newdata = audio, token_timestamps = TRUE)
+}
 }

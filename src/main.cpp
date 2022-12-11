@@ -672,10 +672,12 @@ int main(int argc, char ** argv) {
 #include <Rcpp.h>
 
 // [[Rcpp::export]]
-Rcpp::List whisper_encode(std::string model, std::string path, std::string language) {
+Rcpp::List whisper_encode(std::string model, std::string path, std::string language, bool token_timestamps = false, bool translate = false, bool print_special = false) {
     whisper_params params;
     params.language = language;
     params.model = model;
+    params.translate = translate;
+    params.print_special = print_special;
     params.fname_inp.push_back(path);
     
     
@@ -821,6 +823,7 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
             wparams.duration_ms      = params.duration_ms;
             
             wparams.token_timestamps = params.output_wts || params.max_len > 0;
+            wparams.token_timestamps = token_timestamps;
             wparams.thold_pt         = params.word_thold;
             wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
             
@@ -885,31 +888,80 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
     
     // Get the data back in R
     const int n_segments = whisper_full_n_segments(ctx);
+    std::vector<int> segment_nr;
     Rcpp::StringVector transcriptions(n_segments);
     Rcpp::StringVector transcriptions_from(n_segments);
     Rcpp::StringVector transcriptions_to(n_segments);
+    std::vector<int> token_segment_nr;
+    std::vector<std::string> token_segment_text;
+    std::vector<float> token_segment_probability;
+    std::vector<std::string> token_segment_from;
+    std::vector<std::string> token_segment_to;
     for (int i = 0; i < n_segments; ++i) {
+        segment_nr.push_back(i + 1);
         const char * text = whisper_full_get_segment_text(ctx, i);
         transcriptions[i] = Rcpp::String(text);
-        const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
-        const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
+        int64_t t0 = whisper_full_get_segment_t0(ctx, i);
+        int64_t t1 = whisper_full_get_segment_t1(ctx, i);
         transcriptions_from[i] = Rcpp::String(to_timestamp(t0).c_str());
         transcriptions_to[i] = Rcpp::String(to_timestamp(t1).c_str());
         
+        for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
+            if (params.print_special == false) {
+                const whisper_token id = whisper_full_get_token_id(ctx, i, j);
+                if (id >= whisper_token_eot(ctx)) {
+                    continue;
+                }
+            }
+        
+            const char * text = whisper_full_get_token_text(ctx, i, j);
+            const float  p    = whisper_full_get_token_p   (ctx, i, j);
+            //const int col = std::max(0, std::min((int) k_colors.size(), (int) (std::pow(p, 3)*float(k_colors.size()))));
+            //printf("%s%s%s", k_colors[col].c_str(), text, "\033[0m");
+            token_segment_nr.push_back(i + 1);
+            std::string str(text);
+            token_segment_text.push_back(str);
+            token_segment_probability.push_back(p);
+            if(token_timestamps){
+                whisper_token_data token = whisper_full_get_token_data(ctx, i, j);
+                t0 = token.t0;
+                t1 = token.t1;
+                token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+                token_segment_to.push_back(to_timestamp(token.t1));
+            }
+        }
+    }
+    Rcpp::DataFrame tokens;
+    if(token_timestamps){
+        tokens = Rcpp::DataFrame::create(
+            Rcpp::Named("segment") = token_segment_nr, 
+            Rcpp::Named("token") = token_segment_text, 
+            Rcpp::Named("token_prob") = token_segment_probability,
+            Rcpp::Named("token_from") = token_segment_from,
+            Rcpp::Named("token_to") = token_segment_to,
+            Rcpp::Named("stringsAsFactors") = false);
+    }else{
+        tokens = Rcpp::DataFrame::create(
+            Rcpp::Named("segment") = token_segment_nr, 
+            Rcpp::Named("token") = token_segment_text, 
+            Rcpp::Named("token_prob") = token_segment_probability,
+            Rcpp::Named("stringsAsFactors") = false);
     }
     
-    //whisper_print_timings(ctx);
     whisper_free(ctx);
-    Rcpp::List output = Rcpp::List::create(Rcpp::Named("segments") = n_segments,
-                                           Rcpp::Named("data") = Rcpp::DataFrame::create(
+    Rcpp::List output = Rcpp::List::create(Rcpp::Named("n_segments") = n_segments,
+                                           Rcpp::Named("segments") = Rcpp::DataFrame::create(
+                                               Rcpp::Named("segment") = segment_nr, 
                                                Rcpp::Named("text") = transcriptions, 
                                                Rcpp::Named("from") = transcriptions_from,
                                                Rcpp::Named("to") = transcriptions_to,
                                                Rcpp::Named("stringsAsFactors") = false),
-                                               Rcpp::Named("params") = Rcpp::List::create(
-                                                   Rcpp::Named("audio") = path,
-                                                   Rcpp::Named("language") = params.language, 
-                                                   Rcpp::Named("translate") = params.translate,
-                                                   Rcpp::Named("word_threshold") = params.word_thold));
+                                           Rcpp::Named("tokens") = tokens,
+                                           Rcpp::Named("params") = Rcpp::List::create(
+                                               Rcpp::Named("audio") = path,
+                                               Rcpp::Named("language") = params.language, 
+                                               Rcpp::Named("translate") = params.translate,
+                                               Rcpp::Named("token_timestamps") = token_timestamps,
+                                               Rcpp::Named("word_threshold") = params.word_thold));
     return output;
 }
