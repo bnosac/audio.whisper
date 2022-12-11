@@ -48,13 +48,13 @@ trans$data
 
 Note about that the audio file needs to be a **`16-bit .wav` file**. 
   - you can use R package [`av`](https://cran.r-project.org/package=av) to convert to that format 
-  - or alternatively, use `ffmpeg` to create one if you have another format. 
 
 ```{r}
 library(av)
 av_audio_convert("00-intro.wmv", output = "output.wav", format = "wav", sample_rate = 16000)
 predict(model, newdata = "output.wav", language = "nl")
 ```
+  - or alternatively, use `ffmpeg` to create one if you have another format. 
 
 ```{bash}
 ffmpeg                 -i input.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav
