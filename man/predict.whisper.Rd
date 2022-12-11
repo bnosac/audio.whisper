@@ -27,12 +27,14 @@ a list with the following elements:
 \description{
 Automatic Speech Recognition using Whisper on 16-bit WAV files
 }
-\seealso{
-\code{\link{whisper}}
+\examples{
 \dontrun{ 
 model <- whisper("tiny")
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio)
 trans <- predict(model, newdata = audio, token_timestamps = TRUE)
 }
+}
+\seealso{
+\code{\link{whisper}}
 }

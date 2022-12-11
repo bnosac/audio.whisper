@@ -15,6 +15,7 @@
 #' }
 #' @export
 #' @seealso \code{\link{whisper}}
+#' @examples
 #' \dontrun{ 
 #' model <- whisper("tiny")
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
