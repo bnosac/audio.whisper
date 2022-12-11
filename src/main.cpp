@@ -950,11 +950,11 @@ Rcpp::List whisper_encode(std::string model, std::string path, std::string langu
     
     whisper_free(ctx);
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("n_segments") = n_segments,
-                                           Rcpp::Named("segments") = Rcpp::DataFrame::create(
+                                           Rcpp::Named("data") = Rcpp::DataFrame::create(
                                                Rcpp::Named("segment") = segment_nr, 
-                                               Rcpp::Named("text") = transcriptions, 
                                                Rcpp::Named("from") = transcriptions_from,
                                                Rcpp::Named("to") = transcriptions_to,
+                                               Rcpp::Named("text") = transcriptions, 
                                                Rcpp::Named("stringsAsFactors") = false),
                                            Rcpp::Named("tokens") = tokens,
                                            Rcpp::Named("params") = Rcpp::List::create(
