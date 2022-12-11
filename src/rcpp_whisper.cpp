@@ -402,7 +402,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bo
             Rcpp::Named("stringsAsFactors") = false);
     }
     
-    whisper_free(ctx);
+    //whisper_free(ctx);
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("n_segments") = n_segments,
                                            Rcpp::Named("data") = Rcpp::DataFrame::create(
                                                Rcpp::Named("segment") = segment_nr, 
