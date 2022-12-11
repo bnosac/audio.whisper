@@ -1,0 +1,25 @@
+Package: audio.whisper
+Type: Package
+Title: Transcribe audio files using the "Whisper" Automatic Speech Recognition model
+Version: 0.1.0
+Maintainer: Jan Wijffels <jwijffels@bnosac.be>
+Authors@R: c(
+    person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
+    person('David', 'Reid', role = c('ctb', 'cph'), comment = "Files in src/dr_libs"), 
+    person('Georgi', 'Gerganov', role = c('ctb', 'cph'), comment = "Files in src: whisper.cpp, whisper.h, ggml.c and ggml.h. Files in inst"), 
+    person('BNOSAC', role = 'cph', comment = "R wrapper"))
+Description: The "Whisper" models are trained for speech recognition and translation tasks, 
+    capable of transcribing speech audio into the text in the language it is spoken (Automatic Speech Recognition) 
+    as well as translated into English (speech translation). 
+    The package is in "Rcpp" wrapper around the standalone C++ implementation provided at <https://github.com/ggerganov/whisper.cpp>.
+    There are 10 models available of different sizes and capabilities.
+    "Whisper" is explained in the paper: 'Robust Speech Recognition via Large-Scale Weak Supervision' by Radford et al. (2022), available at <arXiv:2212.04356>.
+License: MIT + file LICENSE
+  URL: https://github.com/bnosac/audio.whisper
+Encoding: UTF-8
+Depends:
+    R (>= 2.10)
+Imports:
+    Rcpp (>= 0.11.5)
+LinkingTo: Rcpp
+RoxygenNote: 7.1.1
