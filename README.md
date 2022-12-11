@@ -40,12 +40,15 @@ model <- whisper("large")
 ```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio, language = "en")
-trans$segments
-                                                                                                       text         from           to
-  And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
-  
-trans$tokens
+trans
+$n_segments
+[1] 1
 
+$data
+ segment         from           to                                                                                                       text
+       1 00:00:00.000 00:00:11.000  And so my fellow Americans ask not what your country can do for you ask what you can do for your country.
+
+$tokens
  segment      token token_prob
        1        And  0.7476438
        1         so  0.9042299
@@ -86,8 +89,10 @@ av_audio_convert("rant1.mp3", output = "output.wav", format = "wav", sample_rate
 
 <details>
   <summary>Transcription</summary>
+  
   ```{r}
-  predict(model, newdata = "output.wav", language = "en", duration = 100000)
+  trans <- predict(model, newdata = "output.wav", language = "en", duration = 30 * 1000, offset = 7 * 1000, token_timestamps = TRUE)
+  trans
   ```
 </details>
 
