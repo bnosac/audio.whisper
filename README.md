@@ -1,32 +1,27 @@
 # audio.whisper
 
-This repository contains an R package which is an Rcpp wrapper around the whisper.cpp C++ library (https://github.com/ggerganov/whisper.cpp).
+This repository contains an R package which is an Rcpp wrapper around the [whisper.cpp C++ library](https://github.com/ggerganov/whisper.cpp).
 
-The package allows to transcribe audio files using the "Whisper" Automatic Speech Recognition model
+![](tools/logo-audio-whisper-x100.png)
 
-### Installation
+- The package allows to transcribe audio files using the ["Whisper" Automatic Speech Recognition model](https://github.com/openai/whisper)
+- The package is a direct C++ inference engine based on C++11, no external software is needed, so that you can directly install and use it from R
 
-- For regular users, install the package from your local CRAN mirror `install.packages("audio.whisper")`
-- For installing the development version of this package: `remotes::install_github("bnosac/audio.whisper")`
-
-Look to the documentation of the functions
-
-```
-help(package = "audio.whisper")
-```
 
 ## Available models
 
-- `tiny` & `tiny.en`: 75 MB, RAM required: ~390 MB. Multilingual and English only version.
-- `base` & `base.en`: 142 MB, RAM required: ~500 MB. Multilingual and English only version.
-- `small` & `small.en`: 466 MB, RAM required: ~1.0 GB. Multilingual and English only version.
-- `medium` & `medium.en`: 1.5 GB, RAM required: ~2.6 GB. Multilingual and English only version.
-- `large-v1` & `large`: 2.9 GB, RAM required: ~4.7 GB. Multilingual version 1 and version 2
+| Model                  | Language                    |  Size  | RAM needed |
+|:-----------------------|:---------------------------:|-------:|-----------:|
+| `tiny` & `tiny.en`     | Multilingual & English only | 75 MB  | 390 MB     |
+| `base` & `base.en`     | Multilingual & English only | 142 MB | 500 MB     |
+| `small` & `small.en`   | Multilingual & English only | 466 MB | 1.0 GB     |
+| `medium` & `medium.en` | Multilingual & English only | 1.5 GB | 2.6 GB     |
+| `large-v1` & `large`   | Multilingual                | 2.9 GB | 4.7 GB     |
 
 ## Example
 
-- Load the model either by providing the full path to the model or specify the shorthand
-- For a list of available models and to download a model, see the help of `whisper_download_model`
+Load the model either by providing the full path to the model or specify the shorthand which will download the model
+  - see the help of `whisper_download_model` for a list of available models and to download a model
 
 ```
 library(audio.whisper)
@@ -37,15 +32,7 @@ model <- whisper("medium")
 model <- whisper("large")
 ```
 
-- Make sure you have a 16-bit .wav file or use ffmpeg to create one based on an another format
-
-```
-ffmpeg                 -i 00-intro.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav
-ffmpeg                 -i input.mp3    -ar 16000 -ac 1 -c:a pcm_s16le output.wav
-ffmpeg -loglevel -0 -y -i hp0.ogg      -ar 16000 -ac 1 -c:a pcm_s16le output.wav
-```
-
-- Transcribe the audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
+- Transcribe a `.wav` audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
 
 ```
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
@@ -53,6 +40,24 @@ trans <- predict(model, newdata = audio, language = "en")
 trans$data
                                                                                                        text         from           to
   And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
+```
+
+- Note: the audio file needs to be a `16-bit .wav` file. Use `ffmpeg` to create one if you have another format. E.g. as follows:
+
+```
+ffmpeg                 -i 00-intro.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+ffmpeg                 -i input.mp3    -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+ffmpeg -loglevel -0 -y -i hp0.ogg      -ar 16000 -ac 1 -c:a pcm_s16le output.wav
+```
+
+### Installation
+
+- For installing the development version of this package: `remotes::install_github("bnosac/audio.whisper")`
+
+Look to the documentation of the functions
+
+```
+help(package = "audio.whisper")
 ```
 
 ## Support in text mining
