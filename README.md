@@ -32,7 +32,7 @@ model <- whisper("medium")
 model <- whisper("large")
 ```
 
-- Transcribe a `.wav` audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
+Transcribe a `.wav` audio file using `predict(model, "path-to-file.wav")` and provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
 
 ```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
@@ -42,7 +42,7 @@ trans$data
   And so my fellow Americans ask not what your country can do for you ask what you can do for your country. 00:00:00.000 00:00:11.000
 ```
 
-- Note: the audio file needs to be a `16-bit .wav` file. You can use R package [`av`](https://cran.r-project.org/package=av) to convert to that format or alternatively, use `ffmpeg` to create one if you have another format. 
+Note: the audio file needs to be a `16-bit .wav` file. You can use R package [`av`](https://cran.r-project.org/package=av) to convert to that format or alternatively, use `ffmpeg` to create one if you have another format. 
 
 ```{r}
 library(av)
