@@ -1,10 +1,10 @@
 PKG_CFLAGS = -std=c11 -O3 -D_POSIX_C_SOURCE=199309L
 PKG_LIBS = -pthread
 CXX_STD = CXX11
-PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -std=c++2a -I./dr_libs -I./whisper
+PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -std=c++2a -I./dr_libs -I./whisper.cpp
 
-SOURCES = whisper/ggml.c \
-          whisper/whisper.cpp \
+SOURCES = whisper.cpp/ggml.c \
+          whisper.cpp/whisper.cpp \
           rcpp_whisper.cpp  \
           RcppExports.cpp
 
