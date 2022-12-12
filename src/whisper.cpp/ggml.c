@@ -1158,24 +1158,24 @@ inline static void ggml_vec_norm_inv_f32(const int n, float * s, const float * x
 //
 
 #if (GGML_DEBUG >= 1)
-#define GGML_PRINT_DEBUG(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG(...)
 #endif
 
 #if (GGML_DEBUG >= 5)
-#define GGML_PRINT_DEBUG_5(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG_5(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG_5(...)
 #endif
 
 #if (GGML_DEBUG >= 10)
-#define GGML_PRINT_DEBUG_10(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG_10(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG_10(...)
 #endif
 
-#define GGML_PRINT(...) printf(__VA_ARGS__)
+#define GGML_PRINT(...) Rprintf(__VA_ARGS__)
 
 //
 // data types
