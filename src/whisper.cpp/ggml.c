@@ -92,7 +92,6 @@ typedef void* thread_ret_t;
 #define GGML_ASSERT(x) \
     do { \
         if (!(x)) { \
-            fprintf(stderr, "GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
             Rf_error("GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
         } \
     } while (0)
