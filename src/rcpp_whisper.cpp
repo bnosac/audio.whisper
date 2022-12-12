@@ -4,7 +4,7 @@
 // third-party utilities
 // use your favorite implementations
 #define DR_WAV_IMPLEMENTATION
-#include "dr_libs/dr_wav.h"
+#include "dr_wav.h"
 
 #include <cmath>
 #include <fstream>

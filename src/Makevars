@@ -1,4 +1,16 @@
 PKG_CFLAGS = -std=c11 -O3 -D_POSIX_C_SOURCE=199309L
 PKG_LIBS = -pthread
 CXX_STD = CXX11
-PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -std=c++2a 
+PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -std=c++2a -I./dr_libs -I./whisper
+
+SOURCES = whisper/ggml.c \
+          whisper/whisper.cpp \
+          rcpp_whisper.cpp  \
+          RcppExports.cpp
+
+OBJ1    = $(SOURCES:.c=.o)
+OBJECTS = $(OBJ1:.cpp=.o)
+
+.PHONY: all 
+
+all: $(SHLIB); rm -f $(OBJECTS) 

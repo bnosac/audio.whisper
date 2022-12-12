@@ -5,8 +5,8 @@ Version: 0.1.0
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
     person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
-    person('David', 'Reid', role = c('ctb', 'cph'), comment = "Files in src/dr_libs"), 
-    person('Georgi', 'Gerganov', role = c('ctb', 'cph'), comment = "Files in src: whisper.cpp, whisper.h, ggml.c and ggml.h. Files in inst"), 
+    person('David', 'Reid', role = c('ctb', 'cph'), comment = "Files in src/dr_libs folder"), 
+    person('Georgi', 'Gerganov', role = c('ctb', 'cph'), comment = "Files in src/whisper and files in inst folder"), 
     person('BNOSAC', role = 'cph', comment = "R wrapper"))
 Description: The "Whisper" models are trained for speech recognition and translation tasks, 
     capable of transcribing speech audio into the text in the language it is spoken (Automatic Speech Recognition) 
