@@ -1,3 +1,4 @@
+#include "R.h"
 #include "ggml.h"
 
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -92,7 +93,7 @@ typedef void* thread_ret_t;
     do { \
         if (!(x)) { \
             fprintf(stderr, "GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
-            abort(); \
+            Rf_error("GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
         } \
     } while (0)
 
