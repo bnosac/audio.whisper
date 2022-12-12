@@ -121,7 +121,8 @@ void whisper_print_segment_callback(struct whisper_context * ctx, int n_new, voi
                 const char * text = whisper_full_get_segment_text(ctx, i);
                 Rprintf("%s", text);
             }
-            fflush(stdout);
+            Rcpp::checkUserInterrupt();
+            //fflush(stdout);
         } else {
             const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
             const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
