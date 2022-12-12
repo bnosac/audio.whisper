@@ -180,11 +180,26 @@ void whisper_print_segment_callback(struct whisper_context * ctx, int n_new, voi
     }
 }
 
+
+// Functionality to free the Rcpp::XPtr
+class WhisperModel {
+    public: 
+        struct whisper_context * ctx;
+        WhisperModel(std::string model){
+          ctx = whisper_init(model.c_str());
+        }
+        ~WhisperModel(){
+            whisper_free(ctx);
+        }
+};
+
 // [[Rcpp::export]]
 SEXP whisper_load_model(std::string model) {
     // Load language model and return the pointer to be used by whisper_encode
-    struct whisper_context * ctx = whisper_init(model.c_str());
-    Rcpp::XPtr<whisper_context> ptr(ctx, true);
+    //struct whisper_context * ctx = whisper_init(model.c_str());
+    //Rcpp::XPtr<whisper_context> ptr(ctx, false);
+    WhisperModel * wp = new WhisperModel(model);
+    Rcpp::XPtr<WhisperModel> ptr(wp, false);
     return ptr;
 }
     
@@ -212,7 +227,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bo
     }
     
     // whisper init
-    Rcpp::XPtr<whisper_context> ctx(model);
+    Rcpp::XPtr<WhisperModel> whispermodel(model);
+    struct whisper_context * ctx = whispermodel->ctx;
+    //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
     for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
         const auto fname_inp = params.fname_inp[f];
