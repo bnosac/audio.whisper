@@ -2819,7 +2819,8 @@ int whisper_full(
                                 Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                             } else {
                                 Rprintf("%s", text.c_str());
-                                fflush(stdout);
+                                Rcpp::checkUserInterrupt();
+                                //fflush(stdout);
                             }
                         }
 
@@ -2863,7 +2864,8 @@ int whisper_full(
                         Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                     } else {
                         Rprintf("%s", text.c_str());
-                        fflush(stdout);
+                        Rcpp::checkUserInterrupt();
+                        //fflush(stdout);
                     }
                 }
 
