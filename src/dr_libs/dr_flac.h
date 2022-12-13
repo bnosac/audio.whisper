@@ -1329,9 +1329,9 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 
 /* Disable some annoying warnings. */
 #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-    #pragma GCC diagnostic push
+    //#pragma GCC diagnostic push
     #if __GNUC__ >= 7
-    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+    //#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
     #endif
 #endif
 
@@ -12049,7 +12049,7 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 }
 
 #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-    #pragma GCC diagnostic pop
+    //#pragma GCC diagnostic pop
 #endif
 #endif  /* dr_flac_c */
 #endif  /* DR_FLAC_IMPLEMENTATION */
