@@ -157,19 +157,21 @@ ggml_fp16_t ggml_fp32_to_fp16(float f) {
 #else
 
 static inline float fp32_from_bits(uint32_t w) {
-    union {
-        uint32_t as_bits;
-        float as_value;
-    } fp32 = { w };
-    return fp32.as_value;
+  union {
+  uint32_t as_bits;
+  float as_value;
+} fp32;
+  fp32.as_bits = w;
+  return fp32.as_value;
 }
 
 static inline uint32_t fp32_to_bits(float f) {
-	union {
-		float as_value;
-		uint32_t as_bits;
-	} fp32 = { f };
-	return fp32.as_bits;
+  union {
+  float as_value;
+  uint32_t as_bits;
+} fp32;
+  fp32.as_value = f;
+  return fp32.as_bits;
 }
 
 float ggml_fp16_to_fp32(ggml_fp16_t h) {

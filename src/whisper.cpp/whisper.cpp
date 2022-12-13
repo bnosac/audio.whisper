@@ -736,16 +736,15 @@ static bool whisper_model_load(const std::string & fname, whisper_context & wctx
 
     // create the ggml context
     {
-        struct ggml_init_params params = {
-            .mem_size   = wctx.buf_model->size(),
-            .mem_buffer = wctx.buf_model->data(),
-        };
-
-        model.ctx = ggml_init(params);
-        if (!model.ctx) {
-            Rprintf("%s: ggml_init() failed\n", __func__);
-            return false;
-        }
+      struct ggml_init_params params;
+      params.mem_size   = wctx.buf_model->size();
+      params.mem_buffer = wctx.buf_model->data();
+      
+      model.ctx = ggml_init(params);
+      if (!model.ctx) {
+        Rprintf("%s: ggml_init() failed\n", __func__);
+        return false;
+      }
     }
 
     // prepare memory for the weights
@@ -946,16 +945,15 @@ static bool whisper_model_load(const std::string & fname, whisper_context & wctx
 
     // create the ggml memory context
     {
-        struct ggml_init_params params = {
-            .mem_size   = wctx.buf_memory.size(),
-            .mem_buffer = wctx.buf_memory.data(),
-        };
-
-        model.ctx_mem = ggml_init(params);
-        if (!model.ctx_mem) {
-            Rprintf("%s: ggml_init() failed\n", __func__);
-            return false;
-        }
+      struct ggml_init_params params;
+      params.mem_size   = wctx.buf_memory.size();
+      params.mem_buffer = wctx.buf_memory.data();
+      
+      model.ctx_mem = ggml_init(params);
+      if (!model.ctx_mem) {
+        Rfprintf("%s: ggml_init() failed\n", __func__);
+        return false;
+      }
     }
 
     // key + value memory
@@ -1098,10 +1096,9 @@ static bool whisper_encode(
     const int n_mels = hparams.n_mels;
     assert(mel_inp.n_mel == n_mels);
 
-    struct ggml_init_params params = {
-        .mem_size   = wctx.buf_compute.size(),
-        .mem_buffer = wctx.buf_compute.data(),
-    };
+    struct ggml_init_params params;
+    params.mem_size   = wctx.buf_compute.size();
+    params.mem_buffer = wctx.buf_compute.data();  
 
     struct ggml_context * ctx0 = ggml_init(params);
 
@@ -1176,10 +1173,9 @@ static bool whisper_encode(
 
         // create separate context for each layer to reduce memory usage
 
-        struct ggml_init_params paramsL = {
-            .mem_size   = wctx.buf_compute_layer.size(),
-            .mem_buffer = wctx.buf_compute_layer.data(),
-        };
+        struct ggml_init_params paramsL;
+        paramsL.mem_size   = wctx.buf_compute_layer.size();
+        paramsL.mem_buffer = wctx.buf_compute_layer.data();
 
         struct ggml_context * ctxL = ggml_init(paramsL);
 
@@ -1513,10 +1509,9 @@ static bool whisper_decode(
     const int N = n_tokens;
     const int M = wctx.exp_n_audio_ctx > 0 ? wctx.exp_n_audio_ctx : hparams.n_audio_ctx;
 
-    struct ggml_init_params params = {
-            .mem_size   = wctx.buf_compute.size(),
-            .mem_buffer = wctx.buf_compute.data(),
-        };
+    struct ggml_init_params params;
+    params.mem_size   = wctx.buf_compute.size();
+    params.mem_buffer = wctx.buf_compute.data();
 
     struct ggml_context * ctx0 = ggml_init(params);
 
@@ -1539,10 +1534,9 @@ static bool whisper_decode(
     for (int il = 0; il < n_layer; ++il) {
         const auto & layer = model.layers_decoder[il];
 
-        struct ggml_init_params paramsL = {
-            .mem_size   = wctx.buf_compute_layer.size(),
-            .mem_buffer = wctx.buf_compute_layer.data(),
-        };
+        struct ggml_init_params paramsL;
+        paramsL.mem_size   = wctx.buf_compute_layer.size();
+        paramsL.mem_buffer = wctx.buf_compute_layer.data();
 
         struct ggml_context * ctxL = ggml_init(paramsL);
         struct ggml_cgraph gf = {};
@@ -2918,10 +2912,9 @@ int whisper_full_parallel(
 
         // create the ggml memory context
         {
-            struct ggml_init_params params = {
-                .mem_size   = ctxs[i].buf_memory.size(),
-                .mem_buffer = ctxs[i].buf_memory.data(),
-            };
+            struct ggml_init_params params;
+            params.mem_size   = ctxs[i].buf_memory.size();
+            params.mem_buffer = ctxs[i].buf_memory.data();
 
             model.ctx_mem = ggml_init(params);
             if (!model.ctx_mem) {

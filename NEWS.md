@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.1.1
+
+- Incorporate https://github.com/ggerganov/whisper.cpp/pull/257
+
 ## CHANGES IN audio.whisper VERSION 0.1.0
 
 - Initial version based on 
