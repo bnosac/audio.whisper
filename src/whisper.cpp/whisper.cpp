@@ -951,7 +951,7 @@ static bool whisper_model_load(const std::string & fname, whisper_context & wctx
       
       model.ctx_mem = ggml_init(params);
       if (!model.ctx_mem) {
-        Rfprintf("%s: ggml_init() failed\n", __func__);
+        Rprintf("%s: ggml_init() failed\n", __func__);
         return false;
       }
     }
