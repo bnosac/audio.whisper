@@ -1,6 +1,6 @@
 Package: audio.whisper
 Type: Package
-Title: Transcribe audio files using the "Whisper" Automatic Speech Recognition model
+Title: Transcribe Audio Files using the "Whisper" Automatic Speech Recognition Model
 Version: 0.1.1
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
