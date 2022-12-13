@@ -252,16 +252,16 @@ typedef unsigned int            drflac_uint32;
     typedef unsigned __int64    drflac_uint64;
 #else
     #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wlong-long"
+        //#pragma GCC diagnostic push
+        //#pragma GCC diagnostic ignored "-Wlong-long"
         #if defined(__clang__)
-            #pragma GCC diagnostic ignored "-Wc++11-long-long"
+            //#pragma GCC diagnostic ignored "-Wc++11-long-long"
         #endif
     #endif
     typedef   signed long long  drflac_int64;
     typedef unsigned long long  drflac_uint64;
     #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-        #pragma GCC diagnostic pop
+        //#pragma GCC diagnostic pop
     #endif
 #endif
 #if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__)) || defined(_M_X64) || defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(_M_ARM64) || defined(__powerpc64__)
