@@ -22,8 +22,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // whisper_encode
-Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special, int duration, int offset, bool trace);
-RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP) {
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, bool print_special, int duration, int offset, bool trace, int n_threads, int n_processors);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP print_specialSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -36,14 +36,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type duration(durationSEXP);
     Rcpp::traits::input_parameter< int >::type offset(offsetSEXP);
     Rcpp::traits::input_parameter< bool >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, print_special, duration, offset, trace));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_processors(n_processorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, print_special, duration, offset, trace, n_threads, n_processors));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 1},
-    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 9},
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 11},
     {NULL, NULL, 0}
 };
 
