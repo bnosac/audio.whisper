@@ -38,7 +38,8 @@ model <- whisper("large")
 
 ```{r}
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
-trans <- predict(model, newdata = audio, language = "en")
+trans <- predict(model, newdata = audio, language = "en", n_threads = 2)
+
 trans
 $n_segments
 [1] 1
