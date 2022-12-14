@@ -6,7 +6,7 @@ Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
     person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
     person('David', 'Reid', role = c('ctb', 'cph'), comment = "Files in src/dr_libs folder"), 
-    person('Georgi', 'Gerganov', role = c('ctb', 'cph'), comment = "Files in src/whisper.cpp and files in inst folder"), 
+    person('Georgi', 'Gerganov', role = c('ctb', 'cph'), comment = "Files in src/whisper_cpp and files in inst folder"), 
     person('BNOSAC', role = 'cph', comment = "R wrapper"))
 Description: The "Whisper" models are trained for speech recognition and translation tasks, 
     capable of transcribing speech audio into the text in the language it is spoken (Automatic Speech Recognition) 
@@ -22,4 +22,4 @@ Depends:
 Imports:
     Rcpp (>= 0.11.5)
 LinkingTo: Rcpp
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

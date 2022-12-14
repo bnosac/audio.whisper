@@ -1,9 +1,9 @@
 PKG_LIBS = -pthread
 CXX_STD = CXX11
-PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper.cpp
+PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp
 
-SOURCES = whisper.cpp/ggml.c \
-          whisper.cpp/whisper.cpp \
+SOURCES = whisper_cpp/ggml.c \
+          whisper_cpp/whisper.cpp \
           rcpp_whisper.cpp  \
           RcppExports.cpp
 
