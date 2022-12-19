@@ -10,10 +10,14 @@ whisper(x, ...)
 \item{x}{the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 the name of the model which can be passed on to \code{\link{whisper_download_model}}}
 
-\item{...}{further arguments, not used currently}
+\item{...}{further arguments, currently not used}
 }
 \value{
-a list with the following elements: TODO
+an object of class \code{whisper} which is list with the following elements: 
+\itemize{
+\item{file: path to the model}
+\item{model: an Rcpp pointer to the loaded Whisper model}
+}
 }
 \description{
 Automatic Speech Recognition using Whisper on 16-bit WAV files

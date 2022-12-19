@@ -5,7 +5,7 @@
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
 #' @param language the language of the audio. Defaults to 'en'
-#' @param ... further arguments, for expert usage only
+#' @param ... further arguments, directly passed on to the C++ function, for expert usage only
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
@@ -35,8 +35,12 @@ predict.whisper <- function(object, newdata, language = "en", ...){
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param x the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
-#' @param ... further arguments, not used currently
-#' @return a list with the following elements: TODO
+#' @param ... further arguments, currently not used
+#' @return an object of class \code{whisper} which is list with the following elements: 
+#' \itemize{
+#' \item{file: path to the model}
+#' \item{model: an Rcpp pointer to the loaded Whisper model}
+#' }
 #' @export
 #' @examples
 #' \dontrun{ 

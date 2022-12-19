@@ -13,7 +13,7 @@
 
 \item{language}{the language of the audio. Defaults to 'en'}
 
-\item{...}{further arguments, for expert usage only}
+\item{...}{further arguments, directly passed on to the C++ function, for expert usage only}
 }
 \value{
 an object of class \code{whisper_transcription} which is a list with the following elements:
