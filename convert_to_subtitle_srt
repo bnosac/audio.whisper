@@ -1,0 +1,23 @@
+convert_to_subtitle_srt <- function(data_) {
+  # Initialize an empty string to store the subtitle file
+  subtitle_srt <- ""
+  
+  # Iterate over the rows of the data frame
+  for (i in 1:nrow(data_)) {
+    # Extract the values from the current row
+    segment <- data_$segment[i] %>% trimws()
+    from <- data_$from[i]
+    to <- data_$to[i]
+    text <- data_$text[i] %>% trimws()
+    
+    # Convert the values to a string in the format of a subtitle file in the srt format
+    subtitle_line <- paste(segment, paste0(from, " --> ", to, collapse = ""), text, sep = "\n")
+    
+    # Append the string to the subtitle file
+    subtitle_srt <- paste0(subtitle_srt, subtitle_line, "\n\n")
+  }
+  
+  return(subtitle_srt)
+}
+
+# writeLines(convert_to_subtitle_srt(trans$data), "subtitles.srt")
