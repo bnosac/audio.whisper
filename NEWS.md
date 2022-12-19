@@ -1,6 +1,8 @@
 ## CHANGES IN audio.whisper VERSION 0.1.2
 
 - Incorporate whisper.cpp release 1.0.4: https://github.com/ggerganov/whisper.cpp/releases/tag/1.0.4
+- predict.whisper now uses 'auto' as default language
+- predict.whisper now sets resulting text with UTF-8 encoding
 
 ## CHANGES IN audio.whisper VERSION 0.1.1
 

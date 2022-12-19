@@ -4,7 +4,7 @@
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
-#' @param language the language of the audio. Defaults to 'en'
+#' @param language the language of the audio. Defaults to 'auto'
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
@@ -22,10 +22,12 @@
 #' trans <- predict(model, newdata = audio)
 #' trans <- predict(model, newdata = audio, token_timestamps = TRUE)
 #' }
-predict.whisper <- function(object, newdata, language = "en", ...){
+predict.whisper <- function(object, newdata, language = "auto", ...){
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
   out <- whisper_encode(model = object$model, path = newdata, language = language, ...)
+  Encoding(out$data$text) <- "UTF-8"
+  Encoding(out$tokens$token) <- "UTF-8"
   class(out) <- "whisper_transcription"
   out
 }
