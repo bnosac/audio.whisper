@@ -16,7 +16,7 @@
 \item{...}{further arguments, for expert usage only}
 }
 \value{
-a list with the following elements:
+an object of class \code{whisper_transcription} which is a list with the following elements:
 \itemize{
 \item{n_segments: the number of audio segments}
 \item{data: a data.frame with the transcription with columns segment, text, from and to}

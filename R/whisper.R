@@ -6,7 +6,7 @@
 #' @param newdata the path to a 16-bit .wav file
 #' @param language the language of the audio. Defaults to 'en'
 #' @param ... further arguments, for expert usage only
-#' @return a list with the following elements:
+#' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
 #' \item{data: a data.frame with the transcription with columns segment, text, from and to}
@@ -25,7 +25,9 @@
 predict.whisper <- function(object, newdata, language = "en", ...){
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
-  whisper_encode(model = object$model, path = newdata, language = language, ...)
+  out <- whisper_encode(model = object$model, path = newdata, language = language, ...)
+  class(out) <- "whisper_transcription"
+  out
 }
 
 
