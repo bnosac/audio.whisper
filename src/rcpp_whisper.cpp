@@ -227,7 +227,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         Rcpp::stop("error: no input files specified");
     }
     
-    if (whisper_lang_id(params.language.c_str()) == -1) {
+    if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
         Rcpp::stop("Unknown language");
     }
     
