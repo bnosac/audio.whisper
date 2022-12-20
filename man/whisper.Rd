@@ -27,8 +27,15 @@ Automatic Speech Recognition using Whisper on 16-bit WAV files
 model <- whisper("tiny")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
+model <- whisper("base")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
 model <- whisper("medium")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
+model <- whisper("large")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
 
 ## Or download the model explicitely
 path  <- whisper_download_model("tiny")
@@ -40,6 +47,7 @@ trans <- predict(model, newdata = system.file(package = "audio.whisper", "sample
 ## Or provide the path to the model
 path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")
 model <- whisper(path)
-trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+                 language = "en")
 }
 }

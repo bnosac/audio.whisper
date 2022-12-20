@@ -20,7 +20,8 @@
 #' model <- whisper("tiny")
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 #' trans <- predict(model, newdata = audio)
-#' trans <- predict(model, newdata = audio, token_timestamps = TRUE)
+#' trans <- predict(model, newdata = audio, language = "en")
+#' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 #' }
 predict.whisper <- function(object, newdata, language = "auto", ...){
   stopifnot(length(newdata) == 1)
@@ -49,8 +50,15 @@ predict.whisper <- function(object, newdata, language = "auto", ...){
 #' model <- whisper("tiny")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' trans
+#' model <- whisper("base")
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+#' trans
 #' model <- whisper("medium")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+#' trans
+#' model <- whisper("large")
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+#' trans
 #' 
 #' ## Or download the model explicitely
 #' path  <- whisper_download_model("tiny")
@@ -62,7 +70,8 @@ predict.whisper <- function(object, newdata, language = "auto", ...){
 #' ## Or provide the path to the model
 #' path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")
 #' model <- whisper(path)
-#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+#'                  language = "en")
 #' }
 whisper <- function(x, ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large")){

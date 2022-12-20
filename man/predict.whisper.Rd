@@ -32,7 +32,8 @@ Automatic Speech Recognition using Whisper on 16-bit WAV files
 model <- whisper("tiny")
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio)
-trans <- predict(model, newdata = audio, token_timestamps = TRUE)
+trans <- predict(model, newdata = audio, language = "en")
+trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 }
 }
 \seealso{
