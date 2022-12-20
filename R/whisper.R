@@ -5,6 +5,7 @@
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
 #' @param language the language of the audio. Defaults to 'auto'
+#' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{TRUE}.
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
@@ -23,12 +24,16 @@
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 #' }
-predict.whisper <- function(object, newdata, language = "auto", ...){
+predict.whisper <- function(object, newdata, language = "auto", trim = TRUE, ...){
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
   out <- whisper_encode(model = object$model, path = newdata, language = language, ...)
-  Encoding(out$data$text) <- "UTF-8"
+  Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
+  if(trim){
+    out$data$text              <- trimws(out$data$text)
+    out$tokens$token           <- trimws(out$tokens$token)  
+  }
   class(out) <- "whisper_transcription"
   out
 }
@@ -183,3 +188,4 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   class(out) <- c("data.frame", "whisper_download")
   out
 }
+
