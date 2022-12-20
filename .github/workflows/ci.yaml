@@ -8,6 +8,7 @@ on:
 
 env:
   _R_CHECK_FORCE_SUGGESTS_: "false"
+  TINYTEST_CI: "yes"
 
 jobs:
   ci:

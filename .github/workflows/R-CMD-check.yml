@@ -35,6 +35,7 @@ jobs:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       RSPM: ${{ matrix.config.rspm }}
       GITHUB_PAT: ${{ secrets.PAT }}
+      TINYTEST_CI: "yes"      
     steps:
       - uses: actions/checkout@v3
 
