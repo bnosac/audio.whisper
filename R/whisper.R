@@ -76,7 +76,11 @@ predict.whisper <- function(object, newdata, language = "auto", trim = TRUE, ...
 #' path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
-#'                  language = "en")
+#'                  language = "en", duration = 1000)
+#' path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.en.bin")
+#' model <- whisper(path)
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+#'                  language = "en", duration = 1000)
 #' }
 whisper <- function(x, ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large")){

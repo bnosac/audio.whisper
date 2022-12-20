@@ -48,6 +48,10 @@ trans <- predict(model, newdata = system.file(package = "audio.whisper", "sample
 path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")
 model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
-                 language = "en")
+                 language = "en", duration = 1000)
+path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.en.bin")
+model <- whisper(path)
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+                 language = "en", duration = 1000)
 }
 }
