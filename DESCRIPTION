@@ -21,5 +21,7 @@ Depends:
     R (>= 2.10)
 Imports:
     Rcpp (>= 0.11.5)
+Suggests:
+    tinytest
 LinkingTo: Rcpp
 RoxygenNote: 7.1.2
