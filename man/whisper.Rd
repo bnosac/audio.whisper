@@ -30,6 +30,9 @@ trans
 model <- whisper("base")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
+model <- whisper("small")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
 model <- whisper("medium")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans

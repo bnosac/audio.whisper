@@ -4,7 +4,7 @@
 \alias{predict.whisper}
 \title{Transcribe audio files using a Whisper model}
 \usage{
-\method{predict}{whisper}(object, newdata, language = "auto", trim = TRUE, ...)
+\method{predict}{whisper}(object, newdata, language = "auto", trim = FALSE, ...)
 }
 \arguments{
 \item{object}{a whisper object}
@@ -13,7 +13,7 @@
 
 \item{language}{the language of the audio. Defaults to 'auto'}
 
-\item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{TRUE}.}
+\item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 
 \item{...}{further arguments, directly passed on to the C++ function, for expert usage only}
 }
