@@ -622,7 +622,6 @@ static bool whisper_model_load(const std::string & fname, whisper_context & wctx
     const ggml_type wtype = model.hparams.f16 ? GGML_TYPE_F16 : GGML_TYPE_F32;
 
     size_t ctx_size = 0;
-    size_t ctx_mem_size = 0;
 
     {
         const auto & hparams = model.hparams;
@@ -730,12 +729,6 @@ static bool whisper_model_load(const std::string & fname, whisper_context & wctx
             ctx_size += n_text_layer*(n_text_state*n_text_state*ggml_type_size(wtype));         // cross_attn_ln_1_w
             ctx_size += n_text_layer*(             n_text_state*ggml_type_size(GGML_TYPE_F32)); // cross_attn_ln_1_b
         }
-
-        ctx_mem_size += n_text_layer*n_text_ctx*n_text_state*ggml_type_size(GGML_TYPE_F16); // memory_k
-        ctx_mem_size += n_text_layer*n_text_ctx*n_text_state*ggml_type_size(GGML_TYPE_F16); // memory_v
-
-        ctx_mem_size += n_text_layer*n_audio_ctx*n_text_state*ggml_type_size(GGML_TYPE_F16); // memory_cross_k
-        ctx_mem_size += n_text_layer*n_audio_ctx*n_text_state*ggml_type_size(GGML_TYPE_F16); // memory_cross_v
 
         ctx_size += (15 + 15*n_audio_layer + 24*n_text_layer)*256; // object overhead
 
@@ -2044,7 +2037,7 @@ static void fft(const std::vector<float> & in, std::vector<float> & out) {
 static bool log_mel_spectrogram(
     const float * samples,
     const int n_samples,
-    const int sample_rate,
+    const int /*sample_rate*/,
     const int fft_size,
     const int fft_step,
     const int n_mel,
@@ -2361,12 +2354,12 @@ struct whisper_token_data whisper_sample_timestamp(struct whisper_context * ctx,
 int whisper_tokenize(struct whisper_context * ctx, const char * text, whisper_token * tokens, int n_max_tokens) {
     const auto res = tokenize(ctx->vocab, text);
 
-    if (res.size() > n_max_tokens) {
+    if (n_max_tokens < (int) res.size()) {
         Rprintf("%s: too many resulting tokens: %d (max %d)\n", __func__, (int) res.size(), n_max_tokens);
         return -1;
     }
 
-    for (int i = 0; i < res.size(); i++) {
+    for (int i = 0; i < (int) res.size(); i++) {
         tokens[i] = res[i];
     }
 
@@ -2439,7 +2432,7 @@ int whisper_lang_auto_detect(
     }
 
     std::vector<std::pair<float, int>> probs_id;
-    for (const auto kv : g_lang) {
+    for (const auto & kv : g_lang) {
         const auto token_lang = whisper_token_lang(ctx, kv.second.first);
         probs_id.push_back({ ctx->probs[token_lang], kv.second.first });
     }
@@ -2465,7 +2458,7 @@ int whisper_lang_auto_detect(
     }
 
     {
-        for (int i = 0; i < probs_id.size(); i++) {
+        for (int i = 0; i < (int) probs_id.size(); i++) {
             if (lang_probs) {
                 lang_probs[probs_id[i].second] = probs_id[i].first;
             }
