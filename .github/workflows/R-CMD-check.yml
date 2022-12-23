@@ -59,4 +59,5 @@ jobs:
           
       - name: Compilation setup
         run: |
+          R CMD INSTALL .
           Rscript -e "audio.whisper::whisper_benchmark()"
