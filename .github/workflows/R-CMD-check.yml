@@ -55,3 +55,7 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
+          
+      - name: Compilation setup
+        run: |
+          Rscript -e "audio.whisper::whisper_benchmark()"
