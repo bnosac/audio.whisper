@@ -1,7 +1,6 @@
-################################## R package part ###################################################################
 PKG_LIBS = -pthread
 CXX_STD = CXX11
-PKG_CFLAGS = @cflags@
+PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
 PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp
 
 SOURCES = whisper_cpp/ggml.c whisper_cpp/whisper.cpp rcpp_whisper.cpp RcppExports.cpp
@@ -11,5 +10,4 @@ all: clean
 
 clean:
 	rm -f $(SHLIB) $(OBJECTS)
-
 

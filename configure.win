@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Write to Makevars
-sed -e "s|@cflags@|-mavx -mavx2 -mfma -mf16c|" src/Makevars.in > src/Makevars
-
-# Success
-exit 0
