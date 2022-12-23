@@ -4,7 +4,11 @@
 \alias{whisper_benchmark}
 \title{Benchmark a Whisper model}
 \usage{
-whisper_benchmark(object, threads = 1)
+whisper_benchmark(
+  object = whisper(system.file(package = "audio.whisper", "models",
+    "for-tests-ggml-tiny.bin")),
+  threads = 1
+)
 }
 \arguments{
 \item{object}{a whisper object}
