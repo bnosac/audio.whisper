@@ -17,6 +17,7 @@ Description: The "Whisper" models are trained for speech recognition and transla
 License: MIT + file LICENSE
 URL: https://github.com/bnosac/audio.whisper
 Encoding: UTF-8
+SystemRequirements: GNU make
 Depends:
     R (>= 2.10)
 Imports:
