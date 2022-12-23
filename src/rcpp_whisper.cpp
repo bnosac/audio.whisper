@@ -448,7 +448,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
 
 
 // [[Rcpp::export]]
-void whisper_benchmark(SEXP model, int n_threads = 1) {
+void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   whisper_params params;
   params.n_threads = n_threads;
   // whisper init

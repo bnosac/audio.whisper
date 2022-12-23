@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.1.3
 
 - Ongoing work on improving compilation instructions to speed up transcribing while still being CRAN compliant
+- Add whisper_benchmark
 
 ## CHANGES IN audio.whisper VERSION 0.1.2
 

@@ -196,3 +196,25 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   out
 }
 
+
+
+
+
+#' @title Benchmark a Whisper model
+#' @description Benchmark a Whisper model to see how good it runs on your architecture by printing it's performance on 
+#' fake data. \url{https://github.com/ggerganov/whisper.cpp/issues/89}
+#' @param object a whisper object
+#' @param threads the number of threads to use, defaults to 1
+#' @return invisible()
+#' @export
+#' @seealso \code{\link{whisper}}
+#' @examples
+#' \dontrun{ 
+#' model <- whisper("tiny")
+#' whisper_benchmark(model)
+#' }
+whisper_benchmark <- function(object, threads = 1){
+  stopifnot(inherits(object, "whisper"))
+  whisper_print_benchmark(model$model, threads)
+  invisible()
+}
