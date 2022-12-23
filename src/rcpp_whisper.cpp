@@ -443,3 +443,24 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("word_threshold") = params.word_thold));
     return output;
 }
+
+
+
+
+// [[Rcpp::export]]
+void whisper_benchmark(SEXP model, int n_threads = 1) {
+  whisper_params params;
+  params.n_threads = n_threads;
+  // whisper init
+  Rcpp::XPtr<WhisperModel> whispermodel(model);
+  struct whisper_context * ctx = whispermodel->ctx;
+  Rprintf("\n");
+  Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads, std::thread::hardware_concurrency(), whisper_print_system_info());
+  if (int ret = whisper_set_mel(ctx, nullptr, 0, WHISPER_N_MEL)) {
+    Rprintf("error: failed to set mel: %d\n", ret);
+  }
+  if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to encode model: %d\n", ret);
+  }
+  whisper_print_timings(ctx);
+}
