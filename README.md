@@ -223,6 +223,10 @@ Look to the documentation of the functions
 help(package = "audio.whisper")
 ```
 
+#### Compilation
+
+Note: speed of the transcription depends highly on setting the C compilation flags `-mavx -mavx2 -mfma -mf16c` which depend the computer you have running. You might need to change this in [/src/Makevars](/src/Makevars) to tune it to your needs
+
 ## Support in text mining
 
 Need support in text mining?
