@@ -236,8 +236,8 @@ remotes::install_github("bnosac/audio.whisper")
 
 - To find out which hardware accelleration options your hardware supports, you can go to https://github.com/bnosac/audio.whisper/issues/15
 - Common settings for Mac/Linux/Windows are `-mavx -mavx2 -mfma -mf16c` and extra possible flags for Linux: `-msse3`, PowerPC `-mpower9-vector`, Mac M1 `-DGGML_USE_ACCELERATE`. E.g. on my local Windows machine I could set `-mavx -mavx2 -mfma -mf16c`, on my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
-- Note that *if your hardware does not support these compilation flags, you'll get a crash* when transcribing an audio file.
-- If you need custom settings, you can update `PKG_CFLAGS` in [/src/Makevars](/src/Makevars) directly
+- Note that *if your hardware does not support these compilation flags, you'll get a crash* when transcribing audio.
+- If you need custom settings, you can update `PKG_CFLAGS` in [/src/Makevars](/src/Makevars) directly.
 
 
 ## Support in text mining
