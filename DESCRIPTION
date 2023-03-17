@@ -24,4 +24,5 @@ Imports:
 Suggests:
     tinytest
 LinkingTo: Rcpp
+SystemRequirements: GNU make
 RoxygenNote: 7.1.2
