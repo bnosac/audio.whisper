@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.2.0
+
+- Incorporate whisper.cpp version v1.2.1
+
 ## CHANGES IN audio.whisper VERSION 0.1.3
 
 - Ongoing work on improving compilation instructions to speed up transcribing while still being CRAN compliant

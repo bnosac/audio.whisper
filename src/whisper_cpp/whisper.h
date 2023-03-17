@@ -1,6 +1,7 @@
 #ifndef WHISPER_H
 #define WHISPER_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -40,7 +41,7 @@ extern "C" {
     //
     //     ...
     //
-    //     struct whisper_context * ctx = whisper_init("/path/to/ggml-base.en.bin");
+    //     struct whisper_context * ctx = whisper_init_from_file("/path/to/ggml-base.en.bin");
     //
     //     if (whisper_full(ctx, wparams, pcmf32.data(), pcmf32.size()) != 0) {
     //         fprintf(stderr, "failed to process audio\n");
@@ -73,6 +74,7 @@ extern "C" {
         whisper_token tid; // forced timestamp token id
 
         float p;           // probability of the token
+        float plog;        // log probability of the token
         float pt;          // probability of the timestamp token
         float ptsum;       // sum of probabilities of all timestamp tokens
 
@@ -84,9 +86,20 @@ extern "C" {
         float vlen;        // voice length of the token
     } whisper_token_data;
 
-    // Allocates all memory needed for the model and loads the model from the given file.
-    // Returns NULL on failure.
-    WHISPER_API struct whisper_context * whisper_init(const char * path_model);
+    typedef struct whisper_model_loader {
+        void * context;
+
+        size_t (*read)(void * ctx, void * output, size_t read_size);
+        bool    (*eof)(void * ctx);
+        void  (*close)(void * ctx);
+    } whisper_model_loader;
+
+    // Various functions for loading a ggml whisper model.
+    // Allocate (almost) all memory needed for the model.
+    // Return NULL on failure
+    WHISPER_API struct whisper_context * whisper_init_from_file(const char * path_model);
+    WHISPER_API struct whisper_context * whisper_init_from_buffer(void * buffer, size_t buffer_size);
+    WHISPER_API struct whisper_context * whisper_init(struct whisper_model_loader * loader);
 
     // Frees all memory allocated by the model.
     WHISPER_API void whisper_free(struct whisper_context * ctx);
@@ -99,6 +112,16 @@ extern "C" {
                        const float * samples,
                                int   n_samples,
                                int   n_threads);
+
+    // Convert RAW PCM audio to log mel spectrogram but applies a Phase Vocoder to speed up the audio x2. 
+    // The resulting spectrogram is stored inside the provided whisper context.
+    // Returns 0 on success
+    WHISPER_API int whisper_pcm_to_mel_phase_vocoder(
+        struct whisper_context* ctx,
+        const float* samples,
+        int   n_samples,
+        int   n_threads);
+
 
     // This can be used to set a custom log mel spectrogram inside the provided whisper context.
     // Use this instead of whisper_pcm_to_mel() if you want to provide your own log mel spectrogram.
@@ -124,20 +147,13 @@ extern "C" {
     // tokens + n_tokens is the provided context for the decoder.
     // n_past is the number of tokens to use from previous decoder calls.
     // Returns 0 on success
+    // TODO: add support for multiple decoders
     WHISPER_API int whisper_decode(
             struct whisper_context * ctx,
                const whisper_token * tokens,
                                int   n_tokens,
                                int   n_past,
                                int   n_threads);
-
-    // Token sampling methods.
-    // These are provided for convenience and can be used after each call to whisper_decode().
-    // You can also implement your own sampling method using the whisper_get_probs() function.
-    // whisper_sample_best() returns the token with the highest probability
-    // whisper_sample_timestamp() returns the most probable timestamp token
-    WHISPER_API whisper_token_data whisper_sample_best(struct whisper_context * ctx);
-    WHISPER_API whisper_token_data whisper_sample_timestamp(struct whisper_context * ctx, bool is_initial);
 
     // Convert the provided text into tokens.
     // The tokens pointer must be large enough to hold the resulting tokens.
@@ -148,7 +164,7 @@ extern "C" {
             struct whisper_context * ctx,
                         const char * text,
                      whisper_token * tokens,
-	                           int   n_max_tokens);
+                               int   n_max_tokens);
 
     // Largest language id (i.e. number of available languages - 1)
     WHISPER_API int whisper_lang_max_id();
@@ -177,10 +193,14 @@ extern "C" {
     WHISPER_API int whisper_n_len          (struct whisper_context * ctx); // mel length
     WHISPER_API int whisper_n_vocab        (struct whisper_context * ctx);
     WHISPER_API int whisper_n_text_ctx     (struct whisper_context * ctx);
+    WHISPER_API int whisper_n_audio_ctx    (struct whisper_context * ctx);
     WHISPER_API int whisper_is_multilingual(struct whisper_context * ctx);
 
-    // The probabilities for the next token
-    WHISPER_API float * whisper_get_probs(struct whisper_context * ctx);
+    // Token logits obtained from the last call to whisper_decode()
+    // The logits for the last token are stored in the last row
+    // Rows: n_tokens
+    // Cols: n_vocab
+    WHISPER_API float * whisper_get_logits(struct whisper_context * ctx);
 
     // Token Id -> String. Uses the vocabulary in the provided context
     WHISPER_API const char * whisper_token_to_str(struct whisper_context * ctx, whisper_token token);
@@ -209,8 +229,8 @@ extern "C" {
 
     // Available sampling strategies
     enum whisper_sampling_strategy {
-        WHISPER_SAMPLING_GREEDY,      // Always select the most probable token
-        WHISPER_SAMPLING_BEAM_SEARCH, // TODO: not implemented yet!
+        WHISPER_SAMPLING_GREEDY,      // similar to OpenAI's GreefyDecoder
+        WHISPER_SAMPLING_BEAM_SEARCH, // similar to OpenAI's BeamSearchDecoder
     };
 
     // Text segment callback
@@ -223,6 +243,16 @@ extern "C" {
     // If it returns false, the computation is aborted
     typedef bool (*whisper_encoder_begin_callback)(struct whisper_context * ctx, void * user_data);
 
+    // Logits filter callback
+    // Can be used to modify the logits before sampling
+    // If not NULL, called after applying temperature to logits
+    typedef void (*whisper_logits_filter_callback)(
+            struct whisper_context * ctx,
+          const whisper_token_data * tokens,
+                               int   n_tokens,
+                             float * logits,
+                              void * user_data);
+
     // Parameters for the whisper_full() function
     // If you chnage the order or add new parameters, make sure to update the default values in whisper.cpp:
     // whisper_full_default_params()
@@ -230,30 +260,32 @@ extern "C" {
         enum whisper_sampling_strategy strategy;
 
         int n_threads;
-        int n_max_text_ctx;
+        int n_max_text_ctx;     // max tokens to use from past text as prompt for the decoder
         int offset_ms;          // start offset in ms
         int duration_ms;        // audio duration to process in ms
 
         bool translate;
-        bool no_context;
+        bool no_context;        // do not use past transcription (if any) as initial prompt for the decoder
         bool single_segment;    // force single segment output (useful for streaming)
-        bool print_special;
-        bool print_progress;
-        bool print_realtime;
-        bool print_timestamps;
+        bool print_special;     // print special tokens (e.g. <SOT>, <EOT>, <BEG>, etc.)
+        bool print_progress;    // print progress information
+        bool print_realtime;    // print results from within whisper.cpp (avoid it, use callback instead)
+        bool print_timestamps;  // print timestamps for each text segment when printing realtime
 
         // [EXPERIMENTAL] token-level timestamps
         bool  token_timestamps; // enable token-level timestamps
         float thold_pt;         // timestamp token probability threshold (~0.01)
         float thold_ptsum;      // timestamp token sum probability threshold (~0.01)
         int   max_len;          // max segment length in characters
+        bool  split_on_word;    // split on word rather than on token (when used with max_len)
         int   max_tokens;       // max tokens per segment (0 = no limit)
 
         // [EXPERIMENTAL] speed-up techniques
+        // note: these can significantly reduce the quality of the output
         bool speed_up;          // speed-up the audio by 2x using Phase Vocoder
         int  audio_ctx;         // overwrite the audio context size (0 = use default)
 
-        // tokens to provide the whisper model as initial prompt
+        // tokens to provide to the whisper decoder as initial prompt
         // these are prepended to any existing text context from a previous call
         const whisper_token * prompt_tokens;
         int prompt_n_tokens;
@@ -261,21 +293,42 @@ extern "C" {
         // for auto-detection, set to nullptr, "" or "auto"
         const char * language;
 
+        // common decoding parameters:
+        bool suppress_blank;    // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/decoding.py#L89
+        bool suppress_non_speech_tokens; // ref: https://github.com/openai/whisper/blob/7858aa9c08d98f75575035ecd6481f462d66ca27/whisper/tokenizer.py#L224-L253
+
+        float temperature;      // initial decoding temperature, ref: https://ai.stackexchange.com/a/32478
+        float max_initial_ts;   // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/decoding.py#L97
+        float length_penalty;   // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/transcribe.py#L267
+
+        // fallback parameters
+        // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/transcribe.py#L274-L278
+        float temperature_inc;
+        float entropy_thold;    // similar to OpenAI's "compression_ratio_threshold"
+        float logprob_thold;
+        float no_speech_thold;  // TODO: not implemented
+
         struct {
-            int n_past;
+            int best_of;    // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/transcribe.py#L264
         } greedy;
 
         struct {
-            int n_past;
-            int beam_width;
-            int n_best;
+            int beam_size;  // ref: https://github.com/openai/whisper/blob/f82bc59f5ea234d4b97fb2860842ed38519f7e65/whisper/transcribe.py#L265
+
+            float patience; // TODO: not implemented, ref: https://arxiv.org/pdf/2204.05424.pdf
         } beam_search;
 
+        // called for every newly generated text segment
         whisper_new_segment_callback new_segment_callback;
         void * new_segment_callback_user_data;
 
+        // called each time before the encoder starts
         whisper_encoder_begin_callback encoder_begin_callback;
         void * encoder_begin_callback_user_data;
+
+        // called by each decoder to filter obtained logits
+        whisper_logits_filter_callback logits_filter_callback;
+        void * logits_filter_callback_user_data;
     };
 
     WHISPER_API struct whisper_full_params whisper_full_default_params(enum whisper_sampling_strategy strategy);
@@ -302,6 +355,9 @@ extern "C" {
     // A segment can be a few words, a sentence, or even a paragraph.
     WHISPER_API int whisper_full_n_segments(struct whisper_context * ctx);
 
+    // Language id associated with the current context
+    WHISPER_API int whisper_full_lang_id(struct whisper_context * ctx);
+
     // Get the start and end time of the specified segment.
     WHISPER_API int64_t whisper_full_get_segment_t0(struct whisper_context * ctx, int i_segment);
     WHISPER_API int64_t whisper_full_get_segment_t1(struct whisper_context * ctx, int i_segment);
@@ -322,6 +378,13 @@ extern "C" {
 
     // Get the probability of the specified token in the specified segment.
     WHISPER_API float whisper_full_get_token_p(struct whisper_context * ctx, int i_segment, int i_token);
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    // Temporary helpers needed for exposing ggml interface
+
+    WHISPER_API int whisper_bench_memcpy(int n_threads);
+    WHISPER_API int whisper_bench_ggml_mul_mat(int n_threads);
 
 #ifdef __cplusplus
 }

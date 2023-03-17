@@ -3,8 +3,8 @@ CXX_STD = CXX11
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
 PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp
 
-SOURCES = whisper_cpp/ggml.c whisper_cpp/whisper.cpp rcpp_whisper.cpp RcppExports.cpp
-OBJECTS = whisper_cpp/ggml.o whisper_cpp/whisper.o   rcpp_whisper.o   RcppExports.o
+SOURCES = whisper_cpp/ggml.c whisper_cpp/whisper.cpp whisper_cpp/common.cpp rcpp_whisper.cpp RcppExports.cpp
+OBJECTS = whisper_cpp/ggml.o whisper_cpp/whisper.o   whisper_cpp/common.o   rcpp_whisper.o   RcppExports.o
 
 all: clean
 

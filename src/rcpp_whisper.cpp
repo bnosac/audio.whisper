@@ -1,10 +1,12 @@
 #include <Rcpp.h>
+#include "common.h"
+
 #include "whisper.h"
 
 // third-party utilities
 // use your favorite implementations
-#define DR_WAV_IMPLEMENTATION
-#include "dr_wav.h"
+//#define DR_WAV_IMPLEMENTATION
+//#include "dr_wav.h"
 
 #include <cmath>
 #include <fstream>
@@ -17,7 +19,7 @@
 // Lowest is red, middle is yellow, highest is green.
 const std::vector<std::string> k_colors = {
     "\033[38;5;196m", "\033[38;5;202m", "\033[38;5;208m", "\033[38;5;214m", "\033[38;5;220m",
-                                    "\033[38;5;226m", "\033[38;5;190m", "\033[38;5;154m", "\033[38;5;118m", "\033[38;5;82m",
+    "\033[38;5;226m", "\033[38;5;190m", "\033[38;5;154m", "\033[38;5;118m", "\033[38;5;82m",
 };
 
 //  500 -> 00:05.000
@@ -30,10 +32,10 @@ std::string to_timestamp(int64_t t, bool comma = false) {
     msec = msec - min * (1000 * 60);
     int64_t sec = msec / 1000;
     msec = msec - sec * 1000;
-    
+
     char buf[32];
     snprintf(buf, sizeof(buf), "%02d:%02d:%02d%s%03d", (int) hr, (int) min, (int) sec, comma ? "," : ".", (int) msec);
-    
+
     return std::string(buf);
 }
 
@@ -54,36 +56,46 @@ void replace_all(std::string & s, const std::string & search, const std::string 
 // command-line parameters
 struct whisper_params {
     int32_t n_threads    = std::min(4, (int32_t) std::thread::hardware_concurrency());
-    int32_t n_processors = 1;
-    int32_t offset_t_ms  = 0;
-    int32_t offset_n     = 0;
-    int32_t duration_ms  = 0;
+    int32_t n_processors =  1;
+    int32_t offset_t_ms  =  0;
+    int32_t offset_n     =  0;
+    int32_t duration_ms  =  0;
     int32_t max_context  = -1;
-    int32_t max_len      = 0;
-    
-    float word_thold = 0.01f;
-    
-    bool speed_up      = false;
-    bool translate     = false;
-    bool diarize       = false;
-    bool output_txt    = false;
-    bool output_vtt    = false;
-    bool output_srt    = false;
-    bool output_wts    = false;
-    bool print_special = false;
-    bool print_colors  = false;
-    bool no_timestamps = false;
-    
-    std::string language  = "en";
-    std::string model     = "models/ggml-base.en.bin";
-    
+    int32_t max_len      =  0;
+    int32_t best_of      =  5;
+    int32_t beam_size    = -1;
+
+    float word_thold    =  0.01f;
+    float entropy_thold =  2.40f;
+    float logprob_thold = -1.00f;
+
+    bool speed_up       = false;
+    bool translate      = false;
+    bool diarize        = false;
+    bool split_on_word  = false;
+    bool no_fallback    = false;
+    bool output_txt     = false;
+    bool output_vtt     = false;
+    bool output_srt     = false;
+    bool output_wts     = false;
+    bool output_csv     = false;
+    bool print_special  = false;
+    bool print_colors   = false;
+    bool print_progress = false;
+    bool no_timestamps  = false;
+
+    std::string language = "en";
+    std::string prompt;
+    std::string model    = "models/ggml-base.en.bin";
+
     std::vector<std::string> fname_inp = {};
+    std::vector<std::string> fname_out = {};
 };
 
 
 struct whisper_print_user_data {
     const whisper_params * params;
-    
+
     const std::vector<std::vector<float>> * pcmf32s;
 };
 
@@ -187,7 +199,7 @@ class WhisperModel {
     public: 
         struct whisper_context * ctx;
         WhisperModel(std::string model){
-          ctx = whisper_init(model.c_str());
+          ctx = whisper_init_from_file(model.c_str());
         }
         ~WhisperModel(){
             whisper_free(ctx);
@@ -236,65 +248,86 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     struct whisper_context * ctx = whispermodel->ctx;
     //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
+    
+    // initial prompt
+    std::vector<whisper_token> prompt_tokens;
+    
+    if (!params.prompt.empty()) {
+      prompt_tokens.resize(1024);
+      prompt_tokens.resize(whisper_tokenize(ctx, params.prompt.c_str(), prompt_tokens.data(), prompt_tokens.size()));
+      
+      Rprintf("\n");
+      Rprintf("initial prompt: '%s'\n", params.prompt.c_str());
+      Rprintf("initial tokens: [ ");
+      for (int i = 0; i < (int) prompt_tokens.size(); ++i) {
+        Rprintf("%d ", prompt_tokens[i]);
+      }
+      Rprintf("]\n");
+    }
+    
     for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
         const auto fname_inp = params.fname_inp[f];
-        std::vector<float> pcmf32; // mono-channel F32 PCM
+        std::vector<float> pcmf32;               // mono-channel F32 PCM
         std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
-        // WAV input
-        {
-            drwav wav;
-            std::vector<uint8_t> wav_data; // used for pipe input from stdin
-            
-            if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
-                Rcpp::stop("Failed to open the file as WAV file: ", fname_inp);
-            }
-            
-            if (wav.channels != 1 && wav.channels != 2) {
-                Rcpp::stop("WAV file must be mono or stereo: ", fname_inp);
-            }
-            
-            if (params.diarize && wav.channels != 2 && params.no_timestamps == false) {
-                Rcpp::stop("WAV file must be stereo for diarization and timestamps have to be enabled: ", fname_inp);
-            }
-            
-            if (wav.sampleRate != WHISPER_SAMPLE_RATE) {
-                Rcpp::stop("WAV file must be 16 kHz: ", fname_inp);
-            }
-            
-            if (wav.bitsPerSample != 16) {
-                Rcpp::stop("WAV file must be 16 bit: ", fname_inp);
-            }
-            
-            const uint64_t n = wav_data.empty() ? wav.totalPCMFrameCount : wav_data.size()/(wav.channels*wav.bitsPerSample/8);
-            
-            std::vector<int16_t> pcm16;
-            pcm16.resize(n*wav.channels);
-            drwav_read_pcm_frames_s16(&wav, n, pcm16.data());
-            drwav_uninit(&wav);
-            
-            // convert to mono, float
-            pcmf32.resize(n);
-            if (wav.channels == 1) {
-                for (uint64_t i = 0; i < n; i++) {
-                    pcmf32[i] = float(pcm16[i])/32768.0f;
-                }
-            } else {
-                for (uint64_t i = 0; i < n; i++) {
-                    pcmf32[i] = float(pcm16[2*i] + pcm16[2*i + 1])/65536.0f;
-                }
-            }
-            
-            if (params.diarize) {
-                // convert to stereo, float
-                pcmf32s.resize(2);
-                
-                pcmf32s[0].resize(n);
-                pcmf32s[1].resize(n);
-                for (uint64_t i = 0; i < n; i++) {
-                    pcmf32s[0][i] = float(pcm16[2*i])/32768.0f;
-                    pcmf32s[1][i] = float(pcm16[2*i + 1])/32768.0f;
-                }
-            }
+        // // WAV input
+        // {
+        //     drwav wav;
+        //     std::vector<uint8_t> wav_data; // used for pipe input from stdin
+        //     
+        //     if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
+        //         Rcpp::stop("Failed to open the file as WAV file: ", fname_inp);
+        //     }
+        //     
+        //     if (wav.channels != 1 && wav.channels != 2) {
+        //         Rcpp::stop("WAV file must be mono or stereo: ", fname_inp);
+        //     }
+        //     
+        //     if (params.diarize && wav.channels != 2 && params.no_timestamps == false) {
+        //         Rcpp::stop("WAV file must be stereo for diarization and timestamps have to be enabled: ", fname_inp);
+        //     }
+        //     
+        //     if (wav.sampleRate != WHISPER_SAMPLE_RATE) {
+        //         Rcpp::stop("WAV file must be 16 kHz: ", fname_inp);
+        //     }
+        //     
+        //     if (wav.bitsPerSample != 16) {
+        //         Rcpp::stop("WAV file must be 16 bit: ", fname_inp);
+        //     }
+        //     
+        //     const uint64_t n = wav_data.empty() ? wav.totalPCMFrameCount : wav_data.size()/(wav.channels*wav.bitsPerSample/8);
+        //     
+        //     std::vector<int16_t> pcm16;
+        //     pcm16.resize(n*wav.channels);
+        //     drwav_read_pcm_frames_s16(&wav, n, pcm16.data());
+        //     drwav_uninit(&wav);
+        //     
+        //     // convert to mono, float
+        //     pcmf32.resize(n);
+        //     if (wav.channels == 1) {
+        //         for (uint64_t i = 0; i < n; i++) {
+        //             pcmf32[i] = float(pcm16[i])/32768.0f;
+        //         }
+        //     } else {
+        //         for (uint64_t i = 0; i < n; i++) {
+        //             pcmf32[i] = float(pcm16[2*i] + pcm16[2*i + 1])/65536.0f;
+        //         }
+        //     }
+        //     
+        //     if (params.diarize) {
+        //         // convert to stereo, float
+        //         pcmf32s.resize(2);
+        //         
+        //         pcmf32s[0].resize(n);
+        //         pcmf32s[1].resize(n);
+        //         for (uint64_t i = 0; i < n; i++) {
+        //             pcmf32s[0][i] = float(pcm16[2*i])/32768.0f;
+        //             pcmf32s[1][i] = float(pcm16[2*i + 1])/32768.0f;
+        //         }
+        //     }
+        // }
+        if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
+          Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
+          Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
         }
         
         /*
@@ -320,6 +353,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
             
+            wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
             wparams.print_realtime   = trace;
             wparams.print_progress   = false;
             wparams.print_timestamps = !params.no_timestamps;
@@ -335,8 +369,19 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.token_timestamps = token_timestamps;
             wparams.thold_pt         = params.word_thold;
             wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
+            wparams.split_on_word    = params.split_on_word;
             
             wparams.speed_up         = params.speed_up;
+            
+            wparams.prompt_tokens     = prompt_tokens.empty() ? nullptr : prompt_tokens.data();
+            wparams.prompt_n_tokens   = prompt_tokens.empty() ? 0       : prompt_tokens.size();
+            
+            wparams.greedy.best_of        = params.best_of;
+            wparams.beam_search.beam_size = params.beam_size;
+            
+            wparams.temperature_inc  = params.no_fallback ? 0.0f : wparams.temperature_inc;
+            wparams.entropy_thold    = params.entropy_thold;
+            wparams.logprob_thold    = params.logprob_thold;
             
             whisper_print_user_data user_data = { &params, &pcmf32s };
             

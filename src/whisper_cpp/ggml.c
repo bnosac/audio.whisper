@@ -80,17 +80,24 @@ typedef void* thread_ret_t;
 #define static_assert(cond, msg) _Static_assert(cond, msg)
 #endif
 
+/*#define GGML_PERF*/
 #define GGML_DEBUG 0
 #define GGML_GELU_FP16
+
+#define GGML_SOFT_MAX_UNROLL 4
+#define GGML_VEC_DOT_UNROLL  2
+
+#ifdef GGML_USE_ACCELERATE
+// uncomment to use vDSP for soft max computation
+// note: not sure if it is actually faster
+//#define GGML_SOFT_MAX_ACCELERATE
+#endif
 
 #if UINTPTR_MAX == 0xFFFFFFFF
     #define GGML_MEM_ALIGN 4
 #else
     #define GGML_MEM_ALIGN 16
 #endif
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define UNUSED(x) (void)(x)
 #define SWAP(x, y, T) do { T SWAP = x; x = y; y = SWAP; } while (0)
@@ -108,6 +115,11 @@ typedef void* thread_ret_t;
 #include <cblas.h>
 #endif
 
+#undef MIN
+#undef MAX
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 // floating point type used to accumulate sums
 typedef double ggml_float;
 
@@ -122,13 +134,8 @@ typedef double ggml_float;
 //
 #include <arm_neon.h>
 
-float ggml_fp16_to_fp32(ggml_fp16_t x) {
-    return x;
-}
-
-ggml_fp16_t ggml_fp32_to_fp16(float x) {
-    return x;
-}
+#define GGML_COMPUTE_FP16_TO_FP32(x) (x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) (x)
 
 #define GGML_FP16_TO_FP32(x) (x)
 #define GGML_FP32_TO_FP16(x) (x)
@@ -138,19 +145,19 @@ ggml_fp16_t ggml_fp32_to_fp16(float x) {
 #ifdef __wasm_simd128__
 #include <wasm_simd128.h>
 #else
+#ifdef __POWER9_VECTOR__
+#include <altivec.h>
+#undef bool
+#define bool _Bool
+#else
 #include <immintrin.h>
+#endif
 #endif
 
 #ifdef __F16C__
-float ggml_fp16_to_fp32(ggml_fp16_t h) {
-    return _cvtsh_ss(h);
-}
-ggml_fp16_t ggml_fp32_to_fp16(float f) {
-    return _cvtss_sh(f, 0);
-}
 
-#define GGML_FP16_TO_FP32(x) _cvtsh_ss(x)
-#define GGML_FP32_TO_FP16(x) _cvtss_sh(x, 0)
+#define GGML_COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
 
 #else
 
@@ -175,7 +182,7 @@ static inline uint32_t fp32_to_bits(float f) {
 	return fp32.as_bits;
 }
 
-float ggml_fp16_to_fp32(ggml_fp16_t h) {
+static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
     const uint32_t w = (uint32_t) h << 16;
     const uint32_t sign = w & UINT32_C(0x80000000);
     const uint32_t two_w = w + w;
@@ -198,7 +205,7 @@ float ggml_fp16_to_fp32(ggml_fp16_t h) {
     return fp32_from_bits(result);
 }
 
-ggml_fp16_t ggml_fp32_to_fp16(float f) {
+static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) || defined(__GNUC__) && !defined(__STRICT_ANSI__)
     const float scale_to_inf = 0x1.0p+112f;
     const float scale_to_zero = 0x1.0p-110f;
@@ -224,8 +231,8 @@ ggml_fp16_t ggml_fp32_to_fp16(float f) {
     return (sign >> 16) | (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
 }
 
-#define GGML_FP16_TO_FP32(x) ggml_fp16_to_fp32(x)
-#define GGML_FP32_TO_FP16(x) ggml_fp32_to_fp16(x)
+#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
+#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
 
 #endif // __F16C__
 
@@ -240,6 +247,34 @@ static ggml_fp16_t table_gelu_f16[1 << 16];
 
 // precomputed exp table for f16 (128 KB)
 static ggml_fp16_t table_exp_f16[1 << 16];
+
+// precomputed f32 table for f16 (256 KB)
+static float table_f32_f16[1 << 16];
+
+// On ARM NEON, it's quicker to directly convert x -> x instead of calling into ggml_lookup_fp16_to_fp32,
+// so we define GGML_FP16_TO_FP32 and GGML_FP32_TO_FP16 elsewhere for NEON.
+#if !defined(GGML_FP16_TO_FP32) || !defined(GGML_FP32_TO_FP16)
+
+inline static float ggml_lookup_fp16_to_fp32(ggml_fp16_t f) {
+    uint16_t s;
+    memcpy(&s, &f, sizeof(uint16_t));
+    return table_f32_f16[s];
+}
+
+#define GGML_FP16_TO_FP32(x) ggml_lookup_fp16_to_fp32(x)
+#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
+
+#endif
+
+// note: do not use these inside ggml.c
+// these are meant to be used via the ggml.h API
+float ggml_fp16_to_fp32(ggml_fp16_t x) {
+    return GGML_FP16_TO_FP32(x);
+}
+
+ggml_fp16_t ggml_fp32_to_fp16(float x) {
+    return GGML_FP32_TO_FP16(x);
+}
 
 //
 // timing
@@ -304,10 +339,496 @@ int64_t ggml_cycles_per_ms(void) {
 #if defined(__cpp_lib_hardware_interference_size)
 #define CACHE_LINE_SIZE hardware_destructive_interference_size
 #else
+#if defined(__POWER9_VECTOR__)
+#define CACHE_LINE_SIZE 128
+#else
 #define CACHE_LINE_SIZE 64
 #endif
+#endif
 
-const size_t CACHE_LINE_SIZE_F32 = CACHE_LINE_SIZE/sizeof(float);
+static const size_t CACHE_LINE_SIZE_F32 = CACHE_LINE_SIZE/sizeof(float);
+
+//
+// simd mappings
+//
+
+// we define a common set of C macros which map to specific intrinsics based on the current architecture
+// we then implement the fundamental computation operations below using only these macros
+// adding support for new architectures requires to define the corresponding SIMD macros
+//
+// GGML_F32_STEP / GGML_F16_STEP
+//   number of elements to process in a single step
+//
+// GGML_F32_EPR / GGML_F16_EPR
+//   number of elements to fit in a single register
+//
+
+#if defined(__ARM_NEON) && defined(__ARM_FEATURE_FMA)
+
+#define GGML_SIMD
+
+// F32 NEON
+
+#define GGML_F32_STEP 16
+#define GGML_F32_EPR  4
+
+#define GGML_F32x4              float32x4_t
+#define GGML_F32x4_ZERO         vdupq_n_f32(0.0f)
+#define GGML_F32x4_SET1(x)      vdupq_n_f32(x)
+#define GGML_F32x4_LOAD         vld1q_f32
+#define GGML_F32x4_STORE        vst1q_f32
+#define GGML_F32x4_FMA(a, b, c) vfmaq_f32(a, b, c)
+#define GGML_F32x4_ADD          vaddq_f32
+#define GGML_F32x4_MUL          vmulq_f32
+#if defined(__ARM_FEATURE_QRDMX)
+    #define GGML_F32x4_REDUCE_ONE(x) vaddvq_f32(x)
+#else
+    #define GGML_F32x4_REDUCE_ONE(x) \
+    (vgetq_lane_f32(x, 0) +          \
+     vgetq_lane_f32(x, 1) +          \
+     vgetq_lane_f32(x, 2) +          \
+     vgetq_lane_f32(x, 3))
+#endif
+#define GGML_F32x4_REDUCE(res, x)              \
+{                                              \
+    for (int i = 0; i < GGML_F32_ARR/2; ++i) { \
+        x[2*i] = vaddq_f32(x[2*i], x[2*i+1]);  \
+    }                                          \
+    for (int i = 0; i < GGML_F32_ARR/4; ++i) { \
+        x[4*i] = vaddq_f32(x[4*i], x[4*i+2]);  \
+    }                                          \
+    for (int i = 0; i < GGML_F32_ARR/8; ++i) { \
+        x[8*i] = vaddq_f32(x[8*i], x[8*i+4]);  \
+    }                                          \
+    res = GGML_F32x4_REDUCE_ONE(x[0]);         \
+}
+
+#define GGML_F32_VEC        GGML_F32x4
+#define GGML_F32_VEC_ZERO   GGML_F32x4_ZERO
+#define GGML_F32_VEC_SET1   GGML_F32x4_SET1
+#define GGML_F32_VEC_LOAD   GGML_F32x4_LOAD
+#define GGML_F32_VEC_STORE  GGML_F32x4_STORE
+#define GGML_F32_VEC_FMA    GGML_F32x4_FMA
+#define GGML_F32_VEC_ADD    GGML_F32x4_ADD
+#define GGML_F32_VEC_MUL    GGML_F32x4_MUL
+#define GGML_F32_VEC_REDUCE GGML_F32x4_REDUCE
+
+// F16 NEON
+
+#if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
+    #define GGML_F16_STEP 32
+    #define GGML_F16_EPR  8
+
+    #define GGML_F16x8              float16x8_t
+    #define GGML_F16x8_ZERO         vdupq_n_f16(0.0f)
+    #define GGML_F16x8_SET1(x)      vdupq_n_f16(x)
+    #define GGML_F16x8_LOAD         vld1q_f16
+    #define GGML_F16x8_STORE        vst1q_f16
+    #define GGML_F16x8_FMA(a, b, c) vfmaq_f16(a, b, c)
+    #define GGML_F16x8_ADD          vaddq_f16
+    #define GGML_F16x8_MUL          vmulq_f16
+    #define GGML_F16x8_REDUCE(res, x)                             \
+    {                                                             \
+        for (int i = 0; i < GGML_F16_ARR/2; ++i) {                \
+            x[2*i] = vaddq_f16(x[2*i], x[2*i+1]);                 \
+        }                                                         \
+        for (int i = 0; i < GGML_F16_ARR/4; ++i) {                \
+            x[4*i] = vaddq_f16(x[4*i], x[4*i+2]);                 \
+        }                                                         \
+        for (int i = 0; i < GGML_F16_ARR/8; ++i) {                \
+            x[8*i] = vaddq_f16(x[8*i], x[8*i+4]);                 \
+        }                                                         \
+        const float32x4_t t0 = vcvt_f32_f16(vget_low_f16 (x[0])); \
+        const float32x4_t t1 = vcvt_f32_f16(vget_high_f16(x[0])); \
+        res = vaddvq_f32(vaddq_f32(t0, t1));                      \
+    }
+
+    #define GGML_F16_VEC                GGML_F16x8
+    #define GGML_F16_VEC_ZERO           GGML_F16x8_ZERO
+    #define GGML_F16_VEC_SET1           GGML_F16x8_SET1
+    #define GGML_F16_VEC_LOAD(p, i)     GGML_F16x8_LOAD(p)
+    #define GGML_F16_VEC_STORE(p, r, i) GGML_F16x8_STORE(p, r[i])
+    #define GGML_F16_VEC_FMA            GGML_F16x8_FMA
+    #define GGML_F16_VEC_ADD            GGML_F16x8_ADD
+    #define GGML_F16_VEC_MUL            GGML_F16x8_MUL
+    #define GGML_F16_VEC_REDUCE         GGML_F16x8_REDUCE
+#else
+    // if FP16 vector arithmetic is not supported, we use FP32 instead
+    // and take advantage of the vcvt_ functions to convert to/from FP16
+
+    #define GGML_F16_STEP 16
+    #define GGML_F16_EPR  4
+
+    #define GGML_F32Cx4              float32x4_t
+    #define GGML_F32Cx4_ZERO         vdupq_n_f32(0.0f)
+    #define GGML_F32Cx4_SET1(x)      vdupq_n_f32(x)
+    #define GGML_F32Cx4_LOAD(x)      vcvt_f32_f16(vld1_f16(x))
+    #define GGML_F32Cx4_STORE(x, y)  vst1_f16(x, vcvt_f16_f32(y))
+    #define GGML_F32Cx4_FMA(a, b, c) vfmaq_f32(a, b, c)
+    #define GGML_F32Cx4_ADD          vaddq_f32
+    #define GGML_F32Cx4_MUL          vmulq_f32
+    #define GGML_F32Cx4_REDUCE       GGML_F32x4_REDUCE
+
+    #define GGML_F16_VEC                GGML_F32Cx4
+    #define GGML_F16_VEC_ZERO           GGML_F32Cx4_ZERO
+    #define GGML_F16_VEC_SET1           GGML_F32Cx4_SET1
+    #define GGML_F16_VEC_LOAD(p, i)     GGML_F32Cx4_LOAD(p)
+    #define GGML_F16_VEC_STORE(p, r, i) GGML_F32Cx4_STORE(p, r[i])
+    #define GGML_F16_VEC_FMA            GGML_F32Cx4_FMA
+    #define GGML_F16_VEC_ADD            GGML_F32Cx4_ADD
+    #define GGML_F16_VEC_MUL            GGML_F32Cx4_MUL
+    #define GGML_F16_VEC_REDUCE         GGML_F32Cx4_REDUCE
+#endif
+
+#elif defined(__AVX__)
+
+#define GGML_SIMD
+
+// F32 AVX
+
+#define GGML_F32_STEP 32
+#define GGML_F32_EPR  8
+
+#define GGML_F32x8         __m256
+#define GGML_F32x8_ZERO    _mm256_setzero_ps()
+#define GGML_F32x8_SET1(x) _mm256_set1_ps(x)
+#define GGML_F32x8_LOAD    _mm256_loadu_ps
+#define GGML_F32x8_STORE   _mm256_storeu_ps
+#if defined(__FMA__)
+    #define GGML_F32x8_FMA(a, b, c) _mm256_fmadd_ps(b, c, a)
+#else
+    #define GGML_F32x8_FMA(a, b, c) _mm256_add_ps(_mm256_mul_ps(b, c), a)
+#endif
+#define GGML_F32x8_ADD     _mm256_add_ps
+#define GGML_F32x8_MUL     _mm256_mul_ps
+#define GGML_F32x8_REDUCE(res, x)                                 \
+{                                                                 \
+    for (int i = 0; i < GGML_F32_ARR/2; ++i) {                    \
+        x[2*i] = _mm256_add_ps(x[2*i], x[2*i+1]);                 \
+    }                                                             \
+    for (int i = 0; i < GGML_F32_ARR/4; ++i) {                    \
+        x[4*i] = _mm256_add_ps(x[4*i], x[4*i+2]);                 \
+    }                                                             \
+    for (int i = 0; i < GGML_F32_ARR/8; ++i) {                    \
+        x[8*i] = _mm256_add_ps(x[8*i], x[8*i+4]);                 \
+    }                                                             \
+    const __m128 t0 = _mm_add_ps(_mm256_castps256_ps128(x[0]),    \
+                                 _mm256_extractf128_ps(x[0], 1)); \
+    const __m128 t1 = _mm_hadd_ps(t0, t0);                        \
+    res = _mm_cvtss_f32(_mm_hadd_ps(t1, t1));                     \
+}
+// TODO: is this optimal ?
+
+#define GGML_F32_VEC        GGML_F32x8
+#define GGML_F32_VEC_ZERO   GGML_F32x8_ZERO
+#define GGML_F32_VEC_SET1   GGML_F32x8_SET1
+#define GGML_F32_VEC_LOAD   GGML_F32x8_LOAD
+#define GGML_F32_VEC_STORE  GGML_F32x8_STORE
+#define GGML_F32_VEC_FMA    GGML_F32x8_FMA
+#define GGML_F32_VEC_ADD    GGML_F32x8_ADD
+#define GGML_F32_VEC_MUL    GGML_F32x8_MUL
+#define GGML_F32_VEC_REDUCE GGML_F32x8_REDUCE
+
+// F16 AVX
+
+#define GGML_F16_STEP 32
+#define GGML_F16_EPR  8
+
+// F16 arithmetic is not supported by AVX, so we use F32 instead
+// we take advantage of the _mm256_cvt intrinsics to convert F16 <-> F32
+
+#define GGML_F32Cx8             __m256
+#define GGML_F32Cx8_ZERO        _mm256_setzero_ps()
+#define GGML_F32Cx8_SET1(x)     _mm256_set1_ps(x)
+#define GGML_F32Cx8_LOAD(x)     _mm256_cvtph_ps(_mm_loadu_si128((__m128i *)(x)))
+#define GGML_F32Cx8_STORE(x, y) _mm_storeu_si128((__m128i *)(x), _mm256_cvtps_ph(y, 0))
+#define GGML_F32Cx8_FMA         GGML_F32x8_FMA
+#define GGML_F32Cx8_ADD         _mm256_add_ps
+#define GGML_F32Cx8_MUL         _mm256_mul_ps
+#define GGML_F32Cx8_REDUCE      GGML_F32x8_REDUCE
+
+#define GGML_F16_VEC                GGML_F32Cx8
+#define GGML_F16_VEC_ZERO           GGML_F32Cx8_ZERO
+#define GGML_F16_VEC_SET1           GGML_F32Cx8_SET1
+#define GGML_F16_VEC_LOAD(p, i)     GGML_F32Cx8_LOAD(p)
+#define GGML_F16_VEC_STORE(p, r, i) GGML_F32Cx8_STORE(p, r[i])
+#define GGML_F16_VEC_FMA            GGML_F32Cx8_FMA
+#define GGML_F16_VEC_ADD            GGML_F32Cx8_ADD
+#define GGML_F16_VEC_MUL            GGML_F32Cx8_MUL
+#define GGML_F16_VEC_REDUCE         GGML_F32Cx8_REDUCE
+
+#elif defined(__POWER9_VECTOR__)
+
+#define GGML_SIMD
+
+// F32 POWER9
+
+#define GGML_F32_STEP 32
+#define GGML_F32_EPR  4
+
+#define GGML_F32x4              vector float
+#define GGML_F32x4_ZERO         0.0f
+#define GGML_F32x4_SET1         vec_splats
+#define GGML_F32x4_LOAD(p)      vec_xl(0, p)
+#define GGML_F32x4_STORE(p, r)  vec_xst(r, 0, p)
+#define GGML_F32x4_FMA(a, b, c) vec_madd(b, c, a)
+#define GGML_F32x4_ADD          vec_add
+#define GGML_F32x4_MUL          vec_mul
+#define GGML_F32x4_REDUCE(res, x)              \
+{                                              \
+    for (int i = 0; i < GGML_F32_ARR/2; ++i) { \
+        x[2*i] = vec_add(x[2*i], x[2*i+1]);    \
+    }                                          \
+    for (int i = 0; i < GGML_F32_ARR/4; ++i) { \
+        x[4*i] = vec_add(x[4*i], x[4*i+2]);    \
+    }                                          \
+    for (int i = 0; i < GGML_F32_ARR/8; ++i) { \
+        x[8*i] = vec_add(x[8*i], x[8*i+4]);    \
+    }                                          \
+    res = vec_extract(x[0], 0) +               \
+          vec_extract(x[0], 1) +               \
+          vec_extract(x[0], 2) +               \
+          vec_extract(x[0], 3);                \
+}
+
+#define GGML_F32_VEC        GGML_F32x4
+#define GGML_F32_VEC_ZERO   GGML_F32x4_ZERO
+#define GGML_F32_VEC_SET1   GGML_F32x4_SET1
+#define GGML_F32_VEC_LOAD   GGML_F32x4_LOAD
+#define GGML_F32_VEC_STORE  GGML_F32x4_STORE
+#define GGML_F32_VEC_FMA    GGML_F32x4_FMA
+#define GGML_F32_VEC_ADD    GGML_F32x4_ADD
+#define GGML_F32_VEC_MUL    GGML_F32x4_MUL
+#define GGML_F32_VEC_REDUCE GGML_F32x4_REDUCE
+
+// F16 POWER9
+#define GGML_F16_STEP       GGML_F32_STEP
+#define GGML_F16_EPR        GGML_F32_EPR
+#define GGML_F16_VEC        GGML_F32x4
+#define GGML_F16_VEC_ZERO   GGML_F32x4_ZERO
+#define GGML_F16_VEC_SET1   GGML_F32x4_SET1
+#define GGML_F16_VEC_FMA    GGML_F32x4_FMA
+#define GGML_F16_VEC_REDUCE GGML_F32x4_REDUCE
+// Use vec_xl, not vec_ld, in case the load address is not aligned.
+#define GGML_F16_VEC_LOAD(p, i) (i & 0x1) ?                   \
+  vec_extract_fp32_from_shorth(vec_xl(0, p - GGML_F16_EPR)) : \
+  vec_extract_fp32_from_shortl(vec_xl(0, p))
+#define GGML_ENDIAN_BYTE(i) ((unsigned char *)&(uint16_t){1})[i]
+#define GGML_F16_VEC_STORE(p, r, i)                             \
+  if (i & 0x1)                                                  \
+    vec_xst(vec_pack_to_short_fp32(r[i - GGML_ENDIAN_BYTE(1)],  \
+                                   r[i - GGML_ENDIAN_BYTE(0)]), \
+            0, p - GGML_F16_EPR)
+
+#elif defined(__wasm_simd128__)
+
+#define GGML_SIMD
+
+// F32 WASM
+
+#define GGML_F32_STEP 16
+#define GGML_F32_EPR  4
+
+#define GGML_F32x4              v128_t
+#define GGML_F32x4_ZERO         wasm_f32x4_splat(0.0f)
+#define GGML_F32x4_SET1(x)      wasm_f32x4_splat(x)
+#define GGML_F32x4_LOAD         wasm_v128_load
+#define GGML_F32x4_STORE        wasm_v128_store
+#define GGML_F32x4_FMA(a, b, c) wasm_f32x4_add(wasm_f32x4_mul(b, c), a)
+#define GGML_F32x4_ADD          wasm_f32x4_add
+#define GGML_F32x4_MUL          wasm_f32x4_mul
+#define GGML_F32x4_REDUCE(res, x)                  \
+{                                                  \
+    for (int i = 0; i < GGML_F32_ARR/2; ++i) {     \
+        x[2*i] = wasm_f32x4_add(x[2*i], x[2*i+1]); \
+    }                                              \
+    for (int i = 0; i < GGML_F32_ARR/4; ++i) {     \
+        x[4*i] = wasm_f32x4_add(x[4*i], x[4*i+2]); \
+    }                                              \
+    for (int i = 0; i < GGML_F32_ARR/8; ++i) {     \
+        x[8*i] = wasm_f32x4_add(x[8*i], x[8*i+4]); \
+    }                                              \
+    res = wasm_f32x4_extract_lane(x[0], 0) +       \
+          wasm_f32x4_extract_lane(x[0], 1) +       \
+          wasm_f32x4_extract_lane(x[0], 2) +       \
+          wasm_f32x4_extract_lane(x[0], 3);        \
+}
+
+#define GGML_F32_VEC        GGML_F32x4
+#define GGML_F32_VEC_ZERO   GGML_F32x4_ZERO
+#define GGML_F32_VEC_SET1   GGML_F32x4_SET1
+#define GGML_F32_VEC_LOAD   GGML_F32x4_LOAD
+#define GGML_F32_VEC_STORE  GGML_F32x4_STORE
+#define GGML_F32_VEC_FMA    GGML_F32x4_FMA
+#define GGML_F32_VEC_ADD    GGML_F32x4_ADD
+#define GGML_F32_VEC_MUL    GGML_F32x4_MUL
+#define GGML_F32_VEC_REDUCE GGML_F32x4_REDUCE
+
+// F16 WASM
+
+#define GGML_F16_STEP 16
+#define GGML_F16_EPR  4
+
+inline static v128_t __wasm_f16x4_load(const ggml_fp16_t * p) {
+    float tmp[4];
+
+    tmp[0] = GGML_FP16_TO_FP32(p[0]);
+    tmp[1] = GGML_FP16_TO_FP32(p[1]);
+    tmp[2] = GGML_FP16_TO_FP32(p[2]);
+    tmp[3] = GGML_FP16_TO_FP32(p[3]);
+
+    return wasm_v128_load(tmp);
+}
+
+inline static void __wasm_f16x4_store(ggml_fp16_t * p, v128_t x) {
+    float tmp[4];
+
+    wasm_v128_store(tmp, x);
+
+    p[0] = GGML_FP32_TO_FP16(tmp[0]);
+    p[1] = GGML_FP32_TO_FP16(tmp[1]);
+    p[2] = GGML_FP32_TO_FP16(tmp[2]);
+    p[3] = GGML_FP32_TO_FP16(tmp[3]);
+}
+
+#define GGML_F16x4             v128_t
+#define GGML_F16x4_ZERO        wasm_f32x4_splat(0.0f)
+#define GGML_F16x4_SET1(x)     wasm_f32x4_splat(x)
+#define GGML_F16x4_LOAD(x)     __wasm_f16x4_load(x)
+#define GGML_F16x4_STORE(x, y) __wasm_f16x4_store(x, y)
+#define GGML_F16x4_FMA         GGML_F32x4_FMA
+#define GGML_F16x4_ADD         wasm_f32x4_add
+#define GGML_F16x4_MUL         wasm_f32x4_mul
+#define GGML_F16x4_REDUCE(res, x)                  \
+{                                                  \
+    for (int i = 0; i < GGML_F16_ARR/2; ++i) {     \
+        x[2*i] = wasm_f32x4_add(x[2*i], x[2*i+1]); \
+    }                                              \
+    for (int i = 0; i < GGML_F16_ARR/4; ++i) {     \
+        x[4*i] = wasm_f32x4_add(x[4*i], x[4*i+2]); \
+    }                                              \
+    for (int i = 0; i < GGML_F16_ARR/8; ++i) {     \
+        x[8*i] = wasm_f32x4_add(x[8*i], x[8*i+4]); \
+    }                                              \
+    res = wasm_f32x4_extract_lane(x[0], 0) +       \
+          wasm_f32x4_extract_lane(x[0], 1) +       \
+          wasm_f32x4_extract_lane(x[0], 2) +       \
+          wasm_f32x4_extract_lane(x[0], 3);        \
+}
+
+#define GGML_F16_VEC                GGML_F16x4
+#define GGML_F16_VEC_ZERO           GGML_F16x4_ZERO
+#define GGML_F16_VEC_SET1           GGML_F16x4_SET1
+#define GGML_F16_VEC_LOAD(p, i)     GGML_F16x4_LOAD(p)
+#define GGML_F16_VEC_STORE(p, r, i) GGML_F16x4_STORE(p, r[i])
+#define GGML_F16_VEC_FMA            GGML_F16x4_FMA
+#define GGML_F16_VEC_ADD            GGML_F16x4_ADD
+#define GGML_F16_VEC_MUL            GGML_F16x4_MUL
+#define GGML_F16_VEC_REDUCE         GGML_F16x4_REDUCE
+
+#elif defined(__SSE3__)
+
+#define GGML_SIMD
+
+// F32 SSE
+
+#define GGML_F32_STEP 32
+#define GGML_F32_EPR  4
+
+#define GGML_F32x4         __m128
+#define GGML_F32x4_ZERO    _mm_setzero_ps()
+#define GGML_F32x4_SET1(x) _mm_set1_ps(x)
+#define GGML_F32x4_LOAD    _mm_loadu_ps
+#define GGML_F32x4_STORE   _mm_storeu_ps
+#if defined(__FMA__)
+    // TODO: Does this work?
+    #define GGML_F32x4_FMA(a, b, c) _mm_fmadd_ps(b, c, a)
+#else
+    #define GGML_F32x4_FMA(a, b, c) _mm_add_ps(_mm_mul_ps(b, c), a)
+#endif
+#define GGML_F32x4_ADD     _mm_add_ps
+#define GGML_F32x4_MUL     _mm_mul_ps
+#define GGML_F32x4_REDUCE(res, x)                                 \
+{                                                                 \
+    for (int i = 0; i < GGML_F32_ARR/2; ++i) {                    \
+        x[2*i] = _mm_add_ps(x[2*i], x[2*i+1]);                    \
+    }                                                             \
+    for (int i = 0; i < GGML_F32_ARR/4; ++i) {                    \
+        x[4*i] = _mm_add_ps(x[4*i], x[4*i+2]);                    \
+    }                                                             \
+    for (int i = 0; i < GGML_F32_ARR/8; ++i) {                    \
+        x[8*i] = _mm_add_ps(x[8*i], x[8*i+4]);                    \
+    }                                                             \
+    const __m128 t0 = _mm_hadd_ps(x[0], x[0]);                    \
+    res = _mm_cvtss_f32(_mm_hadd_ps(t0, t0));                     \
+}
+// TODO: is this optimal ?
+
+#define GGML_F32_VEC        GGML_F32x4
+#define GGML_F32_VEC_ZERO   GGML_F32x4_ZERO
+#define GGML_F32_VEC_SET1   GGML_F32x4_SET1
+#define GGML_F32_VEC_LOAD   GGML_F32x4_LOAD
+#define GGML_F32_VEC_STORE  GGML_F32x4_STORE
+#define GGML_F32_VEC_FMA    GGML_F32x4_FMA
+#define GGML_F32_VEC_ADD    GGML_F32x4_ADD
+#define GGML_F32_VEC_MUL    GGML_F32x4_MUL
+#define GGML_F32_VEC_REDUCE GGML_F32x4_REDUCE
+
+// F16 SSE
+
+#define GGML_F16_STEP 32
+#define GGML_F16_EPR  4
+
+static inline __m128 __sse_f16x4_load(ggml_fp16_t *x) {
+    float tmp[4];
+
+    tmp[0] = GGML_FP16_TO_FP32(x[0]);
+    tmp[1] = GGML_FP16_TO_FP32(x[1]);
+    tmp[2] = GGML_FP16_TO_FP32(x[2]);
+    tmp[3] = GGML_FP16_TO_FP32(x[3]);
+
+    return _mm_loadu_ps(tmp);
+}
+
+static inline void __sse_f16x4_store(ggml_fp16_t *x, __m128 y) {
+    float arr[4];
+
+    _mm_storeu_ps(arr, y);
+
+    x[0] = GGML_FP32_TO_FP16(arr[0]);
+    x[1] = GGML_FP32_TO_FP16(arr[1]);
+    x[2] = GGML_FP32_TO_FP16(arr[2]);
+    x[3] = GGML_FP32_TO_FP16(arr[3]);
+}
+
+#define GGML_F32Cx4             __m128
+#define GGML_F32Cx4_ZERO        _mm_setzero_ps()
+#define GGML_F32Cx4_SET1(x)     _mm_set1_ps(x)
+#define GGML_F32Cx4_LOAD(x)     __sse_f16x4_load(x)
+#define GGML_F32Cx4_STORE(x, y) __sse_f16x4_store(x, y)
+#define GGML_F32Cx4_FMA         GGML_F32x4_FMA
+#define GGML_F32Cx4_ADD         _mm_add_ps
+#define GGML_F32Cx4_MUL         _mm_mul_ps
+#define GGML_F32Cx4_REDUCE      GGML_F32x4_REDUCE
+
+#define GGML_F16_VEC                 GGML_F32Cx4
+#define GGML_F16_VEC_ZERO            GGML_F32Cx4_ZERO
+#define GGML_F16_VEC_SET1            GGML_F32Cx4_SET1
+#define GGML_F16_VEC_LOAD(p, i)      GGML_F32Cx4_LOAD(p)
+#define GGML_F16_VEC_STORE(p, r, i)  GGML_F32Cx4_STORE(p, r[i])
+#define GGML_F16_VEC_FMA             GGML_F32Cx4_FMA
+#define GGML_F16_VEC_ADD             GGML_F32Cx4_ADD
+#define GGML_F16_VEC_MUL             GGML_F32Cx4_MUL
+#define GGML_F16_VEC_REDUCE          GGML_F32Cx4_REDUCE
+
+#endif
+
+// GGML_F32_ARR / GGML_F16_ARR
+//   number of registers to use per step
+#ifdef GGML_SIMD
+#define GGML_F32_ARR (GGML_F32_STEP/GGML_F32_EPR)
+#define GGML_F16_ARR (GGML_F16_STEP/GGML_F16_EPR)
+#endif
 
 //
 // fundamental operations
@@ -333,170 +854,29 @@ inline static void ggml_vec_div_f32 (const int n, float * z, const float * x, co
 
 inline static void ggml_vec_dot_f32(const int n, float * restrict s, const float * restrict x, const float * restrict y) {
     ggml_float sumf = 0.0;
-#ifdef __ARM_NEON
-    // NEON 128-bit
-    const int n16 = (n & ~15);
 
-    float32x4_t sum0 = vdupq_n_f32(0);
-    float32x4_t sum1 = vdupq_n_f32(0);
-    float32x4_t sum2 = vdupq_n_f32(0);
-    float32x4_t sum3 = vdupq_n_f32(0);
+#ifdef GGML_SIMD
+    const int np = (n & ~(GGML_F32_STEP - 1));
 
-    float32x4_t x0, x1, x2, x3;
-    float32x4_t y0, y1, y2, y3;
+    GGML_F32_VEC sum[GGML_F32_ARR] = { GGML_F32_VEC_ZERO };
 
-    for (int i = 0; i < n16; i += 16) {
-        x0 = vld1q_f32(x + i + 0);
-        x1 = vld1q_f32(x + i + 4);
-        x2 = vld1q_f32(x + i + 8);
-        x3 = vld1q_f32(x + i + 12);
+    GGML_F32_VEC ax[GGML_F32_ARR];
+    GGML_F32_VEC ay[GGML_F32_ARR];
 
-        y0 = vld1q_f32(y + i + 0);
-        y1 = vld1q_f32(y + i + 4);
-        y2 = vld1q_f32(y + i + 8);
-        y3 = vld1q_f32(y + i + 12);
+    for (int i = 0; i < np; i += GGML_F32_STEP) {
+        for (int j = 0; j < GGML_F32_ARR; j++) {
+            ax[j] = GGML_F32_VEC_LOAD(x + i + j*GGML_F32_EPR);
+            ay[j] = GGML_F32_VEC_LOAD(y + i + j*GGML_F32_EPR);
 
-        sum0 = vfmaq_f32(sum0, x0, y0);
-        sum1 = vfmaq_f32(sum1, x1, y1);
-        sum2 = vfmaq_f32(sum2, x2, y2);
-        sum3 = vfmaq_f32(sum3, x3, y3);
+            sum[j] = GGML_F32_VEC_FMA(sum[j], ax[j], ay[j]);
+        }
     }
 
     // reduce sum0..sum3 to sum0
-    sum0 = vaddq_f32(sum0, sum1);
-    sum2 = vaddq_f32(sum2, sum3);
-    sum0 = vaddq_f32(sum0, sum2);
-
-    float32x2_t sumf32 = vadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
-    sumf = vget_lane_f32(sumf32, 0) + vget_lane_f32(sumf32, 1);
+    GGML_F32_VEC_REDUCE(sumf, sum);
 
     // leftovers
-    for (int i = n16; i < n; ++i) {
-        sumf += x[i]*y[i];
-    }
-#elif defined(__AVX2__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    __m256 sum0 = _mm256_setzero_ps();
-    __m256 sum1 = _mm256_setzero_ps();
-    __m256 sum2 = _mm256_setzero_ps();
-    __m256 sum3 = _mm256_setzero_ps();
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_loadu_ps(x + i + 0);
-        x1 = _mm256_loadu_ps(x + i + 8);
-        x2 = _mm256_loadu_ps(x + i + 16);
-        x3 = _mm256_loadu_ps(x + i + 24);
-
-        y0 = _mm256_loadu_ps(y + i + 0);
-        y1 = _mm256_loadu_ps(y + i + 8);
-        y2 = _mm256_loadu_ps(y + i + 16);
-        y3 = _mm256_loadu_ps(y + i + 24);
-
-        sum0 = _mm256_fmadd_ps(x0, y0, sum0);
-        sum1 = _mm256_fmadd_ps(x1, y1, sum1);
-        sum2 = _mm256_fmadd_ps(x2, y2, sum2);
-        sum3 = _mm256_fmadd_ps(x3, y3, sum3);
-    }
-
-    sum0 = _mm256_add_ps(sum0, sum1);
-    sum2 = _mm256_add_ps(sum2, sum3);
-    sum0 = _mm256_add_ps(sum0, sum2);
-
-    const __m128 r4 = _mm_add_ps(_mm256_castps256_ps128(sum0), _mm256_extractf128_ps(sum0, 1));
-    const __m128 r2 = _mm_add_ps(r4, _mm_movehl_ps(r4, r4));
-    const __m128 r1 = _mm_add_ss(r2, _mm_movehdup_ps(r2));
-
-    sumf = _mm_cvtss_f32(r1);
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        sumf += x[i]*y[i];
-    }
-#elif defined(__AVX__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    __m256 sum0 = _mm256_setzero_ps();
-    __m256 sum1 = _mm256_setzero_ps();
-    __m256 sum2 = _mm256_setzero_ps();
-    __m256 sum3 = _mm256_setzero_ps();
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_loadu_ps(x + i + 0);
-        x1 = _mm256_loadu_ps(x + i + 8);
-        x2 = _mm256_loadu_ps(x + i + 16);
-        x3 = _mm256_loadu_ps(x + i + 24);
-
-        y0 = _mm256_loadu_ps(y + i + 0);
-        y1 = _mm256_loadu_ps(y + i + 8);
-        y2 = _mm256_loadu_ps(y + i + 16);
-        y3 = _mm256_loadu_ps(y + i + 24);
-
-        sum0 = _mm256_add_ps(_mm256_mul_ps(x0, y0), sum0);
-        sum1 = _mm256_add_ps(_mm256_mul_ps(x1, y1), sum1);
-        sum2 = _mm256_add_ps(_mm256_mul_ps(x2, y2), sum2);
-        sum3 = _mm256_add_ps(_mm256_mul_ps(x3, y3), sum3);
-    }
-
-    sum0 = _mm256_add_ps(sum0, sum1);
-    sum2 = _mm256_add_ps(sum2, sum3);
-    sum0 = _mm256_add_ps(sum0, sum2);
-
-    const __m128 r4 = _mm_add_ps(_mm256_castps256_ps128(sum0), _mm256_extractf128_ps(sum0, 1));
-    const __m128 r2 = _mm_add_ps(r4, _mm_movehl_ps(r4, r4));
-    const __m128 r1 = _mm_add_ss(r2, _mm_movehdup_ps(r2));
-
-    sumf = _mm_cvtss_f32(r1);
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        sumf += x[i]*y[i];
-    }
-#elif defined(__wasm_simd128__)
-    // WASM 128-bit
-    const int n16 = (n & ~15);
-
-    v128_t sum0 = wasm_f32x4_splat(0);
-    v128_t sum1 = wasm_f32x4_splat(0);
-    v128_t sum2 = wasm_f32x4_splat(0);
-    v128_t sum3 = wasm_f32x4_splat(0);
-
-    v128_t x0, x1, x2, x3;
-    v128_t y0, y1, y2, y3;
-
-    for (int i = 0; i < n16; i += 16) {
-        x0 = wasm_v128_load(x + i + 0);
-        x1 = wasm_v128_load(x + i + 4);
-        x2 = wasm_v128_load(x + i + 8);
-        x3 = wasm_v128_load(x + i + 12);
-
-        y0 = wasm_v128_load(y + i + 0);
-        y1 = wasm_v128_load(y + i + 4);
-        y2 = wasm_v128_load(y + i + 8);
-        y3 = wasm_v128_load(y + i + 12);
-
-        sum0 = wasm_f32x4_add(sum0, wasm_f32x4_mul(x0, y0));
-        sum1 = wasm_f32x4_add(sum1, wasm_f32x4_mul(x1, y1));
-        sum2 = wasm_f32x4_add(sum2, wasm_f32x4_mul(x2, y2));
-        sum3 = wasm_f32x4_add(sum3, wasm_f32x4_mul(x3, y3));
-    }
-
-    sum0 = wasm_f32x4_add(sum0, sum1);
-    sum2 = wasm_f32x4_add(sum2, sum3);
-    sum0 = wasm_f32x4_add(sum0, sum2);
-
-    sumf = wasm_f32x4_extract_lane(sum0, 0) + wasm_f32x4_extract_lane(sum0, 1) + wasm_f32x4_extract_lane(sum0, 2) + wasm_f32x4_extract_lane(sum0, 3);
-
-    // leftovers
-    for (int i = n16; i < n; ++i) {
+    for (int i = np; i < n; ++i) {
         sumf += x[i]*y[i];
     }
 #else
@@ -511,243 +891,29 @@ inline static void ggml_vec_dot_f32(const int n, float * restrict s, const float
 
 inline static void ggml_vec_dot_f16(const int n, float * restrict s, ggml_fp16_t * restrict x, ggml_fp16_t * restrict y) {
     ggml_float sumf = 0.0;
-#ifdef __ARM_NEON
-    const int n32 = (n & ~31);
 
-#if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-    float16x8_t sum0 = vdupq_n_f16(0);
-    float16x8_t sum1 = vdupq_n_f16(0);
-    float16x8_t sum2 = vdupq_n_f16(0);
-    float16x8_t sum3 = vdupq_n_f16(0);
+#if defined(GGML_SIMD)
+    const int np = (n & ~(GGML_F16_STEP - 1));
 
-    float16x8_t x0, x1, x2, x3;
-    float16x8_t y0, y1, y2, y3;
+    GGML_F16_VEC sum[GGML_F16_ARR] = { GGML_F16_VEC_ZERO };
 
-    for (int i = 0; i < n32; i += 32) {
-        x0 = vld1q_f16(x + i + 0 );
-        x1 = vld1q_f16(x + i + 8 );
-        x2 = vld1q_f16(x + i + 16);
-        x3 = vld1q_f16(x + i + 24);
+    GGML_F16_VEC ax[GGML_F16_ARR];
+    GGML_F16_VEC ay[GGML_F16_ARR];
 
-        y0 = vld1q_f16(y + i + 0 );
-        y1 = vld1q_f16(y + i + 8 );
-        y2 = vld1q_f16(y + i + 16);
-        y3 = vld1q_f16(y + i + 24);
+    for (int i = 0; i < np; i += GGML_F16_STEP) {
+        for (int j = 0; j < GGML_F16_ARR; j++) {
+            ax[j] = GGML_F16_VEC_LOAD(x + i + j*GGML_F16_EPR, j);
+            ay[j] = GGML_F16_VEC_LOAD(y + i + j*GGML_F16_EPR, j);
 
-        sum0 = vfmaq_f16(sum0, x0, y0);
-        sum1 = vfmaq_f16(sum1, x1, y1);
-        sum2 = vfmaq_f16(sum2, x2, y2);
-        sum3 = vfmaq_f16(sum3, x3, y3);
+            sum[j] = GGML_F16_VEC_FMA(sum[j], ax[j], ay[j]);
+        }
     }
 
     // reduce sum0..sum3 to sum0
-    sum0 = vaddq_f16(sum0, sum1);
-    sum2 = vaddq_f16(sum2, sum3);
-    sum0 = vaddq_f16(sum0, sum2);
-
-    // load sum0 into 2 float32x4_t
-    float32x4_t sum0f32 = vcvt_f32_f16(vget_low_f16(sum0));
-    float32x4_t sum1f32 = vcvt_f32_f16(vget_high_f16(sum0));
-
-    // reduce sum0f32 and sum1f32 to sumf
-    sum0f32 = vaddq_f32(sum0f32, sum1f32);
-
-    float32x2_t sumf32 = vadd_f32(vget_low_f32(sum0f32), vget_high_f32(sum0f32));
-    sumf = vget_lane_f32(sumf32, 0) + vget_lane_f32(sumf32, 1);
-#else
-    float32x4_t sum0 = vdupq_n_f32(0);
-    float32x4_t sum1 = vdupq_n_f32(0);
-    float32x4_t sum2 = vdupq_n_f32(0);
-    float32x4_t sum3 = vdupq_n_f32(0);
-    float32x4_t sum4 = vdupq_n_f32(0);
-    float32x4_t sum5 = vdupq_n_f32(0);
-    float32x4_t sum6 = vdupq_n_f32(0);
-    float32x4_t sum7 = vdupq_n_f32(0);
-
-    float32x4_t x0, x1, x2, x3, x4, x5, x6, x7;
-    float32x4_t y0, y1, y2, y3, y4, y5, y6, y7;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = vcvt_f32_f16(vld1_f16(x + i + 0 ));
-        x1 = vcvt_f32_f16(vld1_f16(x + i + 4 ));
-        x2 = vcvt_f32_f16(vld1_f16(x + i + 8 ));
-        x3 = vcvt_f32_f16(vld1_f16(x + i + 12));
-        x4 = vcvt_f32_f16(vld1_f16(x + i + 16));
-        x5 = vcvt_f32_f16(vld1_f16(x + i + 20));
-        x6 = vcvt_f32_f16(vld1_f16(x + i + 24));
-        x7 = vcvt_f32_f16(vld1_f16(x + i + 28));
-
-        y0 = vcvt_f32_f16(vld1_f16(y + i + 0 ));
-        y1 = vcvt_f32_f16(vld1_f16(y + i + 4 ));
-        y2 = vcvt_f32_f16(vld1_f16(y + i + 8 ));
-        y3 = vcvt_f32_f16(vld1_f16(y + i + 12));
-        y4 = vcvt_f32_f16(vld1_f16(y + i + 16));
-        y5 = vcvt_f32_f16(vld1_f16(y + i + 20));
-        y6 = vcvt_f32_f16(vld1_f16(y + i + 24));
-        y7 = vcvt_f32_f16(vld1_f16(y + i + 28));
-
-        sum0 = vfmaq_f32(sum0, x0, y0);
-        sum1 = vfmaq_f32(sum1, x1, y1);
-        sum2 = vfmaq_f32(sum2, x2, y2);
-        sum3 = vfmaq_f32(sum3, x3, y3);
-        sum4 = vfmaq_f32(sum4, x4, y4);
-        sum5 = vfmaq_f32(sum5, x5, y5);
-        sum6 = vfmaq_f32(sum6, x6, y6);
-        sum7 = vfmaq_f32(sum7, x7, y7);
-    }
-
-    // reduce sum0..sum7 to sum0
-    sum0 = vaddq_f32(sum0, sum1);
-    sum2 = vaddq_f32(sum2, sum3);
-    sum4 = vaddq_f32(sum4, sum5);
-    sum6 = vaddq_f32(sum6, sum7);
-    sum0 = vaddq_f32(sum0, sum2);
-    sum4 = vaddq_f32(sum4, sum6);
-    sum0 = vaddq_f32(sum0, sum4);
-
-    // reduce sum0 to sumf
-    float32x2_t sumf32 = vadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
-    sumf = vget_lane_f32(sumf32, 0) + vget_lane_f32(sumf32, 1);
-#endif
+    GGML_F16_VEC_REDUCE(sumf, sum);
 
     // leftovers
-    for (int i = n32; i < n; ++i) {
-        sumf += GGML_FP16_TO_FP32(x[i])*GGML_FP16_TO_FP32(y[i]);
-    }
-#elif defined(__AVX2__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    __m256 sum0 = _mm256_setzero_ps();
-    __m256 sum1 = _mm256_setzero_ps();
-    __m256 sum2 = _mm256_setzero_ps();
-    __m256 sum3 = _mm256_setzero_ps();
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 0 )));
-        x1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 8 )));
-        x2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 16)));
-        x3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 24)));
-
-        y0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 0 )));
-        y1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 8 )));
-        y2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 16)));
-        y3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 24)));
-
-        sum0 = _mm256_fmadd_ps(x0, y0, sum0);
-        sum1 = _mm256_fmadd_ps(x1, y1, sum1);
-        sum2 = _mm256_fmadd_ps(x2, y2, sum2);
-        sum3 = _mm256_fmadd_ps(x3, y3, sum3);
-    }
-
-    const __m256 sum01 = _mm256_add_ps(sum0, sum1);
-    const __m256 sum23 = _mm256_add_ps(sum2, sum3);
-    const __m256 sum0123 = _mm256_add_ps(sum01, sum23);
-
-    const __m128 r4 = _mm_add_ps(_mm256_castps256_ps128(sum0123), _mm256_extractf128_ps(sum0123, 1));
-    const __m128 r2 = _mm_add_ps(r4, _mm_movehl_ps(r4, r4));
-    const __m128 r1 = _mm_add_ss(r2, _mm_movehdup_ps(r2));
-
-    sumf = _mm_cvtss_f32(r1);
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        //GGML_ASSERT(false);
-        sumf += GGML_FP16_TO_FP32(x[i])*GGML_FP16_TO_FP32(y[i]);
-    }
-#elif defined(__AVX__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    __m256 sum0 = _mm256_setzero_ps();
-    __m256 sum1 = _mm256_setzero_ps();
-    __m256 sum2 = _mm256_setzero_ps();
-    __m256 sum3 = _mm256_setzero_ps();
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 0 )));
-        x1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 8 )));
-        x2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 16)));
-        x3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 24)));
-
-        y0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 0 )));
-        y1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 8 )));
-        y2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 16)));
-        y3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 24)));
-
-        sum0 = _mm256_add_ps(_mm256_mul_ps(x0, y0), sum0);
-        sum1 = _mm256_add_ps(_mm256_mul_ps(x1, y1), sum1);
-        sum2 = _mm256_add_ps(_mm256_mul_ps(x2, y2), sum2);
-        sum3 = _mm256_add_ps(_mm256_mul_ps(x3, y3), sum3);
-    }
-
-    const __m256 sum01 = _mm256_add_ps(sum0, sum1);
-    const __m256 sum23 = _mm256_add_ps(sum2, sum3);
-    const __m256 sum0123 = _mm256_add_ps(sum01, sum23);
-
-    const __m128 r4 = _mm_add_ps(_mm256_castps256_ps128(sum0123), _mm256_extractf128_ps(sum0123, 1));
-    const __m128 r2 = _mm_add_ps(r4, _mm_movehl_ps(r4, r4));
-    const __m128 r1 = _mm_add_ss(r2, _mm_movehdup_ps(r2));
-
-    sumf = _mm_cvtss_f32(r1);
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        //GGML_ASSERT(false);
-        sumf += GGML_FP16_TO_FP32(x[i])*GGML_FP16_TO_FP32(y[i]);
-    }
-#elif defined(__wasm_simd128__)
-    // WASM 128-bit
-    const int n16 = (n & ~15);
-
-    v128_t sum0 = wasm_f32x4_splat(0.0f);
-    v128_t sum1 = wasm_f32x4_splat(0.0f);
-    v128_t sum2 = wasm_f32x4_splat(0.0f);
-    v128_t sum3 = wasm_f32x4_splat(0.0f);
-
-    v128_t x0, x1, x2, x3;
-    v128_t y0, y1, y2, y3;
-
-    float tx[16];
-    float ty[16];
-
-    for (int i = 0; i < n16; i += 16) {
-        for (int k = 0; k < 16; ++k) {
-            tx[k] = GGML_FP16_TO_FP32(x[i + k]);
-            ty[k] = GGML_FP16_TO_FP32(y[i + k]);
-        }
-
-        x0 = wasm_v128_load(tx + 0);
-        x1 = wasm_v128_load(tx + 4);
-        x2 = wasm_v128_load(tx + 8);
-        x3 = wasm_v128_load(tx + 12);
-
-        y0 = wasm_v128_load(ty + 0);
-        y1 = wasm_v128_load(ty + 4);
-        y2 = wasm_v128_load(ty + 8);
-        y3 = wasm_v128_load(ty + 12);
-
-        sum0 = wasm_f32x4_add(sum0, wasm_f32x4_mul(x0, y0));
-        sum1 = wasm_f32x4_add(sum1, wasm_f32x4_mul(x1, y1));
-        sum2 = wasm_f32x4_add(sum2, wasm_f32x4_mul(x2, y2));
-        sum3 = wasm_f32x4_add(sum3, wasm_f32x4_mul(x3, y3));
-    }
-
-    sum0 = wasm_f32x4_add(sum0, sum1);
-    sum2 = wasm_f32x4_add(sum2, sum3);
-    sum0 = wasm_f32x4_add(sum0, sum2);
-
-    sumf = wasm_f32x4_extract_lane(sum0, 0) + wasm_f32x4_extract_lane(sum0, 1) + wasm_f32x4_extract_lane(sum0, 2) + wasm_f32x4_extract_lane(sum0, 3);
-
-    // leftovers
-    for (int i = n16; i < n; ++i) {
-        //GGML_ASSERT(false);
+    for (int i = np; i < n; ++i) {
         sumf += GGML_FP16_TO_FP32(x[i])*GGML_FP16_TO_FP32(y[i]);
     }
 #else
@@ -759,145 +925,82 @@ inline static void ggml_vec_dot_f16(const int n, float * restrict s, ggml_fp16_t
     *s = sumf;
 }
 
+// compute GGML_VEC_DOT_UNROLL dot products at once
+// xs - x row stride in bytes
+inline static void ggml_vec_dot_f16_unroll(const int n, const int xs, float * restrict s, void * restrict xv, ggml_fp16_t * restrict y) {
+    ggml_float sumf[GGML_VEC_DOT_UNROLL] = { 0.0 };
+
+    ggml_fp16_t * restrict x[GGML_VEC_DOT_UNROLL];
+
+    for (int i = 0; i < GGML_VEC_DOT_UNROLL; ++i) {
+        x[i] = (ggml_fp16_t *) ((char *) xv + i*xs);
+    }
+
+#if defined(GGML_SIMD)
+    const int np = (n & ~(GGML_F16_STEP - 1));
+
+    GGML_F16_VEC sum[GGML_VEC_DOT_UNROLL][GGML_F16_ARR] = { { GGML_F16_VEC_ZERO } };
+
+    GGML_F16_VEC ax[GGML_F16_ARR];
+    GGML_F16_VEC ay[GGML_F16_ARR];
+
+    for (int i = 0; i < np; i += GGML_F16_STEP) {
+        for (int j = 0; j < GGML_F16_ARR; j++) {
+            ay[j] = GGML_F16_VEC_LOAD(y + i + j*GGML_F16_EPR, j);
+
+            for (int k = 0; k < GGML_VEC_DOT_UNROLL; ++k) {
+                ax[j] = GGML_F16_VEC_LOAD(x[k] + i + j*GGML_F16_EPR, j);
+
+                sum[k][j] = GGML_F16_VEC_FMA(sum[k][j], ax[j], ay[j]);
+            }
+        }
+    }
+
+    // reduce sum0..sum3 to sum0
+    for (int k = 0; k < GGML_VEC_DOT_UNROLL; ++k) {
+        GGML_F16_VEC_REDUCE(sumf[k], sum[k]);
+    }
+
+    // leftovers
+    for (int i = np; i < n; ++i) {
+        for (int j = 0; j < GGML_VEC_DOT_UNROLL; ++j) {
+            sumf[j] += GGML_FP16_TO_FP32(x[j][i])*GGML_FP16_TO_FP32(y[i]);
+        }
+    }
+#else
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < GGML_VEC_DOT_UNROLL; ++j) {
+            sumf[j] += GGML_FP16_TO_FP32(x[j][i])*GGML_FP16_TO_FP32(y[i]);
+        }
+    }
+#endif
+
+    for (int i = 0; i < GGML_VEC_DOT_UNROLL; ++i) {
+        s[i] = sumf[i];
+    }
+}
+
 inline static void ggml_vec_mad_f32(const int n, float * restrict y, const float * restrict x, const float v) {
-#ifdef __ARM_NEON
-    // NEON 128-bit
-    const int n16 = (n & ~15);
+#if defined(GGML_SIMD)
+    const int np = (n & ~(GGML_F32_STEP - 1));
 
-    const float32x4_t v4 = vdupq_n_f32(v);
+    GGML_F32_VEC vx = GGML_F32_VEC_SET1(v);
 
-    float32x4_t x0, x1, x2, x3;
-    float32x4_t y0, y1, y2, y3;
+    GGML_F32_VEC ax[GGML_F32_ARR];
+    GGML_F32_VEC ay[GGML_F32_ARR];
 
-    for (int i = 0; i < n16; i += 16) {
-        x0 = vld1q_f32(x + i + 0);
-        x1 = vld1q_f32(x + i + 4);
-        x2 = vld1q_f32(x + i + 8);
-        x3 = vld1q_f32(x + i + 12);
+    for (int i = 0; i < np; i += GGML_F32_STEP) {
+        for (int j = 0; j < GGML_F32_ARR; j++) {
+            ax[j] = GGML_F32_VEC_LOAD(x + i + j*GGML_F32_EPR);
+            ay[j] = GGML_F32_VEC_LOAD(y + i + j*GGML_F32_EPR);
+            ay[j] = GGML_F32_VEC_FMA(ay[j], ax[j], vx);
 
-        y0 = vld1q_f32(y + i + 0);
-        y1 = vld1q_f32(y + i + 4);
-        y2 = vld1q_f32(y + i + 8);
-        y3 = vld1q_f32(y + i + 12);
-
-        y0 = vfmaq_f32(y0, x0, v4);
-        y1 = vfmaq_f32(y1, x1, v4);
-        y2 = vfmaq_f32(y2, x2, v4);
-        y3 = vfmaq_f32(y3, x3, v4);
-
-        vst1q_f32(y + i + 0, y0);
-        vst1q_f32(y + i + 4, y1);
-        vst1q_f32(y + i + 8, y2);
-        vst1q_f32(y + i + 12, y3);
+            GGML_F32_VEC_STORE(y + i + j*GGML_F32_EPR, ay[j]);
+        }
     }
 
     // leftovers
-    for (int i = n16; i < n; ++i) {
-        y[i] += x[i]*v;
-    }
-#elif defined(__AVX2__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    const __m256 v4 = _mm256_set1_ps(v);
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_loadu_ps(x + i + 0);
-        x1 = _mm256_loadu_ps(x + i + 8);
-        x2 = _mm256_loadu_ps(x + i + 16);
-        x3 = _mm256_loadu_ps(x + i + 24);
-
-        y0 = _mm256_loadu_ps(y + i + 0);
-        y1 = _mm256_loadu_ps(y + i + 8);
-        y2 = _mm256_loadu_ps(y + i + 16);
-        y3 = _mm256_loadu_ps(y + i + 24);
-
-        y0 = _mm256_fmadd_ps(x0, v4, y0);
-        y1 = _mm256_fmadd_ps(x1, v4, y1);
-        y2 = _mm256_fmadd_ps(x2, v4, y2);
-        y3 = _mm256_fmadd_ps(x3, v4, y3);
-
-        _mm256_storeu_ps(y + i + 0, y0);
-        _mm256_storeu_ps(y + i + 8, y1);
-        _mm256_storeu_ps(y + i + 16, y2);
-        _mm256_storeu_ps(y + i + 24, y3);
-    }
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        y[i] += x[i]*v;
-    }
-#elif defined(__AVX__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    const __m256 v4 = _mm256_set1_ps(v);
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        x0 = _mm256_loadu_ps(x + i + 0);
-        x1 = _mm256_loadu_ps(x + i + 8);
-        x2 = _mm256_loadu_ps(x + i + 16);
-        x3 = _mm256_loadu_ps(x + i + 24);
-
-        y0 = _mm256_loadu_ps(y + i + 0);
-        y1 = _mm256_loadu_ps(y + i + 8);
-        y2 = _mm256_loadu_ps(y + i + 16);
-        y3 = _mm256_loadu_ps(y + i + 24);
-
-        y0 = _mm256_add_ps(_mm256_mul_ps(x0, v4), y0);
-        y1 = _mm256_add_ps(_mm256_mul_ps(x1, v4), y1);
-        y2 = _mm256_add_ps(_mm256_mul_ps(x2, v4), y2);
-        y3 = _mm256_add_ps(_mm256_mul_ps(x3, v4), y3);
-
-        _mm256_storeu_ps(y + i + 0, y0);
-        _mm256_storeu_ps(y + i + 8, y1);
-        _mm256_storeu_ps(y + i + 16, y2);
-        _mm256_storeu_ps(y + i + 24, y3);
-    }
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        y[i] += x[i]*v;
-    }
-#elif defined(__wasm_simd128__)
-    // WASM SIMD 128-bit
-    const int n16 = (n & ~15);
-
-    const v128_t v4 = wasm_f32x4_splat(v);
-
-    v128_t x0, x1, x2, x3;
-    v128_t y0, y1, y2, y3;
-
-    for (int i = 0; i < n16; i += 16) {
-        x0 = wasm_v128_load(x + i + 0);
-        x1 = wasm_v128_load(x + i + 4);
-        x2 = wasm_v128_load(x + i + 8);
-        x3 = wasm_v128_load(x + i + 12);
-
-        y0 = wasm_v128_load(y + i + 0);
-        y1 = wasm_v128_load(y + i + 4);
-        y2 = wasm_v128_load(y + i + 8);
-        y3 = wasm_v128_load(y + i + 12);
-
-        y0 = wasm_f32x4_add(y0, wasm_f32x4_mul(x0, v4));
-        y1 = wasm_f32x4_add(y1, wasm_f32x4_mul(x1, v4));
-        y2 = wasm_f32x4_add(y2, wasm_f32x4_mul(x2, v4));
-        y3 = wasm_f32x4_add(y3, wasm_f32x4_mul(x3, v4));
-
-        wasm_v128_store(y + i + 0, y0);
-        wasm_v128_store(y + i + 4, y1);
-        wasm_v128_store(y + i + 8, y2);
-        wasm_v128_store(y + i + 12, y3);
-    }
-
-    // leftovers
-    for (int i = n16; i < n; ++i) {
+    for (int i = np; i < n; ++i) {
         y[i] += x[i]*v;
     }
 #else
@@ -909,205 +1012,26 @@ inline static void ggml_vec_mad_f32(const int n, float * restrict y, const float
 }
 
 inline static void ggml_vec_mad_f16(const int n, ggml_fp16_t * restrict y, ggml_fp16_t * restrict x, const float v) {
-#ifdef __ARM_NEON
-    // NEON 128-bit
-    const int n32 = (n & ~31);
+#if defined(GGML_SIMD)
+    const int np = (n & ~(GGML_F16_STEP - 1));
 
-#if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
-    const float16x8_t v8 = vdupq_n_f16(v);
+    GGML_F16_VEC vx = GGML_F16_VEC_SET1(v);
 
-    float16x8_t x0, x1, x2, x3;
-    float16x8_t y0, y1, y2, y3;
+    GGML_F16_VEC ax[GGML_F16_ARR];
+    GGML_F16_VEC ay[GGML_F16_ARR];
 
-    for (int i = 0; i < n32; i += 32) {
-        y0 = vld1q_f16(y + i + 0 );
-        y1 = vld1q_f16(y + i + 8 );
-        y2 = vld1q_f16(y + i + 16);
-        y3 = vld1q_f16(y + i + 24);
+    for (int i = 0; i < np; i += GGML_F16_STEP) {
+        for (int j = 0; j < GGML_F16_ARR; j++) {
+            ax[j] = GGML_F16_VEC_LOAD(x + i + j*GGML_F16_EPR, j);
+            ay[j] = GGML_F16_VEC_LOAD(y + i + j*GGML_F16_EPR, j);
+            ay[j] = GGML_F16_VEC_FMA(ay[j], ax[j], vx);
 
-        x0 = vld1q_f16(x + i + 0 );
-        x1 = vld1q_f16(x + i + 8 );
-        x2 = vld1q_f16(x + i + 16);
-        x3 = vld1q_f16(x + i + 24);
-
-        y0 = vfmaq_f16(y0, x0, v8);
-        y1 = vfmaq_f16(y1, x1, v8);
-        y2 = vfmaq_f16(y2, x2, v8);
-        y3 = vfmaq_f16(y3, x3, v8);
-
-        vst1q_f16(y + i + 0 , y0);
-        vst1q_f16(y + i + 8 , y1);
-        vst1q_f16(y + i + 16, y2);
-        vst1q_f16(y + i + 24, y3);
-    }
-#else
-    const float32x4_t v40 = vdupq_n_f32(v);
-    const float32x4_t v41 = vdupq_n_f32(v);
-
-    float32x4_t x0, x1, x2, x3, x4, x5, x6, x7;
-    float32x4_t y0, y1, y2, y3, y4, y5, y6, y7;
-
-    for (int i = 0; i < n32; i += 32) {
-        y0 = vcvt_f32_f16(vld1_f16(y + i + 0 ));
-        y1 = vcvt_f32_f16(vld1_f16(y + i + 4 ));
-        y2 = vcvt_f32_f16(vld1_f16(y + i + 8 ));
-        y3 = vcvt_f32_f16(vld1_f16(y + i + 12));
-        y4 = vcvt_f32_f16(vld1_f16(y + i + 16));
-        y5 = vcvt_f32_f16(vld1_f16(y + i + 20));
-        y6 = vcvt_f32_f16(vld1_f16(y + i + 24));
-        y7 = vcvt_f32_f16(vld1_f16(y + i + 28));
-
-        x0 = vcvt_f32_f16(vld1_f16(x + i + 0 ));
-        x1 = vcvt_f32_f16(vld1_f16(x + i + 4 ));
-        x2 = vcvt_f32_f16(vld1_f16(x + i + 8 ));
-        x3 = vcvt_f32_f16(vld1_f16(x + i + 12));
-        x4 = vcvt_f32_f16(vld1_f16(x + i + 16));
-        x5 = vcvt_f32_f16(vld1_f16(x + i + 20));
-        x6 = vcvt_f32_f16(vld1_f16(x + i + 24));
-        x7 = vcvt_f32_f16(vld1_f16(x + i + 28));
-
-        y0 = vfmaq_f32(y0, x0, v40);
-        y1 = vfmaq_f32(y1, x1, v40);
-        y2 = vfmaq_f32(y2, x2, v40);
-        y3 = vfmaq_f32(y3, x3, v40);
-        y4 = vfmaq_f32(y4, x4, v41);
-        y5 = vfmaq_f32(y5, x5, v41);
-        y6 = vfmaq_f32(y6, x6, v41);
-        y7 = vfmaq_f32(y7, x7, v41);
-
-        vst1_f16(y + i + 0 , vcvt_f16_f32(y0));
-        vst1_f16(y + i + 4 , vcvt_f16_f32(y1));
-        vst1_f16(y + i + 8 , vcvt_f16_f32(y2));
-        vst1_f16(y + i + 12, vcvt_f16_f32(y3));
-        vst1_f16(y + i + 16, vcvt_f16_f32(y4));
-        vst1_f16(y + i + 20, vcvt_f16_f32(y5));
-        vst1_f16(y + i + 24, vcvt_f16_f32(y6));
-        vst1_f16(y + i + 28, vcvt_f16_f32(y7));
-    }
-#endif
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        GGML_ASSERT(false);
-        y[i] = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(y[i]) + GGML_FP16_TO_FP32(x[i])*v);
-    }
-#elif defined(__AVX2__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    const __m256 v8 = _mm256_set1_ps(v);
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        y0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 0 )));
-        y1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 8 )));
-        y2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 16)));
-        y3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 24)));
-
-        x0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 0 )));
-        x1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 8 )));
-        x2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 16)));
-        x3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 24)));
-
-        y0 = _mm256_fmadd_ps(x0, v8, y0);
-        y1 = _mm256_fmadd_ps(x1, v8, y1);
-        y2 = _mm256_fmadd_ps(x2, v8, y2);
-        y3 = _mm256_fmadd_ps(x3, v8, y3);
-
-        _mm_storeu_si128((__m128i*)(y + i + 0 ), _mm256_cvtps_ph(y0, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 8 ), _mm256_cvtps_ph(y1, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 16), _mm256_cvtps_ph(y2, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 24), _mm256_cvtps_ph(y3, 0));
-    }
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        GGML_ASSERT(false);
-        y[i] = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(y[i]) + GGML_FP16_TO_FP32(x[i])*v);
-    }
-#elif defined(__AVX__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
-
-    const __m256 v8 = _mm256_set1_ps(v);
-
-    __m256 x0, x1, x2, x3;
-    __m256 y0, y1, y2, y3;
-
-    for (int i = 0; i < n32; i += 32) {
-        y0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 0 )));
-        y1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 8 )));
-        y2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 16)));
-        y3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(y + i + 24)));
-
-        x0 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 0 )));
-        x1 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 8 )));
-        x2 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 16)));
-        x3 = _mm256_cvtph_ps(_mm_loadu_si128((__m128i*)(x + i + 24)));
-
-        y0 = _mm256_add_ps(_mm256_mul_ps(x0, v8), y0);
-        y1 = _mm256_add_ps(_mm256_mul_ps(x1, v8), y1);
-        y2 = _mm256_add_ps(_mm256_mul_ps(x2, v8), y2);
-        y3 = _mm256_add_ps(_mm256_mul_ps(x3, v8), y3);
-
-        _mm_storeu_si128((__m128i*)(y + i + 0 ), _mm256_cvtps_ph(y0, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 8 ), _mm256_cvtps_ph(y1, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 16), _mm256_cvtps_ph(y2, 0));
-        _mm_storeu_si128((__m128i*)(y + i + 24), _mm256_cvtps_ph(y3, 0));
-    }
-
-    // leftovers
-    for (int i = n32; i < n; ++i) {
-        GGML_ASSERT(false);
-        y[i] = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(y[i]) + GGML_FP16_TO_FP32(x[i])*v);
-    }
-#elif defined(__wasm_simd128__)
-    // WASM SIMD 128-bit
-    const int n16 = (n & ~15);
-
-    const v128_t v4 = wasm_f32x4_splat(v);
-
-    v128_t x0, x1, x2, x3;
-    v128_t y0, y1, y2, y3;
-
-    float tx[16];
-    float ty[16];
-
-    for (int i = 0; i < n16; i += 16) {
-        for (int k = 0; k < 16; ++k) {
-            tx[k] = GGML_FP16_TO_FP32(x[i + k]);
-            ty[k] = GGML_FP16_TO_FP32(y[i + k]);
-        }
-
-        x0 = wasm_v128_load(tx + 0);
-        x1 = wasm_v128_load(tx + 4);
-        x2 = wasm_v128_load(tx + 8);
-        x3 = wasm_v128_load(tx + 12);
-
-        y0 = wasm_v128_load(ty + 0);
-        y1 = wasm_v128_load(ty + 4);
-        y2 = wasm_v128_load(ty + 8);
-        y3 = wasm_v128_load(ty + 12);
-
-        y0 = wasm_f32x4_add(y0, wasm_f32x4_mul(x0, v4));
-        y1 = wasm_f32x4_add(y1, wasm_f32x4_mul(x1, v4));
-        y2 = wasm_f32x4_add(y2, wasm_f32x4_mul(x2, v4));
-        y3 = wasm_f32x4_add(y3, wasm_f32x4_mul(x3, v4));
-
-        wasm_v128_store(ty + 0, y0);
-        wasm_v128_store(ty + 4, y1);
-        wasm_v128_store(ty + 8, y2);
-        wasm_v128_store(ty + 12, y3);
-
-        for (int k = 0; k < 16; ++k) {
-            y[i + k] = GGML_FP32_TO_FP16(ty[k]);
+            GGML_F16_VEC_STORE(y + i + j*GGML_F16_EPR, ay, j);
         }
     }
 
     // leftovers
-    for (int i = n16; i < n; ++i) {
+    for (int i = np; i < n; ++i) {
         GGML_ASSERT(false);
         y[i] = GGML_FP32_TO_FP16(GGML_FP16_TO_FP32(y[i]) + GGML_FP16_TO_FP32(x[i])*v);
     }
@@ -1120,33 +1044,24 @@ inline static void ggml_vec_mad_f16(const int n, ggml_fp16_t * restrict y, ggml_
 
 //inline static void ggml_vec_scale_f32(const int n, float * y, const float   v) { for (int i = 0; i < n; ++i) y[i] *= v;          }
 inline static void ggml_vec_scale_f32(const int n, float * y, const float   v) {
-#if defined(__AVX__) || defined(__AVX2__)
-    // AVX 256-bit
-    const int n32 = (n & ~31);
+#if defined(GGML_SIMD)
+    const int np = (n & ~(GGML_F32_STEP - 1));
 
-    const __m256 v4 = _mm256_set1_ps(v);
+    GGML_F32_VEC vx = GGML_F32_VEC_SET1(v);
 
-    __m256 y0, y1, y2, y3;
+    GGML_F32_VEC ay[GGML_F32_ARR];
 
-    for (int i = 0; i < n32; i += 32) {
-        y0 = _mm256_loadu_ps(y + i + 0);
-        y1 = _mm256_loadu_ps(y + i + 8);
-        y2 = _mm256_loadu_ps(y + i + 16);
-        y3 = _mm256_loadu_ps(y + i + 24);
+    for (int i = 0; i < np; i += GGML_F32_STEP) {
+        for (int j = 0; j < GGML_F32_ARR; j++) {
+            ay[j] = GGML_F32_VEC_LOAD(y + i + j*GGML_F32_EPR);
+            ay[j] = GGML_F32_VEC_MUL(ay[j], vx);
 
-	y0 = _mm256_mul_ps(y0, v4);
-	y1 = _mm256_mul_ps(y1, v4);
-	y2 = _mm256_mul_ps(y2, v4);
-	y3 = _mm256_mul_ps(y3, v4);
-
-        _mm256_storeu_ps(y + i + 0, y0);
-        _mm256_storeu_ps(y + i + 8, y1);
-        _mm256_storeu_ps(y + i + 16, y2);
-        _mm256_storeu_ps(y + i + 24, y3);
+            GGML_F32_VEC_STORE(y + i + j*GGML_F32_EPR, ay[j]);
+        }
     }
 
     // leftovers
-    for (int i = n32; i < n; ++i) {
+    for (int i = np; i < n; ++i) {
         y[i] *= v;
     }
 #else
@@ -1165,8 +1080,8 @@ inline static void ggml_vec_sgn_f32  (const int n, float * y, const float * x) {
 inline static void ggml_vec_step_f32 (const int n, float * y, const float * x) { for (int i = 0; i < n; ++i) y[i] = (x[i] > 0.f) ? 1.f : 0.f; }
 inline static void ggml_vec_relu_f32 (const int n, float * y, const float * x) { for (int i = 0; i < n; ++i) y[i] = (x[i] > 0.f) ? x[i] : 0.f; }
 
-const ggml_float GELU_COEF_A    = 0.044715;
-const ggml_float SQRT_2_OVER_PI = 0.79788456080286535587989211986876;
+static const ggml_float GELU_COEF_A    = 0.044715;
+static const ggml_float SQRT_2_OVER_PI = 0.79788456080286535587989211986876;
 
 inline static float ggml_gelu_f32(float x) {
     return 0.5*x*(1.0 + tanh(SQRT_2_OVER_PI*x*(1.0 + GELU_COEF_A*x*x)));
@@ -1196,7 +1111,30 @@ inline static void ggml_vec_gelu_f32(const int n, float * y, const float * x) {
 }
 #endif
 
-inline static void ggml_vec_sum_f32     (const int n, float * s, const float * x) { ggml_float sum = 0.0; for (int i = 0; i < n; ++i) sum += x[i]; *s += sum; }
+inline static void ggml_vec_sum_f32(const int n, float * s, const float * x) {
+#ifndef GGML_USE_ACCELERATE
+    ggml_float sum = 0.0;
+    for (int i = 0; i < n; ++i) {
+        sum += x[i];
+    }
+    *s = sum;
+#else
+    vDSP_sve(x, 1, s, n);
+#endif
+}
+
+inline static void ggml_vec_max_f32(const int n, float * s, const float * x) {
+#ifndef GGML_USE_ACCELERATE
+    ggml_float max = -INFINITY;
+    for (int i = 0; i < n; ++i) {
+        max = MAX(max, x[i]);
+    }
+    *s = max;
+#else
+    vDSP_maxv(x, 1, s, n);
+#endif
+}
+
 inline static void ggml_vec_norm_inv_f32(const int n, float * s, const float * x) { ggml_vec_norm_f32(n, s, x); *s = 1./(*s); }
 
 //
@@ -1227,7 +1165,7 @@ inline static void ggml_vec_norm_inv_f32(const int n, float * s, const float * x
 // data types
 //
 
-const size_t GGML_TYPE_SIZE[GGML_TYPE_COUNT] = {
+static const size_t GGML_TYPE_SIZE[GGML_TYPE_COUNT] = {
     sizeof(int8_t ),
     sizeof(int16_t),
     sizeof(int32_t),
@@ -1235,7 +1173,7 @@ const size_t GGML_TYPE_SIZE[GGML_TYPE_COUNT] = {
     sizeof(float  ),
 };
 
-const char * GGML_OP_LABEL[GGML_OP_COUNT] = {
+static const char * GGML_OP_LABEL[GGML_OP_COUNT] = {
     "NONE",
 
     "DUP",
@@ -1275,7 +1213,7 @@ const char * GGML_OP_LABEL[GGML_OP_COUNT] = {
     "FLASH_FF",
 };
 
-const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
+static const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
     "none",
 
     "x",
@@ -1320,7 +1258,7 @@ const char * GGML_OP_SYMBOL[GGML_OP_COUNT] = {
 //
 
 struct ggml_object {
-    size_t offset;
+    size_t offs;
     size_t size;
 
     struct ggml_object * next;
@@ -1328,7 +1266,7 @@ struct ggml_object {
     char padding[8];
 };
 
-const size_t GGML_OBJECT_SIZE = sizeof(struct ggml_object);
+static const size_t GGML_OBJECT_SIZE = sizeof(struct ggml_object);
 
 static_assert(sizeof(struct ggml_object)%GGML_MEM_ALIGN == 0, "ggml_object size must be a multiple of GGML_MEM_ALIGN");
 static_assert(sizeof(struct ggml_tensor)%GGML_MEM_ALIGN == 0, "ggml_tensor size must be a multiple of GGML_MEM_ALIGN");
@@ -1346,6 +1284,9 @@ struct ggml_context {
 
     struct ggml_object * objects_begin;
     struct ggml_object * objects_end;
+
+    struct ggml_scratch scratch;
+    struct ggml_scratch scratch_save;
 };
 
 struct ggml_context_container {
@@ -1383,14 +1324,32 @@ struct ggml_state {
 };
 
 // global state
-struct ggml_state g_state;
-atomic_int g_state_barrier = 0;
+static struct ggml_state g_state;
+static atomic_int g_state_barrier = 0;
+
+// barrier via spin lock
+inline static void ggml_critical_section_start(void) {
+    int processing = atomic_fetch_add(&g_state_barrier, 1);
+
+    while (processing > 0) {
+        // wait for other threads to finish
+        atomic_fetch_sub(&g_state_barrier, 1);
+        sched_yield(); // TODO: reconsider this
+        processing = atomic_fetch_add(&g_state_barrier, 1);
+    }
+}
+
+// TODO: make this somehow automatically executed
+//       some sort of "sentry" mechanism
+inline static void ggml_critical_section_end(void) {
+    atomic_fetch_sub(&g_state_barrier, 1);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
 void ggml_print_object(const struct ggml_object * obj) {
     GGML_PRINT(" - ggml_object: offset = %zu, size = %zu, next = %p\n",
-            obj->offset, obj->size, (const void *) obj->next);
+            obj->offs, obj->size, (const void *) obj->next);
 }
 
 void ggml_print_objects(const struct ggml_context * ctx) {
@@ -1432,25 +1391,25 @@ size_t ggml_element_size(const struct ggml_tensor * tensor) {
     return GGML_TYPE_SIZE[tensor->type];
 }
 
-bool ggml_is_scalar(const struct ggml_tensor * tensor) {
+static inline bool ggml_is_scalar(const struct ggml_tensor * tensor) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return tensor->ne[0] == 1 && tensor->ne[1] == 1 && tensor->ne[2] == 1 && tensor->ne[3] == 1;
 }
 
-bool ggml_is_vector(const struct ggml_tensor * tensor) {
+static inline bool ggml_is_vector(const struct ggml_tensor * tensor) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return tensor->ne[1] == 1 && tensor->ne[2] == 1 && tensor->ne[3] == 1;
 }
 
-bool ggml_is_matrix(const struct ggml_tensor * tensor) {
+static inline bool ggml_is_matrix(const struct ggml_tensor * tensor) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return tensor->ne[2] == 1 && tensor->ne[3] == 1;
 }
 
-bool ggml_can_mul_mat(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
+static inline bool ggml_can_mul_mat(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return
@@ -1459,7 +1418,7 @@ bool ggml_can_mul_mat(const struct ggml_tensor * t0, const struct ggml_tensor * 
         (t0->ne[3]  == t1->ne[3]);
 }
 
-bool ggml_is_contiguous(const struct ggml_tensor * tensor) {
+static inline bool ggml_is_contiguous(const struct ggml_tensor * tensor) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return
@@ -1469,16 +1428,16 @@ bool ggml_is_contiguous(const struct ggml_tensor * tensor) {
         tensor->nb[3] == tensor->nb[2]*tensor->ne[2];
 }
 
-bool ggml_is_padded_1d(const struct ggml_tensor * tensor) {
+static inline bool ggml_is_padded_1d(const struct ggml_tensor * tensor) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return
         tensor->nb[0] == GGML_TYPE_SIZE[tensor->type] &&
         tensor->nb[2] == tensor->nb[1]*tensor->ne[1] &&
-        tensor->nb[3] == tensor->nb[2]*tensor->ne[2];;
+        tensor->nb[3] == tensor->nb[2]*tensor->ne[2];
 }
 
-bool ggml_are_same_shape(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
+static inline bool ggml_are_same_shape(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return
@@ -1489,7 +1448,7 @@ bool ggml_are_same_shape(const struct ggml_tensor * t0, const struct ggml_tensor
 }
 
 // check if t1 can be represented as a repeatition of t0
-bool ggml_can_repeat(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
+static inline bool ggml_can_repeat(const struct ggml_tensor * t0, const struct ggml_tensor * t1) {
     static_assert(GGML_MAX_DIMS == 4, "GGML_MAX_DIMS is not 4 - update this function");
 
     return
@@ -1499,12 +1458,18 @@ bool ggml_can_repeat(const struct ggml_tensor * t0, const struct ggml_tensor * t
         (t1->ne[3]%t0->ne[3] == 0);
 }
 
-int ggml_up32(int n) {
+static inline int ggml_up32(int n) {
     return (n + 31) & ~31;
 }
 
-int ggml_up64(int n) {
+static inline int ggml_up64(int n) {
     return (n + 63) & ~63;
+}
+
+static inline int ggml_up(int n, int m) {
+    // assert m is a power of 2
+    GGML_ASSERT((m & (m - 1)) == 0);
+    return (n + m - 1) & ~(m - 1);
 }
 
 // assert that pointer is aligned to GGML_MEM_ALIGN
@@ -1515,46 +1480,51 @@ int ggml_up64(int n) {
 
 struct ggml_context * ggml_init(struct ggml_init_params params) {
     // make this function thread safe
-    {
-        int processing = atomic_fetch_add(&g_state_barrier, 1);
-        while (processing > 0) {
-            // wait for other threads to finish
-            atomic_fetch_sub(&g_state_barrier, 1);
-            sched_yield();
-            processing = atomic_fetch_add(&g_state_barrier, 1);
-        }
-    }
+    ggml_critical_section_start();
 
     static bool is_first_call = true;
-    if (is_first_call) {
-        const uint64_t t_start = ggml_time_us(); UNUSED(t_start);
 
-        ggml_fp16_t ii;
-        for (int i = 0; i < (1 << 16); ++i) {
-            uint16_t ui = i;
-            memcpy(&ii, &ui, sizeof(ii));
-            const float f = GGML_FP16_TO_FP32(ii);
-            table_gelu_f16[i] = GGML_FP32_TO_FP16(ggml_gelu_f32(f));
-            table_exp_f16[i]  = GGML_FP32_TO_FP16(exp(f));
+    if (is_first_call) {
+        // initialize GELU, EXP and F32 tables
+        {
+            const uint64_t t_start = ggml_time_us(); UNUSED(t_start);
+
+            ggml_fp16_t ii;
+            for (int i = 0; i < (1 << 16); ++i) {
+                uint16_t ui = i;
+                memcpy(&ii, &ui, sizeof(ii));
+                const float f = table_f32_f16[i] = GGML_COMPUTE_FP16_TO_FP32(ii);
+                table_gelu_f16[i] = GGML_FP32_TO_FP16(ggml_gelu_f32(f));
+                table_exp_f16[i]  = GGML_FP32_TO_FP16(exp(f));
+            }
+
+            const uint64_t t_end = ggml_time_us(); UNUSED(t_end);
+
+            GGML_PRINT_DEBUG("%s: GELU and EXP tables initialized in %f ms\n", __func__, (t_end - t_start)/1000.0f);
         }
 
-        const uint64_t t_end = ggml_time_us(); UNUSED(t_end);
+        // initialize g_state
+        {
+            const uint64_t t_start = ggml_time_us(); UNUSED(t_start);
 
-        GGML_PRINT_DEBUG("%s: GELU and EXP tables initialized in %f ms\n", __func__, (t_end - t_start)/1000.0f);
+            g_state = (struct ggml_state) {
+                /*.contexts =*/ { { 0 } },
+            };
+
+            for (int i = 0; i < GGML_MAX_CONTEXTS; ++i) {
+                g_state.contexts[i].used = false;
+            }
+
+            const uint64_t t_end = ggml_time_us(); UNUSED(t_end);
+
+            GGML_PRINT_DEBUG("%s: g_state initialized in %f ms\n", __func__, (t_end - t_start)/1000.0f);
+        }
 
         is_first_call = false;
     }
 
     // find non-used context in g_state
     struct ggml_context * ctx = NULL;
-
-    static bool first_time = true;
-    if (first_time) {
-        for (int i = 0; i < GGML_MAX_CONTEXTS; i++) {
-            g_state.contexts[i].used = false;
-        }
-        first_time = false;
-    }
 
     for (int i = 0; i < GGML_MAX_CONTEXTS; i++) {
         if (!g_state.contexts[i].used) {
@@ -1569,65 +1539,70 @@ struct ggml_context * ggml_init(struct ggml_init_params params) {
     if (ctx == NULL) {
         GGML_PRINT_DEBUG("%s: no unused context found\n", __func__);
 
-        atomic_fetch_sub(&g_state_barrier, 1);
+        ggml_critical_section_end();
 
         return NULL;
     }
 
     *ctx = (struct ggml_context) {
-        .mem_size         = params.mem_size,
-        .mem_buffer       = params.mem_buffer ? params.mem_buffer : malloc(params.mem_size),
-        .mem_buffer_owned = params.mem_buffer ? false : true,
-        .n_objects        = 0,
-        .objects_begin    = NULL,
-        .objects_end      = NULL,
+        /*.mem_size         =*/ params.mem_size,
+        /*.mem_buffer       =*/ params.mem_buffer ? params.mem_buffer : malloc(params.mem_size),
+        /*.mem_buffer_owned =*/ params.mem_buffer ? false : true,
+        /*.n_objects        =*/ 0,
+        /*.objects_begin    =*/ NULL,
+        /*.objects_end      =*/ NULL,
+        /*.scratch          =*/ { 0, 0, NULL, },
+        /*.scratch_save     =*/ { 0, 0, NULL, },
     };
 
     ggml_assert_aligned(ctx->mem_buffer);
 
     GGML_PRINT_DEBUG("%s: context initialized\n", __func__);
 
-    atomic_fetch_sub(&g_state_barrier, 1);
+    ggml_critical_section_end();
 
     return ctx;
 }
 
 void ggml_free(struct ggml_context * ctx) {
     // make this function thread safe
-    {
-        int processing = atomic_fetch_add(&g_state_barrier, 1);
-        while (processing > 0) {
-            // wait for other threads to finish
-            atomic_fetch_sub(&g_state_barrier, 1);
-            sched_yield();
-            processing = atomic_fetch_add(&g_state_barrier, 1);
-        }
-    }
+    ggml_critical_section_start();
+
+    bool found = false;
 
     for (int i = 0; i < GGML_MAX_CONTEXTS; i++) {
         if (&g_state.contexts[i].context == ctx) {
             g_state.contexts[i].used = false;
 
             GGML_PRINT_DEBUG("%s: context %d with %d objects has been freed. memory used = %zu\n",
-                    __func__, i, ctx->n_objects, ctx->objects_end->offset + ctx->objects_end->size);
+                    __func__, i, ctx->n_objects, ctx->objects_end->offs + ctx->objects_end->size);
 
             if (ctx->mem_buffer_owned) {
                 free(ctx->mem_buffer);
             }
 
-            atomic_fetch_sub(&g_state_barrier, 1);
-
-            return;
+            found = true;
+            break;
         }
     }
 
-    GGML_PRINT_DEBUG("%s: context not found\n", __func__);
+    if (!found) {
+        GGML_PRINT_DEBUG("%s: context not found\n", __func__);
+    }
 
-    atomic_fetch_sub(&g_state_barrier, 1);
+    ggml_critical_section_end();
 }
 
 size_t ggml_used_mem(const struct ggml_context * ctx) {
-    return ctx->objects_end->offset + ctx->objects_end->size;
+    return ctx->objects_end->offs + ctx->objects_end->size;
+}
+
+size_t ggml_set_scratch(struct ggml_context * ctx, struct ggml_scratch scratch) {
+    const size_t result = ctx->scratch.data ? ctx->scratch.offs : 0;
+
+    ctx->scratch = scratch;
+
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1641,9 +1616,9 @@ struct ggml_tensor * ggml_new_tensor_impl(
     // always insert objects at the end of the context's memory pool
     struct ggml_object * obj_cur = ctx->objects_end;
 
-    const size_t cur_offset = obj_cur == NULL ? 0 : obj_cur->offset;
-    const size_t cur_size   = obj_cur == NULL ? 0 : obj_cur->size;
-    const size_t cur_end    = cur_offset + cur_size;
+    const size_t cur_offs = obj_cur == NULL ? 0 : obj_cur->offs;
+    const size_t cur_size = obj_cur == NULL ? 0 : obj_cur->size;
+    const size_t cur_end  = cur_offs + cur_size;
 
     size_t size_needed = 0;
 
@@ -1654,25 +1629,52 @@ struct ggml_tensor * ggml_new_tensor_impl(
         }
         // align to GGML_MEM_ALIGN
         size_needed = ((size_needed + GGML_MEM_ALIGN - 1)/GGML_MEM_ALIGN)*GGML_MEM_ALIGN;
-
-    }
-    size_needed += sizeof(struct ggml_tensor);
-
-    if (cur_end + size_needed + GGML_OBJECT_SIZE > ctx->mem_size) {
-        GGML_PRINT("%s: not enough space in the context's memory pool\n", __func__);
-        assert(false);
-        return NULL;
     }
 
     char * const mem_buffer = ctx->mem_buffer;
-
     struct ggml_object * const obj_new = (struct ggml_object *)(mem_buffer + cur_end);
 
-    *obj_new = (struct ggml_object) {
-        .offset = cur_end + GGML_OBJECT_SIZE,
-        .size   = size_needed,
-        .next   = NULL,
-    };
+    if (ctx->scratch.data == NULL || data != NULL) {
+        size_needed += sizeof(struct ggml_tensor);
+
+        if (cur_end + size_needed + GGML_OBJECT_SIZE > ctx->mem_size) {
+            GGML_PRINT("%s: not enough space in the context's memory pool (needed %zu, available %zu)\n",
+                    __func__, cur_end + size_needed + GGML_OBJECT_SIZE, ctx->mem_size);
+            assert(false);
+            return NULL;
+        }
+
+        *obj_new = (struct ggml_object) {
+            .offs = cur_end + GGML_OBJECT_SIZE,
+            .size = size_needed,
+            .next = NULL,
+        };
+    } else {
+        if (ctx->scratch.offs + size_needed > ctx->scratch.size) {
+            GGML_PRINT("%s: not enough space in the scratch memory\n", __func__);
+            assert(false);
+            return NULL;
+        }
+
+        if (cur_end + sizeof(struct ggml_tensor) + GGML_OBJECT_SIZE > ctx->mem_size) {
+            GGML_PRINT("%s: not enough space in the context's memory pool (needed %zu, available %zu)\n",
+                    __func__, cur_end + sizeof(struct ggml_tensor) + GGML_OBJECT_SIZE, ctx->mem_size);
+            assert(false);
+            return NULL;
+        }
+
+        data = (char * const) ctx->scratch.data + ctx->scratch.offs;
+
+        *obj_new = (struct ggml_object) {
+            .offs = cur_end + GGML_OBJECT_SIZE,
+            .size = sizeof(struct ggml_tensor),
+            .next = NULL,
+        };
+
+        //Rprintf("scratch offs = %zu, size_needed = %zu\n", ctx->scratch.offs, size_needed);
+
+        ctx->scratch.offs += size_needed;
+    }
 
     if (obj_cur != NULL) {
         obj_cur->next = obj_new;
@@ -1683,9 +1685,9 @@ struct ggml_tensor * ggml_new_tensor_impl(
 
     ctx->objects_end = obj_new;
 
-    //GGML_PRINT_DEBUG("%s: inserted new object at %zu\n", __func__, cur_end);
+    //Rprintf("%s: inserted new object at %zu, size = %zu\n", __func__, cur_end, obj_new->size);
 
-    struct ggml_tensor * const result = (struct ggml_tensor *)(mem_buffer + obj_new->offset);
+    struct ggml_tensor * const result = (struct ggml_tensor *)(mem_buffer + obj_new->offs);
 
     ggml_assert_aligned(result);
 
@@ -1728,7 +1730,7 @@ struct ggml_tensor * ggml_new_tensor(
         struct ggml_context * ctx,
         enum   ggml_type type,
         int    n_dims,
-        const int* ne) {
+        const int * ne) {
     return ggml_new_tensor_impl(ctx, type, n_dims, ne, NULL);
 }
 
@@ -1770,7 +1772,12 @@ struct ggml_tensor * ggml_new_tensor_4d(
 }
 
 struct ggml_tensor * ggml_new_i32(struct ggml_context * ctx, int32_t value) {
+    ctx->scratch_save = ctx->scratch;
+    ctx->scratch.data = NULL;
+
     struct ggml_tensor * result = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
+
+    ctx->scratch = ctx->scratch_save;
 
     ggml_set_i32(result, value);
 
@@ -1778,7 +1785,12 @@ struct ggml_tensor * ggml_new_i32(struct ggml_context * ctx, int32_t value) {
 }
 
 struct ggml_tensor * ggml_new_f32(struct ggml_context * ctx, float value) {
+    ctx->scratch_save = ctx->scratch;
+    ctx->scratch.data = NULL;
+
     struct ggml_tensor * result = ggml_new_tensor_1d(ctx, GGML_TYPE_F32, 1);
+
+    ctx->scratch = ctx->scratch_save;
 
     ggml_set_f32(result, value);
 
@@ -2388,7 +2400,7 @@ struct ggml_tensor * ggml_repeat(
     result->op   = GGML_OP_REPEAT;
     result->grad = is_node ? ggml_dup_tensor(ctx, result) : NULL;
     result->src0 = a;
-    result->src1 = NULL;
+    result->src1 = b;
 
     return result;
 }
@@ -3004,9 +3016,7 @@ struct ggml_tensor * ggml_diag_mask_inf(
     // TODO: when implement backward, fix this:
     //struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
     struct ggml_tensor * result = ggml_view_tensor(ctx, a);
-
-    struct ggml_tensor * b = ggml_new_tensor_1d(ctx, GGML_TYPE_I32, 1);
-    ((int32_t *) b->data)[0] = n_past;
+    struct ggml_tensor * b = ggml_new_i32(ctx, n_past);
 
     result->op   = GGML_OP_DIAG_MASK_INF;
     result->grad = is_node ? ggml_dup_tensor(ctx, result) : NULL;
@@ -3204,7 +3214,7 @@ void ggml_set_param(
 
 // ggml_compute_forward_dup
 
-void ggml_compute_forward_dup_f16(
+static void ggml_compute_forward_dup_f16(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3268,7 +3278,7 @@ void ggml_compute_forward_dup_f16(
             GGML_ASSERT(false); // TODO: implement
         }
     } else {
-        //printf("%s: this is not optimal - fix me\n", __func__);
+        //Rprintf("%s: this is not optimal - fix me\n", __func__);
 
         if (dst->type == GGML_TYPE_F32) {
             int id = 0;
@@ -3308,7 +3318,7 @@ void ggml_compute_forward_dup_f16(
     }
 }
 
-void ggml_compute_forward_dup_f32(
+static void ggml_compute_forward_dup_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3372,7 +3382,7 @@ void ggml_compute_forward_dup_f32(
             GGML_ASSERT(false); // TODO: implement
         }
     } else {
-        //printf("%s: this is not optimal - fix me\n", __func__);
+        //Rprintf("%s: this is not optimal - fix me\n", __func__);
 
         if (dst->type == GGML_TYPE_F32) {
             int id = 0;
@@ -3412,7 +3422,7 @@ void ggml_compute_forward_dup_f32(
     }
 }
 
-void ggml_compute_forward_dup(
+static void ggml_compute_forward_dup(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3437,7 +3447,7 @@ void ggml_compute_forward_dup(
 
 // ggml_compute_forward_add
 
-void ggml_compute_forward_add_f32(
+static void ggml_compute_forward_add_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3490,7 +3500,7 @@ void ggml_compute_forward_add_f32(
     }
 }
 
-void ggml_compute_forward_add(
+static void ggml_compute_forward_add(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3513,7 +3523,7 @@ void ggml_compute_forward_add(
 
 // ggml_compute_forward_sub
 
-void ggml_compute_forward_sub_f32(
+static void ggml_compute_forward_sub_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3540,7 +3550,7 @@ void ggml_compute_forward_sub_f32(
     }
 }
 
-void ggml_compute_forward_sub(
+static void ggml_compute_forward_sub(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3563,7 +3573,7 @@ void ggml_compute_forward_sub(
 
 // ggml_compute_forward_mul
 
-void ggml_compute_forward_mul_f32(
+static void ggml_compute_forward_mul_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3590,7 +3600,7 @@ void ggml_compute_forward_mul_f32(
     }
 }
 
-void ggml_compute_forward_mul(
+static void ggml_compute_forward_mul(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3613,7 +3623,7 @@ void ggml_compute_forward_mul(
 
 // ggml_compute_forward_div
 
-void ggml_compute_forward_div_f32(
+static void ggml_compute_forward_div_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3640,7 +3650,7 @@ void ggml_compute_forward_div_f32(
     }
 }
 
-void ggml_compute_forward_div(
+static void ggml_compute_forward_div(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -3663,7 +3673,7 @@ void ggml_compute_forward_div(
 
 // ggml_compute_forward_sqr
 
-void ggml_compute_forward_sqr_f32(
+static void ggml_compute_forward_sqr_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3687,7 +3697,7 @@ void ggml_compute_forward_sqr_f32(
     }
 }
 
-void ggml_compute_forward_sqr(
+static void ggml_compute_forward_sqr(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3709,7 +3719,7 @@ void ggml_compute_forward_sqr(
 
 // ggml_compute_forward_sqrt
 
-void ggml_compute_forward_sqrt_f32(
+static void ggml_compute_forward_sqrt_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3733,7 +3743,7 @@ void ggml_compute_forward_sqrt_f32(
     }
 }
 
-void ggml_compute_forward_sqrt(
+static void ggml_compute_forward_sqrt(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3755,7 +3765,7 @@ void ggml_compute_forward_sqrt(
 
 // ggml_compute_forward_sum
 
-void ggml_compute_forward_sum_f32(
+static void ggml_compute_forward_sum_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3768,8 +3778,6 @@ void ggml_compute_forward_sum_f32(
 
     assert(ggml_is_scalar(dst));
     assert(src0->nb[0] == sizeof(float));
-
-    *(float *) (dst->data) = 0.0f;
 
     const int ne00 = src0->ne[0];
     const int ne01 = src0->ne[1];
@@ -3791,7 +3799,7 @@ void ggml_compute_forward_sum_f32(
     }
 }
 
-void ggml_compute_forward_sum(
+static void ggml_compute_forward_sum(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3813,7 +3821,7 @@ void ggml_compute_forward_sum(
 
 // ggml_compute_forward_mean
 
-void ggml_compute_forward_mean_f32(
+static void ggml_compute_forward_mean_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3856,8 +3864,6 @@ void ggml_compute_forward_mean_f32(
     for (int i03 = 0; i03 < ne03; i03++) {
         for (int i02 = 0; i02 < ne02; i02++) {
             for (int i01 = 0; i01 < ne01; i01++) {
-                *(float *) ((char *) dst->data + i01*nb1 + i02*nb2 + i03*nb3) = 0.0f;
-
                 ggml_vec_sum_f32(ne00,
                         (float *) ((char *)  dst->data + i01*nb1  + i02*nb2  + i03*nb3),
                         (float *) ((char *) src0->data + i01*nb01 + i02*nb02 + i03*nb03));
@@ -3868,7 +3874,7 @@ void ggml_compute_forward_mean_f32(
     }
 }
 
-void ggml_compute_forward_mean(
+static void ggml_compute_forward_mean(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3890,7 +3896,7 @@ void ggml_compute_forward_mean(
 
 // ggml_compute_forward_repeat
 
-void ggml_compute_forward_repeat_f32(
+static void ggml_compute_forward_repeat_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3930,7 +3936,7 @@ void ggml_compute_forward_repeat_f32(
     }
 }
 
-void ggml_compute_forward_repeat(
+static void ggml_compute_forward_repeat(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3952,7 +3958,7 @@ void ggml_compute_forward_repeat(
 
 // ggml_compute_forward_abs
 
-void ggml_compute_forward_abs_f32(
+static void ggml_compute_forward_abs_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3976,7 +3982,7 @@ void ggml_compute_forward_abs_f32(
     }
 }
 
-void ggml_compute_forward_abs(
+static void ggml_compute_forward_abs(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -3998,7 +4004,7 @@ void ggml_compute_forward_abs(
 
 // ggml_compute_forward_sgn
 
-void ggml_compute_forward_sgn_f32(
+static void ggml_compute_forward_sgn_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4022,7 +4028,7 @@ void ggml_compute_forward_sgn_f32(
     }
 }
 
-void ggml_compute_forward_sgn(
+static void ggml_compute_forward_sgn(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4044,7 +4050,7 @@ void ggml_compute_forward_sgn(
 
 // ggml_compute_forward_neg
 
-void ggml_compute_forward_neg_f32(
+static void ggml_compute_forward_neg_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4068,7 +4074,7 @@ void ggml_compute_forward_neg_f32(
     }
 }
 
-void ggml_compute_forward_neg(
+static void ggml_compute_forward_neg(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4090,7 +4096,7 @@ void ggml_compute_forward_neg(
 
 // ggml_compute_forward_step
 
-void ggml_compute_forward_step_f32(
+static void ggml_compute_forward_step_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4114,7 +4120,7 @@ void ggml_compute_forward_step_f32(
     }
 }
 
-void ggml_compute_forward_step(
+static void ggml_compute_forward_step(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4136,7 +4142,7 @@ void ggml_compute_forward_step(
 
 // ggml_compute_forward_relu
 
-void ggml_compute_forward_relu_f32(
+static void ggml_compute_forward_relu_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4160,7 +4166,7 @@ void ggml_compute_forward_relu_f32(
     }
 }
 
-void ggml_compute_forward_relu(
+static void ggml_compute_forward_relu(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4182,7 +4188,7 @@ void ggml_compute_forward_relu(
 
 // ggml_compute_forward_gelu
 
-void ggml_compute_forward_gelu_f32(
+static void ggml_compute_forward_gelu_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4223,7 +4229,7 @@ void ggml_compute_forward_gelu_f32(
     }
 }
 
-void ggml_compute_forward_gelu(
+static void ggml_compute_forward_gelu(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4245,7 +4251,7 @@ void ggml_compute_forward_gelu(
 
 // ggml_compute_forward_norm
 
-void ggml_compute_forward_norm_f32(
+static void ggml_compute_forward_norm_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4305,7 +4311,7 @@ void ggml_compute_forward_norm_f32(
     }
 }
 
-void ggml_compute_forward_norm(
+static void ggml_compute_forward_norm(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4327,9 +4333,10 @@ void ggml_compute_forward_norm(
 
 // ggml_compute_forward_mul_mat
 
+#if defined(GGML_USE_ACCELERATE) || defined(GGML_USE_OPENBLAS)
 // helper function to determine if it is better to use BLAS or not
 // for large matrices, BLAS is faster
-bool ggml_compute_forward_mul_mat_use_blas(
+static bool ggml_compute_forward_mul_mat_use_blas(
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
               struct ggml_tensor * dst) {
@@ -4341,15 +4348,18 @@ bool ggml_compute_forward_mul_mat_use_blas(
     const int ne1 = dst->ne[1];
 
     // TODO: find the optimal values for these
-    if (ggml_is_contiguous(src0) && ggml_is_contiguous(src1) && ne0 >= 32 && ne1 >= 32 && ne10 >= 32) {
-        //printf("BLAS: %d %d %d\n", ne0, ne1, ne10);
+    if (ggml_is_contiguous(src0) && ggml_is_contiguous(src1) && (
+             (ne0 >= 32 && ne1  >= 32   && ne10 >= 32)
+            )) {
+        //Rprintf("BLAS: %d %d %d\n", ne0, ne1, ne10);
         return true;
     }
 
     return false;
 }
+#endif
 
-void ggml_compute_forward_mul_mat_f32(
+static void ggml_compute_forward_mul_mat_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -4420,7 +4430,9 @@ void ggml_compute_forward_mul_mat_f32(
     if (ggml_compute_forward_mul_mat_use_blas(src0, src1, dst)) {
         GGML_ASSERT(nb10 == sizeof(float));
 
-        if (params->ith != 0) return;
+        if (params->ith != 0) {
+            return;
+        }
 
         if (params->type == GGML_TASK_INIT) {
             return;
@@ -4448,7 +4460,7 @@ void ggml_compute_forward_mul_mat_f32(
             }
         }
 
-        //printf("CBLAS F32 = %f ms, %d x %d x %d x %d\n", (ggml_perf_time_us() - t0)/1000.0, ne0, ne1, ne2, ne3);
+        //Rprintf("CBLAS F32 = %f ms, %d x %d x %d x %d\n", (ggml_perf_time_us() - t0)/1000.0, ne0, ne1, ne2, ne3);
 
         return;
     }
@@ -4582,17 +4594,17 @@ void ggml_compute_forward_mul_mat_f32(
     //static int64_t acc = 0;
     //acc += t1 - t0;
     //if (t1 - t0 > 10) {
-    //    printf("\n");
-    //    printf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
-    //    printf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
-    //    printf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
-    //    printf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
+    //    Rprintf("\n");
+    //    Rprintf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
+    //    Rprintf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
+    //    Rprintf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
+    //    Rprintf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
 
-    //    printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
+    //    Rprintf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
     //}
 }
 
-void ggml_compute_forward_mul_mat_f16_f32(
+static void ggml_compute_forward_mul_mat_f16_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -4663,7 +4675,9 @@ void ggml_compute_forward_mul_mat_f16_f32(
     if (ggml_compute_forward_mul_mat_use_blas(src0, src1, dst)) {
         GGML_ASSERT(nb10 == sizeof(float));
 
-        if (params->ith != 0) return;
+        if (params->ith != 0) {
+            return;
+        }
 
         if (params->type == GGML_TASK_INIT) {
             return;
@@ -4729,7 +4743,7 @@ void ggml_compute_forward_mul_mat_f16_f32(
             }
         }
 
-        //printf("CBLAS = %f ms, %d x %d x %d x %d\n", (ggml_perf_time_us() - t0)/1000.0, ne0, ne1, ne2, ne3);
+        //Rprintf("CBLAS = %f ms, %d x %d x %d x %d\n", (ggml_perf_time_us() - t0)/1000.0, ne0, ne1, ne2, ne3);
 
         return;
     }
@@ -4795,7 +4809,7 @@ void ggml_compute_forward_mul_mat_f16_f32(
         // TODO: do not support transposed src1
         assert(nb10/2 == sizeof(ggml_fp16_t));
 
-        // parallelize by src0 rows using ggml_vec_dot_f32
+        // parallelize by src0 rows using ggml_vec_dot_f16
 
         // total rows in src0
         const int nr = ne01*ne02*ne03;
@@ -4823,18 +4837,18 @@ void ggml_compute_forward_mul_mat_f16_f32(
             const int i3 = i03;
 
             ggml_fp16_t * src0_row = (ggml_fp16_t *) ((char *) src0->data + (i01*nb01 + i02*nb02 + i03*nb03));
-            ggml_fp16_t * src1_col = wdata + (i13*ne12*ne11 + i12*ne11 + 0)*ne00;
+            ggml_fp16_t * src1_col =                                wdata + (       0 + i12*ne11 + i13*ne12*ne11)*ne00;
 
             float * dst_col = (float *) ((char *) dst->data + (i0*nb0 + 0*nb1 + i2*nb2 + i3*nb3));
 
-            for (int ic = 0; ic < ne11; ++ic) {
-                assert(ne00 % 32 == 0);
+            assert(ne00 % 32 == 0);
 
+            for (int ic = 0; ic < ne11; ++ic) {
                 ggml_vec_dot_f16(ne00, &dst_col[ic*ne0], src0_row, src1_col + ic*ne00);
             }
         }
     } else {
-        // parallelize by src1 columns using ggml_vec_mad_f32
+        // parallelize by src1 columns using ggml_vec_mad_f16
         // each thread has its own work data
         // during FINALIZE we accumulate all work data into dst
 
@@ -4887,16 +4901,16 @@ void ggml_compute_forward_mul_mat_f16_f32(
     //static int64_t acc = 0;
     //acc += t1 - t0;
     //if (t1 - t0 > 10) {
-    //    printf("\n");
-    //    printf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
-    //    printf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
-    //    printf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
+    //    Rprintf("\n");
+    //    Rprintf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
+    //    Rprintf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
+    //    Rprintf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
 
-    //    printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
+    //    Rprintf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
     //}
 }
 
-void ggml_compute_forward_mul_mat(
+static void ggml_compute_forward_mul_mat(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -4922,7 +4936,7 @@ void ggml_compute_forward_mul_mat(
 
 // ggml_compute_forward_scale
 
-void ggml_compute_forward_scale_f32(
+static void ggml_compute_forward_scale_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -4957,7 +4971,7 @@ void ggml_compute_forward_scale_f32(
     }
 }
 
-void ggml_compute_forward_scale(
+static void ggml_compute_forward_scale(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -4980,7 +4994,7 @@ void ggml_compute_forward_scale(
 
 // ggml_compute_forward_cpy
 
-void ggml_compute_forward_cpy(
+static void ggml_compute_forward_cpy(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -4989,7 +5003,7 @@ void ggml_compute_forward_cpy(
 
 // ggml_compute_forward_reshape
 
-void ggml_compute_forward_reshape(
+static void ggml_compute_forward_reshape(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -5001,7 +5015,7 @@ void ggml_compute_forward_reshape(
 
 // ggml_compute_forward_view
 
-void ggml_compute_forward_view(
+static void ggml_compute_forward_view(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0) {
     // NOP
@@ -5011,7 +5025,7 @@ void ggml_compute_forward_view(
 
 // ggml_compute_forward_permute
 
-void ggml_compute_forward_permute(
+static void ggml_compute_forward_permute(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0) {
     // NOP
@@ -5021,7 +5035,7 @@ void ggml_compute_forward_permute(
 
 // ggml_compute_forward_transpose
 
-void ggml_compute_forward_transpose(
+static void ggml_compute_forward_transpose(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0) {
     // NOP
@@ -5031,7 +5045,7 @@ void ggml_compute_forward_transpose(
 
 // ggml_compute_forward_get_rows
 
-void ggml_compute_forward_get_rows_f16(
+static void ggml_compute_forward_get_rows_f16(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5059,7 +5073,7 @@ void ggml_compute_forward_get_rows_f16(
     }
 }
 
-void ggml_compute_forward_get_rows_f32(
+static void ggml_compute_forward_get_rows_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5086,7 +5100,7 @@ void ggml_compute_forward_get_rows_f32(
     }
 }
 
-void ggml_compute_forward_get_rows(
+static void ggml_compute_forward_get_rows(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5112,7 +5126,7 @@ void ggml_compute_forward_get_rows(
 
 // ggml_compute_forward_diag_mask_inf
 
-void ggml_compute_forward_diag_mask_inf_f32(
+static void ggml_compute_forward_diag_mask_inf_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5148,7 +5162,7 @@ void ggml_compute_forward_diag_mask_inf_f32(
     }
 }
 
-void ggml_compute_forward_diag_mask_inf(
+static void ggml_compute_forward_diag_mask_inf(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5171,7 +5185,7 @@ void ggml_compute_forward_diag_mask_inf(
 
 // ggml_compute_forward_soft_max
 
-void ggml_compute_forward_soft_max_f32(
+static void ggml_compute_forward_soft_max_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -5208,21 +5222,19 @@ void ggml_compute_forward_soft_max_f32(
 #endif
 
         float max = -INFINITY;
-        for (int i = 0; i < nc; i++) {
-            max = MAX(max, p[i]);
-        }
+        ggml_vec_max_f32(nc, &max, p);
 
         ggml_float sum = 0.0;
 
-        uint16_t ss;
+        uint16_t scvt;
         for (int i = 0; i < nc; i++) {
             if (p[i] == -INFINITY) {
-                p[i] = 0.0;
+                p[i] = 0.0f;
             } else {
                 //const float val = (p[i] == -INFINITY) ? 0.0 : exp(p[i] - max);
                 ggml_fp16_t s = GGML_FP32_TO_FP16(p[i] - max);
-                memcpy(&ss, &s, sizeof(ss));
-                const float val = GGML_FP16_TO_FP32(table_exp_f16[ss]);
+                memcpy(&scvt, &s, sizeof(scvt));
+                const float val = GGML_FP16_TO_FP32(table_exp_f16[scvt]);
                 sum += val;
                 p[i] = val;
             }
@@ -5242,7 +5254,7 @@ void ggml_compute_forward_soft_max_f32(
     }
 }
 
-void ggml_compute_forward_soft_max(
+static void ggml_compute_forward_soft_max(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         struct ggml_tensor * dst) {
@@ -5264,7 +5276,7 @@ void ggml_compute_forward_soft_max(
 
 // ggml_compute_forward_rope
 
-void ggml_compute_forward_rope_f32(
+static void ggml_compute_forward_rope_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5291,8 +5303,8 @@ void ggml_compute_forward_rope_f32(
     const int nb2 = src0->nb[2];
     const int nb3 = src0->nb[3];
 
-    //printf("ne0: %d, ne1: %d, ne2: %d, ne3: %d\n", ne0, ne1, ne2, ne3);
-    //printf("n_past = %d, ne2 = %d\n", n_past, ne2);
+    //Rprintf("ne0: %d, ne1: %d, ne2: %d, ne3: %d\n", ne0, ne1, ne2, ne3);
+    //Rprintf("n_past = %d, ne2 = %d\n", n_past, ne2);
 
     assert(nb0 == sizeof(float));
 
@@ -5321,7 +5333,7 @@ void ggml_compute_forward_rope_f32(
     }
 }
 
-void ggml_compute_forward_rope(
+static void ggml_compute_forward_rope(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5344,7 +5356,7 @@ void ggml_compute_forward_rope(
 
 // ggml_compute_forward_conv_1d_1s
 
-void ggml_compute_forward_conv_1d_1s_f16_f32(
+static void ggml_compute_forward_conv_1d_1s_f16_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5464,7 +5476,7 @@ void ggml_compute_forward_conv_1d_1s_f16_f32(
     }
 }
 
-void ggml_compute_forward_conv_1d_1s_f32(
+static void ggml_compute_forward_conv_1d_1s_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5584,7 +5596,7 @@ void ggml_compute_forward_conv_1d_1s_f32(
     }
 }
 
-void ggml_compute_forward_conv_1d_1s(
+static void ggml_compute_forward_conv_1d_1s(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5610,7 +5622,7 @@ void ggml_compute_forward_conv_1d_1s(
 
 // ggml_compute_forward_conv_1d_2s
 
-void ggml_compute_forward_conv_1d_2s_f16_f32(
+static void ggml_compute_forward_conv_1d_2s_f16_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5730,7 +5742,7 @@ void ggml_compute_forward_conv_1d_2s_f16_f32(
     }
 }
 
-void ggml_compute_forward_conv_1d_2s_f32(
+static void ggml_compute_forward_conv_1d_2s_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5850,7 +5862,7 @@ void ggml_compute_forward_conv_1d_2s_f32(
     }
 }
 
-void ggml_compute_forward_conv_1d_2s(
+static void ggml_compute_forward_conv_1d_2s(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * src0,
         const struct ggml_tensor * src1,
@@ -5876,7 +5888,7 @@ void ggml_compute_forward_conv_1d_2s(
 
 // ggml_compute_forward_flash_attn
 
-void ggml_compute_forward_flash_attn_f32(
+static void ggml_compute_forward_flash_attn_f32(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * q,
         const struct ggml_tensor * k,
@@ -5933,6 +5945,8 @@ void ggml_compute_forward_flash_attn_f32(
     const int N = neq1;
     const int P = nek1 - N;
     const int M = P + N;
+
+    const int Mup = ggml_up(M, GGML_SOFT_MAX_UNROLL);
 
     GGML_ASSERT(ne0 == D);
     GGML_ASSERT(ne1 == N);
@@ -5978,7 +5992,7 @@ void ggml_compute_forward_flash_attn_f32(
 
     const float scale = 1.0/sqrt((double) D);
 
-    //printf("P=%d N=%d D=%d ir0=%d ir1=%d scale = %f\n", P, N, D, ir0, ir1, scale);
+    //Rprintf("P=%d N=%d D=%d ir0=%d ir1=%d scale = %f\n", P, N, D, ir0, ir1, scale);
 
     for (int ir = ir0; ir < ir1; ++ir) {
         // q indices
@@ -5986,7 +6000,11 @@ void ggml_compute_forward_flash_attn_f32(
         const int iq2 = (ir - iq3*neq2*neq1)/neq1;
         const int iq1 = (ir - iq3*neq2*neq1 - iq2*neq1);
 
-        float * S = (float *) params->wdata + ith*(M + CACHE_LINE_SIZE_F32);
+        float * S = (float *) params->wdata + ith*(Mup + CACHE_LINE_SIZE_F32);
+
+        for (int i = M; i < Mup; ++i) {
+            S[i] = -INFINITY;
+        }
 
         for (int ic = 0; ic < nek1; ++ic) {
             // k indices
@@ -6017,30 +6035,52 @@ void ggml_compute_forward_flash_attn_f32(
         // softmax
         {
             float max = -INFINITY;
-            for (int i = 0; i < M; i++) {
-                max = MAX(max, S[i]);
-            }
+            ggml_vec_max_f32(M, &max, S);
 
-            ggml_float sum = 0.0;
+            float sum = 0.0f;
+            {
+#ifdef GGML_SOFT_MAX_ACCELERATE
+                max = -max;
+                vDSP_vsadd(S, 1, &max, S, 1, Mup);
+                vvexpf(S, S, &Mup);
+                ggml_vec_sum_f32(Mup, &sum, S);
+#else
+                uint16_t   scvt[GGML_SOFT_MAX_UNROLL];
+                ggml_float sump[GGML_SOFT_MAX_UNROLL] = { 0.0 };
 
-            uint16_t ss;
-            for (int i = 0; i < M; i++) {
-                if (S[i] == -INFINITY) {
-                    S[i] = 0.0;
-                } else {
-                    //const float val = (S[i] == -INFINITY) ? 0.0 : exp(S[i] - max);
-                    ggml_fp16_t s = GGML_FP32_TO_FP16(S[i] - max);
-                    memcpy(&ss, &s, sizeof(ss));
-                    const float val = GGML_FP16_TO_FP32(table_exp_f16[ss]);
-                    sum += val;
-                    S[i] = val;
+                for (int i = 0; i < Mup; i += GGML_SOFT_MAX_UNROLL) {
+                    float * SS = S + i;
+
+                    for (int j = 0; j < GGML_SOFT_MAX_UNROLL; ++j) {
+                        if (SS[j] == -INFINITY) {
+                            SS[j] = 0.0f;
+                        } else {
+                            ggml_fp16_t s = GGML_FP32_TO_FP16(SS[j] - max);
+                            memcpy(&scvt[j], &s, sizeof(uint16_t));
+                            const float val = GGML_FP16_TO_FP32(table_exp_f16[scvt[j]]);
+                            sump[j] += val;
+                            SS[j] = val;
+                        }
+                    }
                 }
+
+                for (int i = 0; i < GGML_SOFT_MAX_UNROLL; i++) {
+                    sum += sump[i];
+                }
+#endif
             }
 
             assert(sum > 0.0f);
 
             sum = 1.0/sum;
             ggml_vec_scale_f32(M, S, sum);
+
+#ifndef NDEBUG
+            for (int i = 0; i < M; ++i) {
+                assert(!isnan(S[i]));
+                assert(!isinf(S[i]));
+            }
+#endif
         }
 
         for (int ic = 0; ic < nev1; ++ic) {
@@ -6057,7 +6097,7 @@ void ggml_compute_forward_flash_attn_f32(
     }
 }
 
-void ggml_compute_forward_flash_attn_f16(
+static void ggml_compute_forward_flash_attn_f16(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * q,
         const struct ggml_tensor * k,
@@ -6115,6 +6155,8 @@ void ggml_compute_forward_flash_attn_f16(
     const int P = nek1 - N;
     const int M = P + N;
 
+    const int Mup = ggml_up(M, GGML_SOFT_MAX_UNROLL);
+
     GGML_ASSERT(ne0 == D);
     GGML_ASSERT(ne1 == N);
     GGML_ASSERT(P >= 0);
@@ -6159,7 +6201,7 @@ void ggml_compute_forward_flash_attn_f16(
 
     const float scale = 1.0/sqrt((double) D);
 
-    //printf("P=%d N=%d D=%d ir0=%d ir1=%d scale = %f\n", P, N, D, ir0, ir1, scale);
+    //Rprintf("P=%d N=%d D=%d ir0=%d ir1=%d scale = %f\n", P, N, D, ir0, ir1, scale);
 
     for (int ir = ir0; ir < ir1; ++ir) {
         // q indices
@@ -6167,21 +6209,42 @@ void ggml_compute_forward_flash_attn_f16(
         const int iq2 = (ir - iq3*neq2*neq1)/neq1;
         const int iq1 = (ir - iq3*neq2*neq1 - iq2*neq1);
 
-        float * S = (float *) params->wdata + ith*(2*M + CACHE_LINE_SIZE_F32);
+        float * S = (float *) params->wdata + ith*(2*Mup + CACHE_LINE_SIZE_F32);
 
-        for (int ic = 0; ic < nek1; ++ic) {
-            // k indices
-            const int ik3 = iq3;
-            const int ik2 = iq2;
-            const int ik1 = ic;
+        for (int i = M; i < Mup; ++i) {
+            S[i] = -INFINITY;
+        }
 
-            // S indices
-            const int i1 = ik1;
+        if (GGML_VEC_DOT_UNROLL > 2 || nek1 % GGML_VEC_DOT_UNROLL != 0) {
+            for (int ic = 0; ic < nek1; ++ic) {
+                // k indices
+                const int ik3 = iq3;
+                const int ik2 = iq2;
+                const int ik1 = ic;
 
-            ggml_vec_dot_f16(neq0,
-                    S + i1,
-                    (ggml_fp16_t *) ((char *) k->data + (ik1*nbk1 + ik2*nbk2 + ik3*nbk3)),
-                    (ggml_fp16_t *) ((char *) q->data + (iq1*nbq1 + iq2*nbq2 + iq3*nbq3)));
+                // S indices
+                const int i1 = ik1;
+
+                ggml_vec_dot_f16(neq0,
+                        S + i1,
+                        (ggml_fp16_t *) ((char *) k->data + (ik1*nbk1 + ik2*nbk2 + ik3*nbk3)),
+                        (ggml_fp16_t *) ((char *) q->data + (iq1*nbq1 + iq2*nbq2 + iq3*nbq3)));
+            }
+        } else {
+            for (int ic = 0; ic < nek1; ic += GGML_VEC_DOT_UNROLL) {
+                // k indices
+                const int ik3 = iq3;
+                const int ik2 = iq2;
+                const int ik1 = ic;
+
+                // S indices
+                const int i1 = ik1;
+
+                ggml_vec_dot_f16_unroll(neq0, nbk1,
+                        S + i1,
+                        ((char *) k->data + (ik1*nbk1 + ik2*nbk2 + ik3*nbk3)),
+                        (ggml_fp16_t *) ((char *) q->data + (iq1*nbq1 + iq2*nbq2 + iq3*nbq3)));
+            }
         }
 
         // scale
@@ -6198,53 +6261,89 @@ void ggml_compute_forward_flash_attn_f16(
         // softmax
         {
             float max = -INFINITY;
-            for (int i = 0; i < M; i++) {
-                max = MAX(max, S[i]);
-            }
+            ggml_vec_max_f32(M, &max, S);
 
-            ggml_float sum = 0.0;
+            float sum = 0.0f;
+            {
+#ifdef GGML_SOFT_MAX_ACCELERATE
+                max = -max;
+                vDSP_vsadd(S, 1, &max, S, 1, Mup);
+                vvexpf(S, S, &Mup);
+                ggml_vec_sum_f32(Mup, &sum, S);
+#else
+                uint16_t   scvt[GGML_SOFT_MAX_UNROLL];
+                ggml_float sump[GGML_SOFT_MAX_UNROLL] = { 0.0 };
 
-            uint16_t ss;
-            for (int i = 0; i < M; i++) {
-                if (S[i] == -INFINITY) {
-                    S[i] = 0.0;
-                } else {
-                    //const float val = (S[i] == -INFINITY) ? 0.0 : exp(S[i] - max);
-                    ggml_fp16_t s = GGML_FP32_TO_FP16(S[i] - max);
-                    memcpy(&ss, &s, sizeof(ss));
-                    const float val = GGML_FP16_TO_FP32(table_exp_f16[ss]);
-                    sum += val;
-                    S[i] = val;
+                for (int i = 0; i < Mup; i += GGML_SOFT_MAX_UNROLL) {
+                    float * SS = S + i;
+
+                    for (int j = 0; j < GGML_SOFT_MAX_UNROLL; ++j) {
+                        if (SS[j] == -INFINITY) {
+                            SS[j] = 0.0f;
+                        } else {
+                            ggml_fp16_t s = GGML_FP32_TO_FP16(SS[j] - max);
+                            memcpy(&scvt[j], &s, sizeof(uint16_t));
+                            const float val = GGML_FP16_TO_FP32(table_exp_f16[scvt[j]]);
+                            sump[j] += val;
+                            SS[j] = val;
+                        }
+                    }
                 }
+
+                for (int i = 0; i < GGML_SOFT_MAX_UNROLL; i++) {
+                    sum += sump[i];
+                }
+#endif
             }
 
             assert(sum > 0.0f);
 
             sum = 1.0/sum;
             ggml_vec_scale_f32(M, S, sum);
+
+#ifndef NDEBUG
+            for (int i = 0; i < M; ++i) {
+                assert(!isnan(S[i]));
+                assert(!isinf(S[i]));
+            }
+#endif
         }
 
-        ggml_fp16_t * S16 = (ggml_fp16_t *) ((float *) params->wdata + ith*(2*M + CACHE_LINE_SIZE_F32) + M);
+        ggml_fp16_t * S16 = (ggml_fp16_t *) ((float *) params->wdata + ith*(2*Mup + CACHE_LINE_SIZE_F32) + Mup);
 
         for (int i = 0; i < M; i++) {
             S16[i] = GGML_FP32_TO_FP16(S[i]);
         }
 
-        for (int ic = 0; ic < nev1; ++ic) {
-            // dst indices
-            const int i1 = iq1;
-            const int i2 = iq2;
-            const int i3 = iq3;
+        if (GGML_VEC_DOT_UNROLL == 1 || (nev1 % GGML_VEC_DOT_UNROLL != 0)) {
+            for (int ic = 0; ic < nev1; ++ic) {
+                // dst indices
+                const int i1 = iq1;
+                const int i2 = iq2;
+                const int i3 = iq3;
 
-            ggml_vec_dot_f16(nek1,
-                    (float *)       ((char *) dst->data + (ic*nb0 + i1*nb1  + i2*nb2  + i3*nb3)),
-                    (ggml_fp16_t *) ((char *) v->data   + (         ic*nbv1 + i2*nbv2 + i3*nbv3)),
-                    S16);
+                ggml_vec_dot_f16(nek1,
+                        (float *)       ((char *) dst->data + (ic*nb0 + i1*nb1  + i2*nb2  + i3*nb3)),
+                        (ggml_fp16_t *) ((char *) v->data   + (         ic*nbv1 + i2*nbv2 + i3*nbv3)),
+                        S16);
+            }
+        } else {
+            for (int ic = 0; ic < nev1; ic += GGML_VEC_DOT_UNROLL) {
+                // dst indices
+                const int i1 = iq1;
+                const int i2 = iq2;
+                const int i3 = iq3;
+
+                ggml_vec_dot_f16_unroll(nek1, nbv1,
+                        (float *) ((char *) dst->data + (ic*nb0 + i1*nb1  + i2*nb2  + i3*nb3)),
+                        ((char *) v->data   + (         ic*nbv1 + i2*nbv2 + i3*nbv3)),
+                        S16);
+            }
         }
     }
 }
 
-void ggml_compute_forward_flash_attn(
+static void ggml_compute_forward_flash_attn(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * q,
         const struct ggml_tensor * k,
@@ -6272,7 +6371,7 @@ void ggml_compute_forward_flash_attn(
 
 // ggml_compute_forward_flash_ff
 
-void ggml_compute_forward_flash_ff_f16(
+static void ggml_compute_forward_flash_ff_f16(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * a,  // F16
         const struct ggml_tensor * b0, // F16 fc_w
@@ -6452,7 +6551,7 @@ void ggml_compute_forward_flash_ff_f16(
     }
 }
 
-void ggml_compute_forward_flash_ff(
+static void ggml_compute_forward_flash_ff(
         const struct ggml_compute_params * params,
         const struct ggml_tensor * a,
         const struct ggml_tensor * b0,
@@ -6481,7 +6580,7 @@ void ggml_compute_forward_flash_ff(
 
 /////////////////////////////////
 
-void ggml_compute_forward(struct ggml_compute_params * params, struct ggml_tensor * tensor) {
+static void ggml_compute_forward(struct ggml_compute_params * params, struct ggml_tensor * tensor) {
     assert(params);
 
     switch (tensor->op) {
@@ -6624,12 +6723,12 @@ void ggml_compute_forward(struct ggml_compute_params * params, struct ggml_tenso
             {
                 GGML_ASSERT(false);
             } break;
-    };
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void ggml_compute_backward(struct ggml_context * ctx, struct ggml_tensor * tensor, bool inplace) {
+static void ggml_compute_backward(struct ggml_context * ctx, struct ggml_tensor * tensor, bool inplace) {
     struct ggml_tensor * src0 = tensor->src0;
     struct ggml_tensor * src1 = tensor->src1;
 
@@ -6870,10 +6969,10 @@ void ggml_compute_backward(struct ggml_context * ctx, struct ggml_tensor * tenso
             {
                 GGML_ASSERT(false);
             } break;
-    };
+    }
 }
 
-void ggml_visit_parents(struct ggml_cgraph * cgraph, struct ggml_tensor * node) {
+static void ggml_visit_parents(struct ggml_cgraph * cgraph, struct ggml_tensor * node) {
     if (node->grad == NULL) {
         // this usually happens when we generate intermediate nodes from constants in the backward pass
         // it can also happen during forward pass, if the user performs computations with constants
@@ -6924,7 +7023,7 @@ void ggml_visit_parents(struct ggml_cgraph * cgraph, struct ggml_tensor * node) 
     }
 }
 
-void ggml_build_forward_impl(struct ggml_cgraph * cgraph, struct ggml_tensor * tensor, bool expand) {
+static void ggml_build_forward_impl(struct ggml_cgraph * cgraph, struct ggml_tensor * tensor, bool expand) {
     if (!expand) {
         cgraph->n_nodes = 0;
         cgraph->n_leafs = 0;
@@ -7016,7 +7115,7 @@ struct ggml_cgraph ggml_build_backward(struct ggml_context * ctx, struct ggml_cg
 #ifdef __APPLE__
 
 //#include <os/lock.h>
-
+//
 //typedef os_unfair_lock ggml_lock_t;
 //
 //#define ggml_lock_init(x)    UNUSED(x)
@@ -7034,6 +7133,11 @@ typedef int ggml_lock_t;
 #define ggml_lock_unlock(x)  UNUSED(x)
 
 #define GGML_LOCK_INITIALIZER 0
+
+typedef pthread_t ggml_thread_t;
+
+#define ggml_thread_create pthread_create
+#define ggml_thread_join   pthread_join
 
 #else
 
@@ -7053,6 +7157,11 @@ typedef int ggml_lock_t;
 
 #define GGML_LOCK_INITIALIZER 0
 
+typedef pthread_t ggml_thread_t;
+
+#define ggml_thread_create pthread_create
+#define ggml_thread_join   pthread_join
+
 #endif
 
 struct ggml_compute_state_shared {
@@ -7067,7 +7176,7 @@ struct ggml_compute_state_shared {
 };
 
 struct ggml_compute_state {
-    pthread_t thrd;
+    ggml_thread_t thrd;
 
     struct ggml_compute_params params;
     struct ggml_tensor * node;
@@ -7075,16 +7184,7 @@ struct ggml_compute_state {
     struct ggml_compute_state_shared * shared;
 };
 
-// function used by each compute thread
-void * ggml_graph_compute_one(void * data) {
-    struct ggml_compute_state * state = (struct ggml_compute_state *) data;
-
-    ggml_compute_forward(&state->params, state->node);
-
-    return NULL;
-}
-
-thread_ret_t ggml_graph_compute_thread(void * data) {
+static thread_ret_t ggml_graph_compute_thread(void * data) {
     struct ggml_compute_state * state = (struct ggml_compute_state *) data;
 
     const int n_threads = state->shared->n_threads;
@@ -7119,7 +7219,10 @@ thread_ret_t ggml_graph_compute_thread(void * data) {
         }
 
         if (state->node) {
-            ggml_compute_forward(&state->params, state->node);
+            if (state->params.ith < state->params.nth) {
+                ggml_compute_forward(&state->params, state->node);
+            }
+
             state->node = NULL;
         } else {
             break;
@@ -7164,7 +7267,8 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                 .node   = NULL,
                 .shared = &state_shared,
             };
-            int rc = pthread_create(&workers[j].thrd, NULL, ggml_graph_compute_thread, &workers[j]);
+
+            int rc = ggml_thread_create(&workers[j].thrd, NULL, ggml_graph_compute_thread, &workers[j]);
             assert(rc == 0);
             UNUSED(rc);
         }
@@ -7213,8 +7317,14 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                     } break;
                 case GGML_OP_MUL_MAT:
                     {
-                        // TODO: use different scheduling for different matrix sizes
                         node->n_tasks = n_threads;
+
+                        // TODO: use different scheduling for different matrix sizes
+                        //const int nr0 = ggml_nrows(node->src0);
+                        //const int nr1 = ggml_nrows(node->src1);
+
+                        //node->n_tasks = MIN(n_threads, MAX(1, nr0/128));
+                        //Rprintf("nr0 = %8d, nr1 = %8d, nr0*nr1 = %8d, n_tasks = %d\n", nr0, nr1, nr0*nr1, node->n_tasks);
 
                         size_t cur = 0;
 
@@ -7226,7 +7336,12 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                                 node->src1->type == GGML_TYPE_F32) {
 #if defined(GGML_USE_ACCELERATE) || defined(GGML_USE_OPENBLAS)
                                 if (ggml_compute_forward_mul_mat_use_blas(node->src0, node->src1, node)) {
+                                    node->n_tasks = 1; // TODO: this actually is doing nothing
+                                                       //       the threads are still spinning
                                     cur = sizeof(float)*(node->src0->ne[0]*node->src0->ne[1]);
+                                    //Rprintf("src0: ne0 = %d, ne1 = %d, ne = %d\n", node->src0->ne[0], node->src0->ne[1], node->src0->ne[0]*node->src0->ne[1]);
+                                    //Rprintf("src1: ne0 = %d, ne1 = %d, ne = %d\n", node->src1->ne[0], node->src1->ne[1], node->src1->ne[0]*node->src1->ne[1]);
+                                    //Rprintf("cur = %zu\n", cur);
                                 } else {
                                     cur = sizeof(ggml_fp16_t)*ggml_nelements(node->src1);
                                 }
@@ -7301,14 +7416,16 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
 
                         size_t cur = 0;
 
+                        const int ne11 = ggml_up(node->src1->ne[1], GGML_SOFT_MAX_UNROLL);
+
                         if (node->src1->type == GGML_TYPE_F32) {
-                            cur  = sizeof(float)*node->src1->ne[1]*node->n_tasks; // TODO: this can become (n_tasks-1)
-                            cur += sizeof(float)*node->src1->ne[1]*node->n_tasks; // this is overestimated by x2
+                            cur  = sizeof(float)*ne11*node->n_tasks; // TODO: this can become (n_tasks-1)
+                            cur += sizeof(float)*ne11*node->n_tasks; // this is overestimated by x2
                         }
 
                         if (node->src1->type == GGML_TYPE_F16) {
-                            cur  = sizeof(float)*node->src1->ne[1]*node->n_tasks; // TODO: this can become (n_tasks-1)
-                            cur += sizeof(float)*node->src1->ne[1]*node->n_tasks; // this is overestimated by x2
+                            cur  = sizeof(float)*ne11*node->n_tasks; // TODO: this can become (n_tasks-1)
+                            cur += sizeof(float)*ne11*node->n_tasks; // this is overestimated by x2
                         }
 
                         work_size = MAX(work_size, cur);
@@ -7339,7 +7456,7 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                     {
                         assert(false);
                     } break;
-            };
+            }
         }
 
         if (cgraph->work != NULL && work_size > cgraph->work_size) {
@@ -7397,7 +7514,7 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                 workers[j].params = (struct ggml_compute_params) {
                     .type  = GGML_TASK_COMPUTE,
                     .ith   = j + 1,
-                    .nth   = n_threads,
+                    .nth   = node->n_tasks,
                     .wsize = cgraph->work ? ggml_nbytes(cgraph->work) : 0,
                     .wdata = cgraph->work ? cgraph->work->data : NULL,
                 };
@@ -7452,7 +7569,7 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
                 workers[j].params = (struct ggml_compute_params) {
                     .type  = GGML_TASK_FINALIZE,
                     .ith   = j + 1,
-                    .nth   = n_threads,
+                    .nth   = node->n_tasks,
                     .wsize = cgraph->work ? ggml_nbytes(cgraph->work) : 0,
                     .wdata = cgraph->work ? cgraph->work->data : NULL,
                 };
@@ -7508,7 +7625,7 @@ void ggml_graph_compute(struct ggml_context * ctx, struct ggml_cgraph * cgraph) 
         atomic_store(&state_shared.has_work, true);
 
         for (int j = 0; j < n_threads - 1; j++) {
-            int rc = pthread_join(workers[j].thrd, NULL);
+            int rc = ggml_thread_join(workers[j].thrd, NULL);
             assert(rc == 0);
             UNUSED(rc);
         }
@@ -7586,7 +7703,7 @@ void ggml_graph_print(const struct ggml_cgraph * cgraph) {
 }
 
 // check if node is part of the graph
-bool ggml_graph_find(const struct ggml_cgraph * cgraph, const struct ggml_tensor * node) {
+static bool ggml_graph_find(const struct ggml_cgraph * cgraph, const struct ggml_tensor * node) {
     if (cgraph == NULL) {
         return true;
     }
@@ -7600,7 +7717,7 @@ bool ggml_graph_find(const struct ggml_cgraph * cgraph, const struct ggml_tensor
     return false;
 }
 
-struct ggml_tensor * ggml_graph_get_parent(const struct ggml_cgraph * cgraph, const struct ggml_tensor * node) {
+static struct ggml_tensor * ggml_graph_get_parent(const struct ggml_cgraph * cgraph, const struct ggml_tensor * node) {
     for (int i = 0; i < cgraph->n_nodes; i++) {
         struct ggml_tensor * parent = cgraph->nodes[i];
 
@@ -7729,7 +7846,7 @@ label=\"<x>CONST %d [%d, %d]\"; ]\n",
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void ggml_opt_set_params(int np, struct ggml_tensor * const ps[], const float * x) {
+static void ggml_opt_set_params(int np, struct ggml_tensor * const ps[], const float * x) {
     int i = 0;
     for (int p = 0; p < np; ++p) {
         const int ne = ggml_nelements(ps[p]) ;
@@ -7740,7 +7857,7 @@ void ggml_opt_set_params(int np, struct ggml_tensor * const ps[], const float * 
     }
 }
 
-void ggml_opt_get_params(int np, struct ggml_tensor * const ps[], float * x) {
+static void ggml_opt_get_params(int np, struct ggml_tensor * const ps[], float * x) {
     int i = 0;
     for (int p = 0; p < np; ++p) {
         const int ne = ggml_nelements(ps[p]) ;
@@ -7751,7 +7868,7 @@ void ggml_opt_get_params(int np, struct ggml_tensor * const ps[], float * x) {
     }
 }
 
-void ggml_opt_get_grad(int np, struct ggml_tensor * const ps[], float * g) {
+static void ggml_opt_get_grad(int np, struct ggml_tensor * const ps[], float * g) {
     int i = 0;
     for (int p = 0; p < np; ++p) {
         const int ne = ggml_nelements(ps[p]) ;
@@ -7768,7 +7885,7 @@ void ggml_opt_get_grad(int np, struct ggml_tensor * const ps[], float * g) {
 //   ref: https://arxiv.org/pdf/1412.6980.pdf
 //
 
-enum ggml_opt_result ggml_opt_adam(
+static enum ggml_opt_result ggml_opt_adam(
         struct ggml_context * ctx,
         struct ggml_opt_params params,
         struct ggml_tensor * f,
@@ -8061,7 +8178,7 @@ static enum ggml_opt_result linesearch_backtracking(
     return GGML_LINESEARCH_FAIL;
 }
 
-enum ggml_opt_result ggml_opt_lbfgs(
+static enum ggml_opt_result ggml_opt_lbfgs(
         struct ggml_context * ctx,
         struct ggml_opt_params params,
         struct ggml_tensor * f,
@@ -8424,8 +8541,24 @@ int ggml_cpu_has_avx512(void) {
 #endif
 }
 
+int ggml_cpu_has_fma(void) {
+#if defined(__FMA__)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 int ggml_cpu_has_neon(void) {
 #if defined(__ARM_NEON)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ggml_cpu_has_arm_fma(void) {
+#if defined(__ARM_FEATURE_FMA)
     return 1;
 #else
     return 0;
@@ -8458,6 +8591,22 @@ int ggml_cpu_has_wasm_simd(void) {
 
 int ggml_cpu_has_blas(void) {
 #if defined(GGML_USE_ACCELERATE) || defined(GGML_USE_OPENBLAS)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ggml_cpu_has_sse3(void) {
+#if defined(__SSE3__)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+int ggml_cpu_has_vsx(void) {
+#if defined(__POWER9_VECTOR__)
     return 1;
 #else
     return 0;
