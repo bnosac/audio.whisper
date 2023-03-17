@@ -894,7 +894,7 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
             vocab.token_to_id[word] = i;
             vocab.id_to_token[i] = word;
 
-            //printf("%s: vocab[%d] = '%s'\n", __func__, i, word.c_str());
+            //Rprintf("%s: vocab[%d] = '%s'\n", __func__, i, word.c_str());
         }
 
         vocab.n_vocab = model.hparams.n_vocab;
@@ -1708,16 +1708,16 @@ static bool whisper_encode(
 
     // cur
     //{
-    //    printf("ne0 = %d\n", cur->ne[0]);
-    //    printf("ne1 = %d\n", cur->ne[1]);
+    //    Rprintf("ne0 = %d\n", cur->ne[0]);
+    //    Rprintf("ne1 = %d\n", cur->ne[1]);
     //    for (int i = 0; i < 10; ++i) {
-    //        printf("%8.4f ", ((float *)(cur->data))[i]);
+    //        Rprintf("%8.4f ", ((float *)(cur->data))[i]);
     //    }
-    //    printf("... ");
+    //    Rprintf("... ");
     //    for (int i = cur->ne[0] - 10; i < cur->ne[0]; ++i) {
-    //        printf("%8.4f ", ((float *)(cur->data))[i]);
+    //        Rprintf("%8.4f ", ((float *)(cur->data))[i]);
     //    }
-    //    printf("\n");
+    //    Rprintf("\n");
     //}
 
     // pre-compute cross-attention memory
@@ -2374,13 +2374,13 @@ static bool log_mel_spectrogram(
                 }
                 for (int j = 1; j < fft_size/2; j++) {
                     //if (i == 0) {
-                    //    printf("%d: %f %f\n", j, fft_out[j], fft_out[fft_size - j]);
+                    //    Rprintf("%d: %f %f\n", j, fft_out[j], fft_out[fft_size - j]);
                     //}
                     fft_out[j] += fft_out[fft_size - j];
                 }
                 if (i == 0) {
                     //for (int j = 0; j < fft_size; j++) {
-                    //    printf("%d: %e\n", j, fft_out[j]);
+                    //    Rprintf("%d: %e\n", j, fft_out[j]);
                     //}
                 }
 
@@ -3284,27 +3284,27 @@ static void whisper_process_logits(
         const auto prob    = probs[i];
         const auto logit   = logits[i];
         const auto logprob = logprobs[i];
-        printf("%s : prob=%9.5f logit=%9.5f logprob=%9.5f\n", token.c_str(), prob, logit, logprob);
+        Rprintf("%s : prob=%9.5f logit=%9.5f logprob=%9.5f\n", token.c_str(), prob, logit, logprob);
     }
 
     // "And", "and", " And", " and"
-    printf("logits[\"and\"]  = %f\n", logits[vocab.token_to_id.at("and")]);
-    printf("logits[\"And\"]  = %f\n", logits[vocab.token_to_id.at("And")]);
-    printf("logits[\" and\"] = %f\n", logits[vocab.token_to_id.at(" and")]);
-    printf("logits[\" And\"] = %f\n", logits[vocab.token_to_id.at(" And")]);
-    printf("logits[\" so\"]  = %f\n", logits[vocab.token_to_id.at(" so")]);
+    Rprintf("logits[\"and\"]  = %f\n", logits[vocab.token_to_id.at("and")]);
+    Rprintf("logits[\"And\"]  = %f\n", logits[vocab.token_to_id.at("And")]);
+    Rprintf("logits[\" and\"] = %f\n", logits[vocab.token_to_id.at(" and")]);
+    Rprintf("logits[\" And\"] = %f\n", logits[vocab.token_to_id.at(" And")]);
+    Rprintf("logits[\" so\"]  = %f\n", logits[vocab.token_to_id.at(" so")]);
 
-    printf("logprobs[\"and\"]  = %f\n", logprobs[vocab.token_to_id.at("and")]);
-    printf("logprobs[\"And\"]  = %f\n", logprobs[vocab.token_to_id.at("And")]);
-    printf("logprobs[\" and\"] = %f\n", logprobs[vocab.token_to_id.at(" and")]);
-    printf("logprobs[\" And\"] = %f\n", logprobs[vocab.token_to_id.at(" And")]);
-    printf("logprobs[\" so\"]  = %f\n", logprobs[vocab.token_to_id.at(" so")]);
+    Rprintf("logprobs[\"and\"]  = %f\n", logprobs[vocab.token_to_id.at("and")]);
+    Rprintf("logprobs[\"And\"]  = %f\n", logprobs[vocab.token_to_id.at("And")]);
+    Rprintf("logprobs[\" and\"] = %f\n", logprobs[vocab.token_to_id.at(" and")]);
+    Rprintf("logprobs[\" And\"] = %f\n", logprobs[vocab.token_to_id.at(" And")]);
+    Rprintf("logprobs[\" so\"]  = %f\n", logprobs[vocab.token_to_id.at(" so")]);
 
-    printf("probs[\"and\"]  = %f\n", probs[vocab.token_to_id.at("and")]);
-    printf("probs[\"And\"]  = %f\n", probs[vocab.token_to_id.at("And")]);
-    printf("probs[\" and\"] = %f\n", probs[vocab.token_to_id.at(" and")]);
-    printf("probs[\" And\"] = %f\n", probs[vocab.token_to_id.at(" And")]);
-    printf("probs[\" so\"]  = %f\n", probs[vocab.token_to_id.at(" so")]);
+    Rprintf("probs[\"and\"]  = %f\n", probs[vocab.token_to_id.at("and")]);
+    Rprintf("probs[\"And\"]  = %f\n", probs[vocab.token_to_id.at("And")]);
+    Rprintf("probs[\" and\"] = %f\n", probs[vocab.token_to_id.at(" and")]);
+    Rprintf("probs[\" And\"] = %f\n", probs[vocab.token_to_id.at(" And")]);
+    Rprintf("probs[\" so\"]  = %f\n", probs[vocab.token_to_id.at(" so")]);
 #endif
 }
 
@@ -4120,10 +4120,10 @@ int whisper_full(
 
                             if (params.print_realtime) {
                                 if (params.print_timestamps) {
-                                    printf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
+                                    Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                                 } else {
-                                    printf("%s", text.c_str());
-                                    fflush(stdout);
+                                    Rprintf("%s", text.c_str());
+                                    Rcpp::checkUserInterrupt();
                                 }
                             }
 
@@ -4166,10 +4166,10 @@ int whisper_full(
 
                     if (params.print_realtime) {
                         if (params.print_timestamps) {
-                            printf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
+                            Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                         } else {
-                            printf("%s", text.c_str());
-                            fflush(stdout);
+                            Rprintf("%s", text.c_str());
+                            Rcpp::checkUserInterrupt();
                         }
                     }
 
@@ -4408,7 +4408,8 @@ WHISPER_API int whisper_bench_memcpy(int n_threads) {
 
         tsum += (t1 - t0)*1e-6;
 
-        src[0] = rand();
+        //src[0] = rand();
+        src[0] = floor(Rcpp::runif(1, 0, RAND_MAX)[0]);
     }
 
     Rprintf("memcpy: %.2f GB/s\n", (double) (n*size)/(tsum*1024llu*1024llu*1024llu));
@@ -4804,7 +4805,7 @@ static void whisper_exp_compute_token_level_timestamps(
     //for (int j = 0; j < n; ++j) {
     //    const auto & token = tokens[j];
     //    const auto tt = token.pt > thold_pt && token.ptsum > 0.01 ? whisper_token_to_str(&ctx, token.tid) : "[?]";
-    //    printf("%s: %10s %6.3f %6.3f %6.3f %6.3f %5d %5d '%s'\n", __func__,
+    //    Rprintf("%s: %10s %6.3f %6.3f %6.3f %6.3f %5d %5d '%s'\n", __func__,
     //            tt, token.p, token.pt, token.ptsum, token.vlen, (int) token.t0, (int) token.t1, whisper_token_to_str(&ctx, token.id));
 
     //    if (tokens[j].id >= whisper_token_eot(&ctx)) {
