@@ -17,6 +17,14 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 | `medium` & `medium.en` | Multilingual & English only | 1.5 GB | 2.6 GB     |
 | `large-v1` & `large`   | Multilingual                | 2.9 GB | 4.7 GB     |
 
+### Installation
+
+For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")` <br>
+Look to the documentation of the functions: `help(package = "audio.whisper")`
+
+- For the *development* version of this package: `remotes::install_github("bnosac/audio.whisper")`
+- Once you gain familiarity with the flow, you can gain faster transcription speeds [by reading this section](#speed-of-transcribing).
+
 ## Example
 
 **Load the model** either by providing the full path to the model or specify the shorthand which will download the model
@@ -209,23 +217,9 @@ $tokens
 </details>
 
 
+-----
 
-
-
-
-### Installation
-
-- For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")`
-- For the *development* version of this package: `remotes::install_github("bnosac/audio.whisper")`
-
-Look to the documentation of the functions: `help(package = "audio.whisper")`
-
-If you want faster transcription speeds [you need to read this section](#speed-of-transcribing) before installing the package
-
-
-
-
-#### Speed of transcribing
+### Speed of transcribing
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 
@@ -235,7 +229,7 @@ The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](s
 
 ```
 Sys.setenv(WHISPER_CFLAGS = "-mavx -mavx2 -mfma -mf16c")
-remotes::install_github("bnosac/audio.whisper")
+remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")
 ```
 
 To find out which hardware accelleration options your hardware supports, you can go to https://github.com/bnosac/audio.whisper/issues/15 and look for the CFLAGS (and optionally CXXFLAGS) settings which make sense on your hardware 
@@ -246,6 +240,7 @@ To find out which hardware accelleration options your hardware supports, you can
 
 Note that *if your hardware does not support these compilation flags, you'll get a crash* when transcribing audio.
 
+-----
 
 ## Support in text mining
 
