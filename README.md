@@ -215,15 +215,14 @@ $tokens
 
 ### Installation
 
-- For installing the stable version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")`.
-- For installing the development version of this package: `remotes::install_github("bnosac/audio.whisper")`.
-- If you want faster transcription speeds [you need to read this section](#speed-of-transcribing) before installing the package
+- For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")`
+- For the *development* version of this package: `remotes::install_github("bnosac/audio.whisper")`
 
-Look to the documentation of the functions
+Look to the documentation of the functions: `help(package = "audio.whisper")`
 
-```
-help(package = "audio.whisper")
-```
+If you want faster transcription speeds [you need to read this section](#speed-of-transcribing) before installing the package
+
+
 
 
 #### Speed of transcribing
