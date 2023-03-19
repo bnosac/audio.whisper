@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.2.1
+
+- Add option to compile with own PKG_CFLAGS by setting environment variable WHISPER_CFLAGS
+
 ## CHANGES IN audio.whisper VERSION 0.2.0
 
 - Incorporate whisper.cpp version v1.2.1

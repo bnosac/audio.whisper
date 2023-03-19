@@ -215,7 +215,9 @@ $tokens
 
 ### Installation
 
+- For installing the stable version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")`.
 - For installing the development version of this package: `remotes::install_github("bnosac/audio.whisper")`.
+- If you want faster transcription speeds [you need to read this section](#speed-of-transcribing) before installing the package
 
 Look to the documentation of the functions
 
@@ -223,9 +225,11 @@ Look to the documentation of the functions
 help(package = "audio.whisper")
 ```
 
+
 #### Speed of transcribing
 
-- The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on your hardware.
+- The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
+  - It has AVX intrinsics support for x86 architectures, VSX intrinsics support for POWER architectures, Mixed F16 / F32 precision, for Apple silicon allows optimisation via Arm Neon and the Accelerate framework
   - In order to gain from these **massive transcription speedups**, you need to set the correct C compilation flags when you install the R package, *otherwise transcription speed will be suboptimal*. 
   - You can set these compilation C flags as follows right before you install the package such that [/src/Makevars](/src/Makevars) knows you want these optimisations
 
