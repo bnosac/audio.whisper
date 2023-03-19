@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.2.1
 
 - Add option to compile with own PKG_CFLAGS by setting environment variable WHISPER_CFLAGS
+- Add option to compile with extra PKG_CPPFLAGS by setting environment variable WHISPER_CPPFLAGS
 
 ## CHANGES IN audio.whisper VERSION 0.2.0
 
