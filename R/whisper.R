@@ -112,8 +112,8 @@ whisper <- function(x, ...){
 #' @param model_dir a path where the model will be downloaded to. Defaults to the current working directory
 #' @param repos character string with the repository to download the model from. Either
 #' \itemize{
-#' \item{'ggerganov': https://ggml.ggerganov.com/}
-#' \item{'huggingface': https://huggingface.co/datasets/ggerganov/whisper.cpp}
+#' \item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
+#' \item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 #' }
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
 #' it will download the model and overwrite the file if the file already existed. If set to \code{FALSE},
@@ -141,9 +141,6 @@ whisper <- function(x, ...){
 #' whisper_download_model("medium.en")
 #' whisper_download_model("large-v1")
 #' whisper_download_model("large")
-#' 
-#' whisper_download_model("tiny", repos = "ggerganov")
-#' whisper_download_model("tiny.en", repos = "ggerganov")
 #' }
 #' \dontshow{
 #' if(file.exists(path$file_model)) file.remove(path$file_model)
@@ -158,7 +155,9 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   if(repos == "huggingface"){
     f   <- sprintf("ggml-%s.bin", x)
     url <- sprintf("https://huggingface.co/datasets/ggerganov/whisper.cpp/resolve/main/%s", f)
+    url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/%s", f)
   }else if(repos == "ggerganov"){
+    .Deprecated(msg = "whisper_download_model with argument repos = 'ggerganov' is deprecated as that resource might become unavailable for certain models, please use repos = 'huggingface'")
     f   <- sprintf("ggml-model-whisper-%s.bin", x)
     url <- sprintf("https://ggml.ggerganov.com/%s", f)
   }

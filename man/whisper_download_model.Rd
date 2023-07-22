@@ -20,8 +20,8 @@ whisper_download_model(
 
 \item{repos}{character string with the repository to download the model from. Either
 \itemize{
-\item{'ggerganov': https://ggml.ggerganov.com/}
-\item{'huggingface': https://huggingface.co/datasets/ggerganov/whisper.cpp}
+\item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
+\item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 }}
 
 \item{overwrite}{logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
@@ -63,9 +63,6 @@ whisper_download_model("medium")
 whisper_download_model("medium.en")
 whisper_download_model("large-v1")
 whisper_download_model("large")
-
-whisper_download_model("tiny", repos = "ggerganov")
-whisper_download_model("tiny.en", repos = "ggerganov")
 }
 \dontshow{
 if(file.exists(path$file_model)) file.remove(path$file_model)

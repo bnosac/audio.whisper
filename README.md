@@ -19,7 +19,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 ### Installation
 
-For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1")` <br>
+For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.1-1")` <br>
 Look to the documentation of the functions: `help(package = "audio.whisper")`
 
 - For the *development* version of this package: `remotes::install_github("bnosac/audio.whisper")`

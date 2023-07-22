@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.2.1-1
+
+- whisper_download_model now Deprecates downloading from https://ggml.ggerganov.com and changed the URL's to download models from huggingface (Issue #18)
+
 ## CHANGES IN audio.whisper VERSION 0.2.1
 
 - Add option to compile with own PKG_CFLAGS by setting environment variable WHISPER_CFLAGS
