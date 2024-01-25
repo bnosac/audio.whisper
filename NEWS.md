@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.2.2
 
 - Add option to pass on float entropy_thold, logprob_thold, beam_size, best_of, split_on_word when doing the prediction
+- Output of the predict.whisper function now includes an element called timing indicating how long it took to do the transcription
 
 ## CHANGES IN audio.whisper VERSION 0.2.1-1
 

@@ -13,6 +13,7 @@
 #' \item{data: a data.frame with the transcription with columns segment, text, from and to}
 #' \item{tokens: a data.frame with the transcription tokens with columns segment, token_id, token, token_prob indicating the token probability given the context}
 #' \item{params: a list with parameters used for inference}
+#' \item{timing: a list with elements start, end and duration indicating how long it took to do the transcription}
 #' }
 #' @export
 #' @seealso \code{\link{whisper}}
@@ -27,6 +28,7 @@
 predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ...){
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
+  start <- Sys.time()
   out <- whisper_encode(model = object$model, path = newdata, language = language, ...)
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
@@ -34,6 +36,10 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
     out$data$text              <- trimws(out$data$text)
     out$tokens$token           <- trimws(out$tokens$token)  
   }
+  end <- Sys.time()
+  out$timing <- list(transcription_start = start, 
+                     transcription_end = end, 
+                     transcription_duration = difftime(end, start, units = "mins"))
   class(out) <- "whisper_transcription"
   out
 }
