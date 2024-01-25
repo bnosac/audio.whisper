@@ -9,7 +9,3 @@ whisper_encode <- function(model, path, language, token_timestamps = FALSE, tran
     .Call('_audio_whisper_whisper_encode', PACKAGE = 'audio.whisper', model, path, language, token_timestamps, translate, print_special, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context)
 }
 
-whisper_print_benchmark <- function(model, n_threads = 1L) {
-    invisible(.Call('_audio_whisper_whisper_print_benchmark', PACKAGE = 'audio.whisper', model, n_threads))
-}
-

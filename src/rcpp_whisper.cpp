@@ -232,7 +232,9 @@ class WhisperModel {
     public: 
         struct whisper_context * ctx;
         WhisperModel(std::string model){
-          ctx = whisper_init_from_file(model.c_str());
+          struct whisper_context_params cparams;
+          cparams.use_gpu = false;
+          ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
         }
         ~WhisperModel(){
             whisper_free(ctx);
@@ -262,7 +264,6 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           int max_context = -1) {
     whisper_params params;
     params.language = language;
-    //params.model = model;
     params.translate = translate;
     params.print_special = print_special;
     params.duration_ms = duration;
@@ -277,13 +278,10 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.best_of = best_of;
     params.split_on_word = split_on_word;
     params.max_context = max_context;
-    
-    //std::string language  = "en";
-    //std::string model     = "models/ggml-base.en.bin";
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
-    
+
     if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
         Rcpp::stop("Unknown language");
     }
@@ -293,83 +291,12 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     struct whisper_context * ctx = whispermodel->ctx;
     //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
-    
-    // initial prompt
-    std::vector<whisper_token> prompt_tokens;
-    
-    if (!params.prompt.empty()) {
-      prompt_tokens.resize(1024);
-      prompt_tokens.resize(whisper_tokenize(ctx, params.prompt.c_str(), prompt_tokens.data(), prompt_tokens.size()));
-      
-      Rprintf("\n");
-      Rprintf("initial prompt: '%s'\n", params.prompt.c_str());
-      Rprintf("initial tokens: [ ");
-      for (int i = 0; i < (int) prompt_tokens.size(); ++i) {
-        Rprintf("%d ", prompt_tokens[i]);
-      }
-      Rprintf("]\n");
-    }
-    
+        
     for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
         const auto fname_inp = params.fname_inp[f];
         std::vector<float> pcmf32;               // mono-channel F32 PCM
         std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
-        // // WAV input
-        // {
-        //     drwav wav;
-        //     std::vector<uint8_t> wav_data; // used for pipe input from stdin
-        //     
-        //     if (drwav_init_file(&wav, fname_inp.c_str(), NULL) == false) {
-        //         Rcpp::stop("Failed to open the file as WAV file: ", fname_inp);
-        //     }
-        //     
-        //     if (wav.channels != 1 && wav.channels != 2) {
-        //         Rcpp::stop("WAV file must be mono or stereo: ", fname_inp);
-        //     }
-        //     
-        //     if (params.diarize && wav.channels != 2 && params.no_timestamps == false) {
-        //         Rcpp::stop("WAV file must be stereo for diarization and timestamps have to be enabled: ", fname_inp);
-        //     }
-        //     
-        //     if (wav.sampleRate != WHISPER_SAMPLE_RATE) {
-        //         Rcpp::stop("WAV file must be 16 kHz: ", fname_inp);
-        //     }
-        //     
-        //     if (wav.bitsPerSample != 16) {
-        //         Rcpp::stop("WAV file must be 16 bit: ", fname_inp);
-        //     }
-        //     
-        //     const uint64_t n = wav_data.empty() ? wav.totalPCMFrameCount : wav_data.size()/(wav.channels*wav.bitsPerSample/8);
-        //     
-        //     std::vector<int16_t> pcm16;
-        //     pcm16.resize(n*wav.channels);
-        //     drwav_read_pcm_frames_s16(&wav, n, pcm16.data());
-        //     drwav_uninit(&wav);
-        //     
-        //     // convert to mono, float
-        //     pcmf32.resize(n);
-        //     if (wav.channels == 1) {
-        //         for (uint64_t i = 0; i < n; i++) {
-        //             pcmf32[i] = float(pcm16[i])/32768.0f;
-        //         }
-        //     } else {
-        //         for (uint64_t i = 0; i < n; i++) {
-        //             pcmf32[i] = float(pcm16[2*i] + pcm16[2*i + 1])/65536.0f;
-        //         }
-        //     }
-        //     
-        //     if (params.diarize) {
-        //         // convert to stereo, float
-        //         pcmf32s.resize(2);
-        //         
-        //         pcmf32s[0].resize(n);
-        //         pcmf32s[1].resize(n);
-        //         for (uint64_t i = 0; i < n; i++) {
-        //             pcmf32s[0][i] = float(pcm16[2*i])/32768.0f;
-        //             pcmf32s[1][i] = float(pcm16[2*i + 1])/32768.0f;
-        //         }
-        //     }
-        // }
+
         if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
           Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
           Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
@@ -391,7 +318,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                     Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
                 }
             }
-            Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << "\n";
+            Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
         }
         
         // run the inference
@@ -399,36 +326,39 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
             
             wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
-            wparams.print_realtime   = trace;
-            wparams.print_progress   = false;
+
+            wparams.print_realtime   = false;
+            wparams.print_progress   = params.print_progress;
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;
             wparams.translate        = params.translate;
             wparams.language         = params.language.c_str();
+            wparams.detect_language  = params.detect_language;
             wparams.n_threads        = params.n_threads;
             wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
             wparams.offset_ms        = params.offset_t_ms;
             wparams.duration_ms      = params.duration_ms;
-            
-            wparams.token_timestamps = params.output_wts || params.max_len > 0;
-            wparams.token_timestamps = token_timestamps;
+
+            wparams.token_timestamps = params.output_wts || params.output_jsn_full || params.max_len > 0;
             wparams.thold_pt         = params.word_thold;
             wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
             wparams.split_on_word    = params.split_on_word;
-            
+
             wparams.speed_up         = params.speed_up;
-            
-            wparams.prompt_tokens     = prompt_tokens.empty() ? nullptr : prompt_tokens.data();
-            wparams.prompt_n_tokens   = prompt_tokens.empty() ? 0       : prompt_tokens.size();
-            
+            wparams.debug_mode       = params.debug_mode;
+
+            wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
+
+            wparams.initial_prompt   = params.prompt.c_str();
+
             wparams.greedy.best_of        = params.best_of;
             wparams.beam_search.beam_size = params.beam_size;
-            
+
             wparams.temperature_inc  = params.no_fallback ? 0.0f : wparams.temperature_inc;
             wparams.entropy_thold    = params.entropy_thold;
             wparams.logprob_thold    = params.logprob_thold;
             
-            whisper_print_user_data user_data = { &params, &pcmf32s };
+            whisper_print_user_data user_data = { &params, &pcmf32s, 0 };
             
             // this callback is called on each new segment
             if (!wparams.print_realtime) {
@@ -436,17 +366,29 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 wparams.new_segment_callback_user_data = &user_data;
             }
             
-            // example for abort mechanism
-            // in this example, we do not abort the processing, but we could if the flag is set to true
+            // examples for abort mechanism
+            // in examples below, we do not abort the processing, but we could if the flag is set to true
+
             // the callback is called before every encoder run - if it returns false, the processing is aborted
             {
                 static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-                
-                wparams.encoder_begin_callback = [](struct whisper_context * ctx, void * user_data) {
+
+                wparams.encoder_begin_callback = [](struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, void * user_data) {
                     bool is_aborted = *(bool*)user_data;
                     return !is_aborted;
                 };
                 wparams.encoder_begin_callback_user_data = &is_aborted;
+            }
+
+            // the callback is called before every computation - if it returns true, the computation is aborted
+            {
+                static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
+
+                wparams.abort_callback = [](void * user_data) {
+                    bool is_aborted = *(bool*)user_data;
+                    return is_aborted;
+                };
+                wparams.abort_callback_user_data = &is_aborted;
             }
             
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
@@ -549,7 +491,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
 
 
 
-
+/*
 // [[Rcpp::export]]
 void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   whisper_params params;
@@ -567,3 +509,4 @@ void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   }
   whisper_print_timings(ctx);
 }
+ */
