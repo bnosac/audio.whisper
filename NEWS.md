@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.2.2
+
+- Add option to pass on float entropy_thold, logprob_thold, beam_size, best_of, split_on_word when doing the prediction
+
 ## CHANGES IN audio.whisper VERSION 0.2.1-1
 
 - whisper_download_model now Deprecates downloading from https://ggml.ggerganov.com and changed the URL's to download models from huggingface (Issue #18)

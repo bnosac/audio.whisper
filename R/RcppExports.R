@@ -5,8 +5,8 @@ whisper_load_model <- function(model) {
     .Call('_audio_whisper_whisper_load_model', PACKAGE = 'audio.whisper', model)
 }
 
-whisper_encode <- function(model, path, language, token_timestamps = FALSE, translate = FALSE, print_special = FALSE, duration = 0L, offset = 0L, trace = FALSE, n_threads = 1L, n_processors = 1L) {
-    .Call('_audio_whisper_whisper_encode', PACKAGE = 'audio.whisper', model, path, language, token_timestamps, translate, print_special, duration, offset, trace, n_threads, n_processors)
+whisper_encode <- function(model, path, language, token_timestamps = FALSE, translate = FALSE, print_special = FALSE, duration = 0L, offset = 0L, trace = FALSE, n_threads = 1L, n_processors = 1L, entropy_thold = 2.40, logprob_thold = -1.00, beam_size = -1L, best_of = 5L, split_on_word = FALSE) {
+    .Call('_audio_whisper_whisper_encode', PACKAGE = 'audio.whisper', model, path, language, token_timestamps, translate, print_special, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word)
 }
 
 whisper_print_benchmark <- function(model, n_threads = 1L) {

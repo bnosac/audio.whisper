@@ -220,7 +220,12 @@ SEXP whisper_load_model(std::string model) {
 // [[Rcpp::export]]
 Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, 
                           bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0, bool trace = false,
-                          int n_threads = 1, int n_processors = 1) {
+                          int n_threads = 1, int n_processors = 1,
+                          float entropy_thold = 2.40,
+                          float logprob_thold = -1.00,
+                          int beam_size = -1,
+                          int best_of = 5,
+                          bool split_on_word = false) {
     whisper_params params;
     params.language = language;
     //params.model = model;
@@ -232,6 +237,13 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.n_threads = n_threads;
     params.n_processors = n_processors;
     
+    params.entropy_thold = entropy_thold;
+    params.logprob_thold = logprob_thold;
+    params.beam_size = beam_size;
+    params.best_of = best_of;
+    params.split_on_word = split_on_word;
+    //params.no_speech_thold = no_speech_thold;
+    //params.temperature_inc = temperature_inc;
     
     //std::string language  = "en";
     //std::string model     = "models/ggml-base.en.bin";
@@ -417,6 +429,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     Rcpp::StringVector transcriptions_from(n_segments);
     Rcpp::StringVector transcriptions_to(n_segments);
     std::vector<int> token_segment_nr;
+    std::vector<int> token_segment_id;
     std::vector<std::string> token_segment_text;
     std::vector<float> token_segment_probability;
     std::vector<std::string> token_segment_from;
@@ -439,7 +452,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             }
             const char * text = whisper_full_get_token_text(ctx, i, j);
             const float  p    = whisper_full_get_token_p   (ctx, i, j);
+            const int tokenid = whisper_full_get_token_id  (ctx, i, j);
             token_segment_nr.push_back(i + 1);
+            token_segment_id.push_back(tokenid);
             std::string str(text);
             token_segment_text.push_back(str);
             token_segment_probability.push_back(p);
@@ -456,6 +471,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if(token_timestamps){
         tokens = Rcpp::DataFrame::create(
             Rcpp::Named("segment") = token_segment_nr, 
+            Rcpp::Named("token_id") = token_segment_id, 
             Rcpp::Named("token") = token_segment_text, 
             Rcpp::Named("token_prob") = token_segment_probability,
             Rcpp::Named("token_from") = token_segment_from,
@@ -464,6 +480,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     }else{
         tokens = Rcpp::DataFrame::create(
             Rcpp::Named("segment") = token_segment_nr, 
+            Rcpp::Named("token_id") = token_segment_id, 
             Rcpp::Named("token") = token_segment_text, 
             Rcpp::Named("token_prob") = token_segment_probability,
             Rcpp::Named("stringsAsFactors") = false);
@@ -485,7 +502,15 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("duration") = duration,
                                                Rcpp::Named("translate") = params.translate,
                                                Rcpp::Named("token_timestamps") = token_timestamps,
-                                               Rcpp::Named("word_threshold") = params.word_thold));
+                                               Rcpp::Named("word_threshold") = params.word_thold,
+                                               Rcpp::Named("entropy_thold") = params.entropy_thold,
+                                               Rcpp::Named("logprob_thold") = params.logprob_thold,
+                                               Rcpp::Named("beam_size") = params.beam_size,
+                                               Rcpp::Named("best_of") = params.best_of,
+                                               Rcpp::Named("split_on_word") = params.split_on_word));
+    
+
+    
     return output;
 }
 

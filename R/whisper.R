@@ -11,7 +11,7 @@
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
 #' \item{data: a data.frame with the transcription with columns segment, text, from and to}
-#' \item{tokens: a data.frame with the transcription tokens with columns segment, token, token_prob indicating the token probability given the context}
+#' \item{tokens: a data.frame with the transcription tokens with columns segment, token_id, token, token_prob indicating the token probability given the context}
 #' \item{params: a list with parameters used for inference}
 #' }
 #' @export
