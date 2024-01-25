@@ -8,6 +8,63 @@ PKG_CPPFLAGS += -D_XOPEN_SOURCE=600
 #PKG_CLFAGS = -mcpu=native 
 #PKG_CFLAGS = -O3
 #PKG_CPPFLAGS += -mcpu=native
+
+ifndef UNAME_S
+UNAME_S := $(shell uname -s)
+endif
+
+ifndef UNAME_P
+UNAME_P := $(shell uname -p)
+endif
+
+ifndef UNAME_M
+UNAME_M := $(shell uname -m)
+endif
+
+# Somehow in OpenBSD whenever POSIX conformance is specified
+# some string functions rely on locale_t availability,
+# which was introduced in POSIX.1-2008, forcing us to go higher
+ifeq ($(UNAME_S),OpenBSD)
+	PKG_CFLAGS   += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
+	PKG_CPPFLAGS += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
+endif
+
+# Data types, macros and functions related to controlling CPU affinity
+# are available on Linux through GNU extensions in libc
+ifeq ($(UNAME_S),Linux)
+	PKG_CFLAGS   += -D_GNU_SOURCE
+	PKG_CPPFLAGS += -D_GNU_SOURCE
+endif
+
+# RLIMIT_MEMLOCK came in BSD, is not specified in POSIX.1,
+# and on macOS its availability depends on enabling Darwin extensions
+# similarly on DragonFly, enabling BSD extensions is necessary
+ifeq ($(UNAME_S),Darwin)
+	PKG_CFLAGS   += -D_DARWIN_C_SOURCE
+	PKG_CPPFLAGS += -D_DARWIN_C_SOURCE
+endif
+ifeq ($(UNAME_S),DragonFly)
+	PKG_CFLAGS   += -D__BSD_VISIBLE
+	PKG_CPPFLAGS += -D__BSD_VISIBLE
+endif
+
+# alloca is a non-standard interface that is not visible on BSDs when
+# POSIX conformance is specified, but not all of them provide a clean way
+# to enable it in such cases
+ifeq ($(UNAME_S),FreeBSD)
+	PKG_CFLAGS   += -D__BSD_VISIBLE
+	PKG_CPPFLAGS += -D__BSD_VISIBLE
+endif
+ifeq ($(UNAME_S),NetBSD)
+	PKG_CFLAGS   += -D_NETBSD_SOURCE
+	PKG_CPPFLAGS += -D_NETBSD_SOURCE
+endif
+ifeq ($(UNAME_S),OpenBSD)
+	PKG_CFLAGS   += -D_BSD_SOURCE
+	PKG_CPPFLAGS += -D_BSD_SOURCE
+endif
+
+
 ifdef WHISPER_CFLAGS
 PKG_CFLAGS = $(WHISPER_CFLAGS) 
 endif
