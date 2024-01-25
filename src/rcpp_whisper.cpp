@@ -3,17 +3,17 @@
 
 #include "whisper.h"
 
-// third-party utilities
-// use your favorite implementations
-//#define DR_WAV_IMPLEMENTATION
-//#include "dr_wav.h"
-
 #include <cmath>
 #include <fstream>
 #include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
+#include <cstring>
+
+#if defined(_MSC_VER)
+#pragma warning(disable: 4244 4267) // possible loss of data
+#endif
 
 // Terminal color map. 10 colors grouped in ranges [0.0, 0.1, ..., 0.9]
 // Lowest is red, middle is yellow, highest is green.
@@ -60,33 +60,48 @@ struct whisper_params {
     int32_t offset_t_ms  =  0;
     int32_t offset_n     =  0;
     int32_t duration_ms  =  0;
+    int32_t progress_step =  5;
     int32_t max_context  = -1;
     int32_t max_len      =  0;
-    int32_t best_of      =  5;
-    int32_t beam_size    = -1;
+    int32_t best_of      = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
+    int32_t beam_size    = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
 
     float word_thold    =  0.01f;
     float entropy_thold =  2.40f;
     float logprob_thold = -1.00f;
 
-    bool speed_up       = false;
-    bool translate      = false;
-    bool diarize        = false;
-    bool split_on_word  = false;
-    bool no_fallback    = false;
-    bool output_txt     = false;
-    bool output_vtt     = false;
-    bool output_srt     = false;
-    bool output_wts     = false;
-    bool output_csv     = false;
-    bool print_special  = false;
-    bool print_colors   = false;
-    bool print_progress = false;
-    bool no_timestamps  = false;
+    bool speed_up        = false;
+    bool debug_mode      = false;
+    bool translate       = false;
+    bool detect_language = false;
+    bool diarize         = false;
+    bool tinydiarize     = false;
+    bool split_on_word   = false;
+    bool no_fallback     = false;
+    bool output_txt      = false;
+    bool output_vtt      = false;
+    bool output_srt      = false;
+    bool output_wts      = false;
+    bool output_csv      = false;
+    bool output_jsn      = false;
+    bool output_jsn_full = false;
+    bool output_lrc      = false;
+    bool print_special   = false;
+    bool print_colors    = false;
+    bool print_progress  = false;
+    bool no_timestamps   = false;
+    bool log_score       = false;
+    bool use_gpu         = true;
 
-    std::string language = "en";
+    std::string language  = "en";
     std::string prompt;
-    std::string model    = "models/ggml-base.en.bin";
+    std::string font_path = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf";
+    std::string model     = "models/ggml-base.en.bin";
+
+    // [TDRZ] speaker turn string
+    std::string tdrz_speaker_turn = " [SPEAKER_TURN]"; // TODO: set from command line
+
+    std::string openvino_encode_device = "CPU";
 
     std::vector<std::string> fname_inp = {};
     std::vector<std::string> fname_out = {};
@@ -97,101 +112,119 @@ struct whisper_print_user_data {
     const whisper_params * params;
 
     const std::vector<std::vector<float>> * pcmf32s;
+    int progress_prev;
 };
 
-void whisper_print_segment_callback(struct whisper_context * ctx, int n_new, void * user_data) {
-    const auto & params  = *((whisper_print_user_data *) user_data)->params;
-    const auto & pcmf32s = *((whisper_print_user_data *) user_data)->pcmf32s;
-    
-    const int n_segments = whisper_full_n_segments(ctx);
-    
-    // print the last n_new segments
-    const int s0 = n_segments - n_new;
-    if (s0 == 0) {
-        Rprintf("\n");
+std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s, int64_t t0, int64_t t1, bool id_only = false) {
+    std::string speaker = "";
+    const int64_t n_samples = pcmf32s[0].size();
+
+    const int64_t is0 = timestamp_to_sample(t0, n_samples);
+    const int64_t is1 = timestamp_to_sample(t1, n_samples);
+
+    double energy0 = 0.0f;
+    double energy1 = 0.0f;
+
+    for (int64_t j = is0; j < is1; j++) {
+        energy0 += fabs(pcmf32s[0][j]);
+        energy1 += fabs(pcmf32s[1][j]);
     }
-    
-    for (int i = s0; i < n_segments; i++) {
-        if (params.no_timestamps) {
-            if (params.print_colors) {
-                for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
-                    if (params.print_special == false) {
-                        const whisper_token id = whisper_full_get_token_id(ctx, i, j);
-                        if (id >= whisper_token_eot(ctx)) {
-                            continue;
-                        }
-                    }
-                    
-                    const char * text = whisper_full_get_token_text(ctx, i, j);
-                    const float  p    = whisper_full_get_token_p   (ctx, i, j);
-                    
-                    const int col = std::max(0, std::min((int) k_colors.size(), (int) (std::pow(p, 3)*float(k_colors.size()))));
-                    
-                    Rprintf("%s%s%s", k_colors[col].c_str(), text, "\033[0m");
-                }
-            } else {
-                const char * text = whisper_full_get_segment_text(ctx, i);
-                Rprintf("%s", text);
-            }
-            Rcpp::checkUserInterrupt();
-            //fflush(stdout);
-        } else {
-            const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
-            const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-            
-            std::string speaker = "";
-            
-            if (params.diarize && pcmf32s.size() == 2) {
-                const int64_t n_samples = pcmf32s[0].size();
-                
-                const int64_t is0 = timestamp_to_sample(t0, n_samples);
-                const int64_t is1 = timestamp_to_sample(t1, n_samples);
-                
-                double energy0 = 0.0f;
-                double energy1 = 0.0f;
-                
-                for (int64_t j = is0; j < is1; j++) {
-                    energy0 += fabs(pcmf32s[0][j]);
-                    energy1 += fabs(pcmf32s[1][j]);
-                }
-                
-                if (energy0 > 1.1*energy1) {
-                    speaker = "(speaker 0)";
-                } else if (energy1 > 1.1*energy0) {
-                    speaker = "(speaker 1)";
-                } else {
-                    speaker = "(speaker ?)";
-                }
-                
-                //Rprintf("is0 = %lld, is1 = %lld, energy0 = %f, energy1 = %f, %s\n", is0, is1, energy0, energy1, speaker.c_str());
-            }
-            
-            if (params.print_colors) {
-                Rprintf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
-                for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
-                    if (params.print_special == false) {
-                        const whisper_token id = whisper_full_get_token_id(ctx, i, j);
-                        if (id >= whisper_token_eot(ctx)) {
-                            continue;
-                        }
-                    }
-                    
-                    const char * text = whisper_full_get_token_text(ctx, i, j);
-                    const float  p    = whisper_full_get_token_p   (ctx, i, j);
-                    
-                    const int col = std::max(0, std::min((int) k_colors.size(), (int) (std::pow(p, 3)*float(k_colors.size()))));
-                    
-                    Rprintf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
-                }
-                Rprintf("\n");
-            } else {
-                const char * text = whisper_full_get_segment_text(ctx, i);
-                
-                Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
-            }
-        }
+
+    if (energy0 > 1.1*energy1) {
+        speaker = "0";
+    } else if (energy1 > 1.1*energy0) {
+        speaker = "1";
+    } else {
+        speaker = "?";
+    }
+
+    //printf("is0 = %lld, is1 = %lld, energy0 = %f, energy1 = %f, speaker = %s\n", is0, is1, energy0, energy1, speaker.c_str());
+
+    if (!id_only) {
+        speaker.insert(0, "(speaker ");
+        speaker.append(")");
+    }
+
+    return speaker;
+}
+void whisper_print_progress_callback(struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, int progress, void * user_data) {
+    int progress_step = ((whisper_print_user_data *) user_data)->params->progress_step;
+    int * progress_prev  = &(((whisper_print_user_data *) user_data)->progress_prev);
+    if (progress >= *progress_prev + progress_step) {
+        *progress_prev += progress_step;
+        fprintf(stderr, "%s: progress = %3d%%\n", __func__, progress);
     }
 }
+
+void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper_state * /*state*/, int n_new, void * user_data) {
+    const auto & params  = *((whisper_print_user_data *) user_data)->params;
+    const auto & pcmf32s = *((whisper_print_user_data *) user_data)->pcmf32s;
+
+    const int n_segments = whisper_full_n_segments(ctx);
+
+    std::string speaker = "";
+
+    int64_t t0 = 0;
+    int64_t t1 = 0;
+
+    // print the last n_new segments
+    const int s0 = n_segments - n_new;
+
+    if (s0 == 0) {
+        printf("\n");
+    }
+
+    for (int i = s0; i < n_segments; i++) {
+        if (!params.no_timestamps || params.diarize) {
+            t0 = whisper_full_get_segment_t0(ctx, i);
+            t1 = whisper_full_get_segment_t1(ctx, i);
+        }
+
+        if (!params.no_timestamps) {
+            printf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
+        }
+
+        if (params.diarize && pcmf32s.size() == 2) {
+            speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
+        }
+
+        if (params.print_colors) {
+            for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
+                if (params.print_special == false) {
+                    const whisper_token id = whisper_full_get_token_id(ctx, i, j);
+                    if (id >= whisper_token_eot(ctx)) {
+                        continue;
+                    }
+                }
+
+                const char * text = whisper_full_get_token_text(ctx, i, j);
+                const float  p    = whisper_full_get_token_p   (ctx, i, j);
+
+                const int col = std::max(0, std::min((int) k_colors.size() - 1, (int) (std::pow(p, 3)*float(k_colors.size()))));
+
+                printf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
+            }
+        } else {
+            const char * text = whisper_full_get_segment_text(ctx, i);
+
+            printf("%s%s", speaker.c_str(), text);
+        }
+
+        if (params.tinydiarize) {
+            if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
+                printf("%s", params.tdrz_speaker_turn.c_str());
+            }
+        }
+
+        // with timestamps or speakers: each segment on new line
+        if (!params.no_timestamps || params.diarize) {
+            printf("\n");
+        }
+
+        fflush(stdout);
+    }
+}
+
 
 
 // Functionality to free the Rcpp::XPtr
