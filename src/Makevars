@@ -13,8 +13,8 @@ ifdef WHISPER_CPPFLAGS
 PKG_CPPFLAGS += $(WHISPER_CPPFLAGS) 
 endif
 
-SOURCES = whisper_cpp/ggml.c whisper_cpp/whisper.cpp whisper_cpp/common.cpp rcpp_whisper.cpp RcppExports.cpp
-OBJECTS = whisper_cpp/ggml.o whisper_cpp/whisper.o   whisper_cpp/common.o   rcpp_whisper.o   RcppExports.o
+SOURCES = whisper_cpp/ggml-quants.c whisper_cpp/ggml-backend.c whisper_cpp/ggml-alloc.c whisper_cpp/ggml.c whisper_cpp/whisper.cpp whisper_cpp/common-ggml.cpp whisper_cpp/common.cpp rcpp_whisper.cpp RcppExports.cpp
+OBJECTS = whisper_cpp/ggml-quants.o whisper_cpp/ggml-backend.o whisper_cpp/ggml-alloc.o whisper_cpp/ggml.o whisper_cpp/whisper.o   whisper_cpp/common-ggml.o   whisper_cpp/common.o   rcpp_whisper.o   RcppExports.o
 
 all: clean
 
