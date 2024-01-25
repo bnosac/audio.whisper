@@ -229,7 +229,7 @@ The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](s
 
 ```
 Sys.setenv(WHISPER_CFLAGS = "-mavx -mavx2 -mfma -mf16c")
-remotes::install_github("bnosac/audio.whisper", ref = "0.2.1-1", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", ref = "0.2.2", force = TRUE)
 Sys.unsetenv("WHISPER_CFLAGS")
 ```
 
