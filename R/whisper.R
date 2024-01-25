@@ -229,6 +229,6 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
 whisper_benchmark <- function(object = whisper(system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")), 
                               threads = 1){
   stopifnot(inherits(object, "whisper"))
-  #whisper_print_benchmark(object$model, threads)
+  whisper_print_benchmark(object$model, threads)
   invisible()
 }
