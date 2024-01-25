@@ -225,7 +225,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           float logprob_thold = -1.00,
                           int beam_size = -1,
                           int best_of = 5,
-                          bool split_on_word = false) {
+                          bool split_on_word = false,
+                          float temperature_inc = 0.2f) {
     whisper_params params;
     params.language = language;
     //params.model = model;
@@ -243,7 +244,6 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.best_of = best_of;
     params.split_on_word = split_on_word;
     //params.no_speech_thold = no_speech_thold;
-    //params.temperature_inc = temperature_inc;
     
     //std::string language  = "en";
     //std::string model     = "models/ggml-base.en.bin";
@@ -392,6 +392,11 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.beam_search.beam_size = params.beam_size;
             
             wparams.temperature_inc  = params.no_fallback ? 0.0f : wparams.temperature_inc;
+            if(params.no_fallback){
+              wparams.temperature_inc  = 0.0f;
+            }else{
+              wparams.temperature_inc = temperature_inc;
+            }
             wparams.entropy_thold    = params.entropy_thold;
             wparams.logprob_thold    = params.logprob_thold;
             
