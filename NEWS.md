@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.3
+
+- Upgrade to whisper.cpp version v1.5.4
+
 ## CHANGES IN audio.whisper VERSION 0.2.2
 
 - Add option to pass on float entropy_thold (similar to compression_ratio_threshold), logprob_thold, beam_size, best_of, split_on_word, max_context when doing the prediction

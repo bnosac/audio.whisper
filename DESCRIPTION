@@ -1,7 +1,7 @@
 Package: audio.whisper
 Type: Package
 Title: Transcribe Audio Files using the "Whisper" Automatic Speech Recognition Model
-Version: 0.2.2
+Version: 0.3
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
     person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
