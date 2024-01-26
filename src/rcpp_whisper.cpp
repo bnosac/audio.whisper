@@ -171,7 +171,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
     const int s0 = n_segments - n_new;
 
     if (s0 == 0) {
-        printf("\n");
+        Rprintf("\n");
     }
 
     for (int i = s0; i < n_segments; i++) {
@@ -181,7 +181,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
         }
 
         if (!params.no_timestamps) {
-            printf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
+            Rprintf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
         }
 
         if (params.diarize && pcmf32s.size() == 2) {
@@ -202,26 +202,26 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
 
                 const int col = std::max(0, std::min((int) k_colors.size() - 1, (int) (std::pow(p, 3)*float(k_colors.size()))));
 
-                printf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
+                Rprintf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
             }
         } else {
             const char * text = whisper_full_get_segment_text(ctx, i);
 
-            printf("%s%s", speaker.c_str(), text);
+            Rprintf("%s%s", speaker.c_str(), text);
         }
 
         if (params.tinydiarize) {
             if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
-                printf("%s", params.tdrz_speaker_turn.c_str());
+                Rprintf("%s", params.tdrz_speaker_turn.c_str());
             }
         }
 
         // with timestamps or speakers: each segment on new line
         if (!params.no_timestamps || params.diarize) {
-            printf("\n");
+            Rprintf("\n");
         }
 
-        fflush(stdout);
+        Rcpp::checkUserInterrupt();
     }
 }
 
