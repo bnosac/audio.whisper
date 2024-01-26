@@ -227,7 +227,6 @@ endif
 ifdef WHISPER_CPPFLAGS
 PKG_CPPFLAGS = $(WHISPER_CPPFLAGS) 
 endif
-endif
 ifdef WHISPER_LIBS
 PKG_LIBS = $(WHISPER_LIBS) 
 endif
