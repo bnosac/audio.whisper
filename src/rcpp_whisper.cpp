@@ -180,10 +180,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
             t1 = whisper_full_get_segment_t1(ctx, i);
         }
 
-        if (!params.no_timestamps) {
-            Rprintf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
-        }
-
+        
         if (params.diarize && pcmf32s.size() == 2) {
             speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
         }
@@ -206,8 +203,11 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
             }
         } else {
             const char * text = whisper_full_get_segment_text(ctx, i);
-
-            Rprintf("%s%s", speaker.c_str(), text);
+            if (!params.no_timestamps) {
+              Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
+            }else{
+              Rprintf("%s%s\n", speaker.c_str(), text);
+            }
         }
 
         if (params.tinydiarize) {
@@ -215,12 +215,6 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
                 Rprintf("%s", params.tdrz_speaker_turn.c_str());
             }
         }
-
-        // with timestamps or speakers: each segment on new line
-        if (!params.no_timestamps || params.diarize) {
-            Rprintf("\n");
-        }
-
         Rcpp::checkUserInterrupt();
     }
 }
