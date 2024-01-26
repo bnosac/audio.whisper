@@ -1,13 +1,12 @@
+PKG_LIBS = 
 CXX_STD = CXX11
-PKG_LIBS = -pthread
 PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp 
 PKG_CFLAGS   += -D_XOPEN_SOURCE=600
 PKG_CPPFLAGS += -D_XOPEN_SOURCE=600
-#PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
-#PKG_CFLAGS = -msse3
-#PKG_CLFAGS = -mcpu=native 
-#PKG_CFLAGS = -O3
-#PKG_CPPFLAGS += -mcpu=native
+
+#CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
+#CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
+#LDFLAGS  =
 
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
@@ -19,6 +18,12 @@ endif
 
 ifndef UNAME_M
 UNAME_M := $(shell uname -m)
+endif
+
+ifndef NVCC_VERSION
+	ifeq ($(call,$(shell which nvcc))$(.SHELLSTATUS),0)
+		NVCC_VERSION := $(shell nvcc --version | egrep -o "V[0-9]+.[0-9]+.[0-9]+" | cut -c2-)
+	endif
 endif
 
 # Somehow in OpenBSD whenever POSIX conformance is specified
@@ -64,13 +69,170 @@ ifeq ($(UNAME_S),OpenBSD)
 	PKG_CPPFLAGS += -D_BSD_SOURCE
 endif
 
+# OS specific
+# TODO: support Windows
+ifeq ($(filter $(UNAME_S),Linux Darwin DragonFly FreeBSD NetBSD OpenBSD Haiku),$(UNAME_S))
+	PKG_CFLAGS   += -pthread
+	PKG_CPPFLAGS += -pthread
+endif
 
+# Architecture specific
+# TODO: probably these flags need to be tweaked on some architectures
+#       feel free to update the Makefile for your architecture and send a pull request or issue
+ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686 amd64))
+	ifeq ($(UNAME_S),Darwin)
+		CPUINFO_CMD := sysctl machdep.cpu.features machdep.cpu.leaf7_features
+	else ifeq ($(UNAME_S),Linux)
+		CPUINFO_CMD := cat /proc/cpuinfo
+	else ifneq (,$(filter MINGW32_NT% MINGW64_NT%,$(UNAME_S)))
+		CPUINFO_CMD := cat /proc/cpuinfo
+	else ifneq (,$(filter DragonFly FreeBSD,$(UNAME_S)))
+		CPUINFO_CMD := grep Features /var/run/dmesg.boot
+	else ifeq ($(UNAME_S),Haiku)
+		CPUINFO_CMD := sysinfo -cpu
+	endif
+
+	ifdef CPUINFO_CMD
+		AVX_M := $(shell $(CPUINFO_CMD) | grep -iwE 'AVX|AVX1.0')
+		ifneq (,$(AVX_M))
+			PKG_CFLAGS   += -mavx
+			PKG_CPPFLAGS += -mavx
+		endif
+
+		AVX2_M := $(shell $(CPUINFO_CMD) | grep -iw 'AVX2')
+		ifneq (,$(AVX2_M))
+			PKG_CFLAGS   += -mavx2
+			PKG_CPPFLAGS += -mavx2
+		endif
+
+		FMA_M := $(shell $(CPUINFO_CMD) | grep -iw 'FMA')
+		ifneq (,$(FMA_M))
+			PKG_CFLAGS   += -mfma
+			PKG_CPPFLAGS += -mfma
+		endif
+
+		F16C_M := $(shell $(CPUINFO_CMD) | grep -iw 'F16C')
+		ifneq (,$(F16C_M))
+			PKG_CFLAGS   += -mf16c
+			PKG_CPPFLAGS += -mf16c
+		endif
+
+		SSE3_M := $(shell $(CPUINFO_CMD) | grep -iwE 'PNI|SSE3')
+		ifneq (,$(SSE3_M))
+			PKG_CFLAGS   += -msse3
+			PKG_CPPFLAGS += -msse3
+		endif
+
+		SSSE3_M := $(shell $(CPUINFO_CMD) | grep -iw 'SSSE3')
+		ifneq (,$(SSSE3_M))
+			PKG_CFLAGS   += -mssse3
+			PKG_CPPFLAGS += -mssse3
+		endif
+	endif
+endif
+
+ifneq ($(filter ppc64%,$(UNAME_M)),)
+	POWER9_M := $(shell grep "POWER9" /proc/cpuinfo)
+	ifneq (,$(findstring POWER9,$(POWER9_M)))
+		PKG_CFLAGS += -mpower9-vector
+	endif
+	# Require c++23's std::byteswap for big-endian support.
+	ifeq ($(UNAME_M),ppc64)
+		PKG_CPPFLAGS += -std=c++23 -DGGML_BIG_ENDIAN
+	endif
+endif
+
+ifndef WHISPER_NO_ACCELERATE
+	# Mac M1 - include Accelerate framework
+	ifeq ($(UNAME_S),Darwin)
+		PKG_CFLAGS  += -DGGML_USE_ACCELERATE
+		PKG_LIBS += -framework Accelerate
+	endif
+endif
+
+ifdef WHISPER_COREML
+	PKG_CPPFLAGS += -DWHISPER_USE_COREML
+	PKG_LIBS  += -framework Foundation -framework CoreML
+
+ifdef WHISPER_COREML_ALLOW_FALLBACK
+	PKG_CPPFLAGS += -DWHISPER_COREML_ALLOW_FALLBACK
+endif
+endif
+
+ifndef WHISPER_NO_METAL
+	ifeq ($(UNAME_S),Darwin)
+		WHISPER_METAL := 1
+
+		PKG_CFLAGS   += -DGGML_USE_METAL
+		PKG_CPPFLAGS += -DGGML_USE_METAL
+		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
+	endif
+endif
+
+## Note/TODO: removed sections on WHISPER_OPENBLAS / WHISPER_CUBLAS / WHISPER_HIPBLAS / WHISPER_CLBLAST
+
+ifdef WHISPER_GPROF
+	PKG_CFLAGS   += -pg
+	PKG_CPPFLAGS += -pg
+endif
+
+ifneq ($(filter aarch64%,$(UNAME_M)),)
+	PKG_CFLAGS   += -mcpu=native
+	PKG_CPPFLAGS += -mcpu=native
+endif
+
+ifneq ($(filter armv6%,$(UNAME_M)),)
+	# 32-bit Raspberry Pi 1, 2, 3
+	PKG_CFLAGS += -mfpu=neon -mfp16-format=ieee -mno-unaligned-access
+endif
+
+ifneq ($(filter armv7%,$(UNAME_M)),)
+	# 32-bit ARM, for example on Armbian or possibly raspbian
+	#PKG_CFLAGS   += -mfpu=neon -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+	#PKG_CPPFLAGS += -mfpu=neon -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+
+	# 64-bit ARM on 32-bit OS, use these (TODO: auto-detect 64-bit)
+	PKG_CFLAGS   += -mfpu=neon-fp-armv8 -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+	PKG_CPPFLAGS += -mfpu=neon-fp-armv8 -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+endif
+
+ifneq ($(filter armv8%,$(UNAME_M)),)
+	# Raspberry Pi 4
+	PKG_CFLAGS   += -mfpu=neon-fp-armv8 -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+	PKG_CPPFLAGS += -mfpu=neon-fp-armv8 -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
+endif
+
+#
+# Print build information
+#
+
+$(info I whisper.cpp build info: )
+$(info I UNAME_S:  $(UNAME_S))
+$(info I UNAME_P:  $(UNAME_P))
+$(info I UNAME_M:  $(UNAME_M))
+$(info I PKG_CFLAGS:   $(PKG_CFLAGS))
+$(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
+$(info I PKG_LIBS:  $(PKG_LIBS))
+#$(info I CC:       $(CCV))
+#$(info I CXX:      $(CXXV))
+$(info )
+
+
+##############################################################################################################
+##################### OVERWRITE PKG_CFLAGS / PKG_CPPFLAGS IF THE USER KNOWS WHAT TO DO #######################
+##############################################################################################################
 ifdef WHISPER_CFLAGS
 PKG_CFLAGS = $(WHISPER_CFLAGS) 
 endif
 ifdef WHISPER_CPPFLAGS
-PKG_CPPFLAGS += $(WHISPER_CPPFLAGS) 
+PKG_CPPFLAGS = $(WHISPER_CPPFLAGS) 
 endif
+
+#PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
+#PKG_CFLAGS = -msse3
+#PKG_CLFAGS = -mcpu=native 
+#PKG_CFLAGS = -O3
+#PKG_CPPFLAGS += -mcpu=native
 
 SOURCES = whisper_cpp/ggml-quants.c whisper_cpp/ggml-backend.c whisper_cpp/ggml-alloc.c whisper_cpp/ggml.c whisper_cpp/whisper.cpp whisper_cpp/common-ggml.cpp whisper_cpp/common.cpp rcpp_whisper.cpp RcppExports.cpp
 OBJECTS = whisper_cpp/ggml-quants.o whisper_cpp/ggml-backend.o whisper_cpp/ggml-alloc.o whisper_cpp/ggml.o whisper_cpp/whisper.o   whisper_cpp/common-ggml.o   whisper_cpp/common.o   rcpp_whisper.o   RcppExports.o
