@@ -227,6 +227,10 @@ endif
 ifdef WHISPER_CPPFLAGS
 PKG_CPPFLAGS = $(WHISPER_CPPFLAGS) 
 endif
+endif
+ifdef WHISPER_LIBS
+PKG_LIBS = $(WHISPER_LIBS) 
+endif
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
 #PKG_CFLAGS = -msse3
