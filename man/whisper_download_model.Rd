@@ -9,6 +9,7 @@ whisper_download_model(
     "medium.en", "large-v1", "large"),
   model_dir = getwd(),
   repos = c("huggingface", "ggerganov"),
+  version = "1.2.1",
   overwrite = TRUE,
   ...
 )
@@ -23,6 +24,8 @@ whisper_download_model(
 \item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
 \item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 }}
+
+\item{version}{character string with the version of the model. Defaults to "1.2.1".}
 
 \item{overwrite}{logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
 it will download the model and overwrite the file if the file already existed. If set to \code{FALSE},
