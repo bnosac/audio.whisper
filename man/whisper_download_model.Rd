@@ -9,7 +9,7 @@ whisper_download_model(
     "medium.en", "large-v1", "large"),
   model_dir = getwd(),
   repos = c("huggingface", "ggerganov"),
-  version = "1.2.1",
+  version = c("1.5.4", "1.2.1"),
   overwrite = TRUE,
   ...
 )

@@ -157,11 +157,13 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large"),
                                    model_dir = getwd(),
                                    repos = c("huggingface", "ggerganov"),
-                                   version = "1.2.1",
+                                   version = c("1.5.4", "1.2.1"),
                                    overwrite = TRUE, 
                                    ...){
   version <- match.arg(version)
-  x     <- match.arg(x)
+  if(!"force" %in% names(list(...))){
+    x     <- match.arg(x)  
+  }
   repos <- match.arg(repos)
   if(repos == "huggingface"){
     f   <- sprintf("ggml-%s.bin", x)
@@ -169,6 +171,8 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
     url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/%s", f)
     if(version == "1.2.1"){
       url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/%s", f)
+    }else if(version == "1.5.4"){
+      url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/d15393806e24a74f60827e23e986f0c10750b358/%s", f)
     }
   }else if(repos == "ggerganov"){
     .Deprecated(msg = "whisper_download_model with argument repos = 'ggerganov' is deprecated as that resource might become unavailable for certain models, please use repos = 'huggingface'")
