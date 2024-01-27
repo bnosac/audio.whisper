@@ -2,6 +2,10 @@
 
 - Add option to pass on float entropy_thold (similar to compression_ratio_threshold), logprob_thold, beam_size, best_of, split_on_word, max_context when doing the prediction
 - Output of the predict.whisper function now includes an element called timing indicating how long it took to do the transcription
+- whisper gains 2 arguments: the model_dir/overwrite which is passed directly to whisper_download_model
+- whisper_download_model 
+  - gains an argument version which defaults to models for whisper.cpp version 1.2.1
+  - gets the models now from https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6 instead of https://huggingface.co/ggerganov/whisper.cpp/resolve/main
 
 ## CHANGES IN audio.whisper VERSION 0.2.1-1
 
