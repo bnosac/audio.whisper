@@ -7,6 +7,9 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 - The package allows to transcribe audio files using the ["Whisper" Automatic Speech Recognition model](https://github.com/openai/whisper)
 - The package is based on CPU-only inference engine written in C++11, no external software is needed, so that you can directly install and use it from R
 
+[![Actions Status](https://github.com/bnosac/audio.whisper/workflows/R-CMD-check/badge.svg)](https://github.com/bnosac/audio.whisper/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 ## Available models
 
 | Model                  | Language                    |  Size  | RAM needed | Comment                      |
