@@ -4,7 +4,7 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   ## Download a model
   path  <- whisper_download_model("tiny", overwrite = FALSE)
   expect_inherits(path, "data.frame")
-  expect_false(path$download_failed)
+  expect_true(path$download_success)
   
   ## Load the model
   model <- whisper("tiny")
