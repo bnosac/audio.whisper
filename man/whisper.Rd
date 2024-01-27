@@ -4,13 +4,17 @@
 \alias{whisper}
 \title{Automatic Speech Recognition using Whisper}
 \usage{
-whisper(x, ...)
+whisper(x, overwrite = FALSE, model_dir = getwd(), ...)
 }
 \arguments{
 \item{x}{the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 the name of the model which can be passed on to \code{\link{whisper_download_model}}}
 
-\item{...}{further arguments, currently not used}
+\item{overwrite}{logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
+
+\item{model_dir}{a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.}
+
+\item{...}{further arguments, passed on to \code{\link{whisper_load_model}}}
 }
 \value{
 an object of class \code{whisper} which is list with the following elements: 

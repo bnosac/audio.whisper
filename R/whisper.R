@@ -49,7 +49,9 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param x the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
-#' @param ... further arguments, currently not used
+#' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
+#' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.
+#' @param ... further arguments, passed on to \code{\link{whisper_load_model}}
 #' @return an object of class \code{whisper} which is list with the following elements: 
 #' \itemize{
 #' \item{file: path to the model}
@@ -91,16 +93,16 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en", duration = 1000)
 #' }
-whisper <- function(x, ...){
+whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large")){
-    x <- whisper_download_model(x, overwrite = FALSE, ...)
+    x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
   if(inherits(x, "whisper_download")){
     out        <- list(file = x$file_model)
   }else{
     out        <- list(file = x)  
   }
-  out$model <- whisper_load_model(out$file)
+  out$model <- whisper_load_model(out$file, ...)
   class(out) <- "whisper"
   out
 }
