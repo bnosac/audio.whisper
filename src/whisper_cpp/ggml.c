@@ -16927,8 +16927,8 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
     }
 
     // print
+    FILE * fout = fopen(fname, "wb");
     {
-        FILE * fout;
 
         Rprintf("\n");
         Rprintf("%-16s %8x\n", "magic",        GGML_FILE_MAGIC);
@@ -16972,7 +16972,7 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
 
     // write binary data
     {
-        FILE * fout = fopen(fname, "wb");
+        //FILE * fout = fopen(fname, "wb");
 
         if (!fout) {
             Rprintf("%s: failed to open %s\n", __func__, fname);
@@ -17096,8 +17096,9 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
             }
         }
 
-        fclose(fout);
+        
     }
+    fclose(fout);
 }
 
 struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context ** ctx_data, struct ggml_context ** ctx_eval) {
