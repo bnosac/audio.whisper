@@ -225,7 +225,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
-        WhisperModel(std::string model, use_gpu = false){
+        WhisperModel(std::string model, bool use_gpu = false){
           struct whisper_context_params cparams;
           cparams.use_gpu = use_gpu;
           ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
@@ -236,7 +236,7 @@ class WhisperModel {
 };
 
 // [[Rcpp::export]]
-SEXP whisper_load_model(std::string model, use_gpu = false) {
+SEXP whisper_load_model(std::string model, bool use_gpu = false) {
     // Load language model and return the pointer to be used by whisper_encode
     //struct whisper_context * ctx = whisper_init(model.c_str());
     //Rcpp::XPtr<whisper_context> ptr(ctx, false);
@@ -487,11 +487,11 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
 
 
 // [[Rcpp::export]]
-void whisper_print_benchmark(SEXP model, int n_threads = 1, use_gpu = false) {
+void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   whisper_params params;
   params.n_threads = n_threads;
   // whisper init
-  Rcpp::XPtr<WhisperModel> whispermodel(model, use_gpu);
+  Rcpp::XPtr<WhisperModel> whispermodel(model);
   struct whisper_context * ctx = whispermodel->ctx;
   Rprintf("\n");
   Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads, std::thread::hardware_concurrency(), whisper_print_system_info());
