@@ -51,6 +51,12 @@ ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686 amd64))
 			PKG_CFLAGS   += -mavx2
 			PKG_CPPFLAGS += -mavx2
 		endif
+		
+		AVX512F_M := $(shell $(CPUINFO_CMD) | grep -iw 'AVX512F')
+		ifneq (,$(AVX512F_M))
+			PKG_CFLAGS   += -mavx512f
+			PKG_CPPFLAGS += -mavx512f
+		endif
 
 		FMA_M := $(shell $(CPUINFO_CMD) | grep -iw 'FMA')
 		ifneq (,$(FMA_M))
