@@ -40,6 +40,7 @@ trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRU
 }
 
 ## Predict using a quantised model
+audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 trans <- predict(model, newdata = audio, language = "en")
