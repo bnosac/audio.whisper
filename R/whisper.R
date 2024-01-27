@@ -51,7 +51,7 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
 #' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.
-#' @param ... further arguments, passed on to \code{\link{whisper_load_model}}
+#' @param ... further arguments, passed on to the internal C++ function \code{whisper_load_model}
 #' @return an object of class \code{whisper} which is list with the following elements: 
 #' \itemize{
 #' \item{file: path to the model}
@@ -130,11 +130,11 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 #' @param ... currently not used
 #' @return A data.frame with 1 row and the following columns: 
 #' \itemize{
-#'  \item{model: }{The model as provided by the input parameter \code{x}}
-#'  \item{file_model: }{The path to the file on disk where the model was downloaded to}
-#'  \item{url: }{The URL where the model was downloaded from}
-#'  \item{download_failed: }{A logical indicating if the download has failed or not due to internet connectivity issues}
-#'  \item{download_message: }{A character string with the error message in case the downloading of the model failed}
+#'  \item{model: The model as provided by the input parameter \code{x}}
+#'  \item{file_model: The path to the file on disk where the model was downloaded to}
+#'  \item{url: The URL where the model was downloaded from}
+#'  \item{download_failed: A logical indicating if the download has failed or not due to internet connectivity issues}
+#'  \item{download_message: A character string with the error message in case the downloading of the model failed}
 #' }
 #' @export
 #' @examples

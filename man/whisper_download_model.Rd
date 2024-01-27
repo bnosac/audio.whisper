@@ -36,11 +36,11 @@ the model will only be downloaded if it does not exist on disk yet in the \code{
 \value{
 A data.frame with 1 row and the following columns: 
 \itemize{
- \item{model: }{The model as provided by the input parameter \code{x}}
- \item{file_model: }{The path to the file on disk where the model was downloaded to}
- \item{url: }{The URL where the model was downloaded from}
- \item{download_failed: }{A logical indicating if the download has failed or not due to internet connectivity issues}
- \item{download_message: }{A character string with the error message in case the downloading of the model failed}
+ \item{model: The model as provided by the input parameter \code{x}}
+ \item{file_model: The path to the file on disk where the model was downloaded to}
+ \item{url: The URL where the model was downloaded from}
+ \item{download_failed: A logical indicating if the download has failed or not due to internet connectivity issues}
+ \item{download_message: A character string with the error message in case the downloading of the model failed}
 }
 }
 \description{

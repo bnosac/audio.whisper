@@ -14,7 +14,7 @@ the name of the model which can be passed on to \code{\link{whisper_download_mod
 
 \item{model_dir}{a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.}
 
-\item{...}{further arguments, passed on to \code{\link{whisper_load_model}}}
+\item{...}{further arguments, passed on to the internal C++ function \code{whisper_load_model}}
 }
 \value{
 an object of class \code{whisper} which is list with the following elements: 
