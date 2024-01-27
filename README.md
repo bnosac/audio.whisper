@@ -9,17 +9,23 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 ## Available models
 
-| Model                  | Language                    |  Size  | RAM needed |
-|:-----------------------|:---------------------------:|-------:|-----------:|
-| `tiny` & `tiny.en`     | Multilingual & English only | 75 MB  | 390 MB     |
-| `base` & `base.en`     | Multilingual & English only | 142 MB | 500 MB     |
-| `small` & `small.en`   | Multilingual & English only | 466 MB | 1.0 GB     |
-| `medium` & `medium.en` | Multilingual & English only | 1.5 GB | 2.6 GB     |
-| `large-v1` & `large`   | Multilingual                | 2.9 GB | 4.7 GB     |
+| Model                  | Language                    |  Size  | RAM needed | Comment                      |
+|:-----------------------|:---------------------------:|-------:|-----------:|-----------------------------:|
+| `tiny` & `tiny.en`     | Multilingual & English only | 75 MB  | 390 MB     | audio.whisper >=0.3 & 0.2.2  |
+| `base` & `base.en`     | Multilingual & English only | 142 MB | 500 MB     | audio.whisper >=0.3 & 0.2.2  |
+| `small` & `small.en`   | Multilingual & English only | 466 MB | 1.0 GB     | audio.whisper >=0.3 & 0.2.2  |
+| `medium` & `medium.en` | Multilingual & English only | 1.5 GB | 2.6 GB     | audio.whisper >=0.3 & 0.2.2  |
+| `large-v1`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3 & 0.2.2  |
+| `large-v2`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3          |
+| `large-v3`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3          |
 
 ### Installation
 
-For the *stable* version of this package: `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` <br>
+For the *stable* version of this package: 
+
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.3")` (uses whisper.cpp version 1.5.4)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (uses whisper.cpp version 1.2.1)
+
 Look to the documentation of the functions: `help(package = "audio.whisper")`
 
 - For the *development* version of this package: `remotes::install_github("bnosac/audio.whisper")`
@@ -29,6 +35,7 @@ Look to the documentation of the functions: `help(package = "audio.whisper")`
 
 **Load the model** either by providing the full path to the model or specify the shorthand which will download the model
   - see the help of `whisper_download_model` for a list of available models and to download a model
+  - you can always download the model manually at https://huggingface.co/ggerganov/whisper.cpp
 
 ```{r}
 library(audio.whisper)
@@ -225,21 +232,27 @@ The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](s
 
   - It has AVX intrinsics support for x86 architectures, VSX intrinsics support for POWER architectures, Mixed F16 / F32 precision, for Apple silicon allows optimisation via Arm Neon and the Accelerate framework
   - In order to gain from these **massive transcription speedups**, you need to set the correct C compilation flags when you install the R package, *otherwise transcription speed will be suboptimal*. 
-  - You can set these compilation C flags as follows right before you install the package such that [/src/Makevars](/src/Makevars) knows you want these optimisations
+  - Normally using the installation as described above, some of these compilation flags are detected and you'll see these printed when doing the installation   
+  - It is however advised to set these compilation C flags yourself as follows right before you install the package such that [/src/Makevars](/src/Makevars) knows you want these optimisations for sure. This can be done by defining the environment variables `WHISPER_CFLAGS`, `WHISPER_CPPFLAGS`, `WHISPER_LIBS` as follows.
 
 ```
 Sys.setenv(WHISPER_CFLAGS = "-mavx -mavx2 -mfma -mf16c")
-remotes::install_github("bnosac/audio.whisper", ref = "0.2.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", ref = "0.3", force = TRUE)
 Sys.unsetenv("WHISPER_CFLAGS")
 ```
 
-To find out which hardware accelleration options your hardware supports, you can go to https://github.com/bnosac/audio.whisper/issues/15 and look for the CFLAGS (and optionally CXXFLAGS) settings which make sense on your hardware 
+To find out which hardware acceleration options your hardware supports, you can go to https://github.com/bnosac/audio.whisper/issues/26 and look for the CFLAGS (and optionally CXXFLAGS and LDFLAGS) settings which make sense on your hardware 
 
-  - Common settings for Mac/Linux/Windows are `-mavx -mavx2 -mfma -mf16c` and extra possible flags for Linux: `-msse3`, PowerPC `-mpower9-vector`, Mac M1 `-DGGML_USE_ACCELERATE`. E.g. on my local Windows machine I could set `-mavx -mavx2 -mfma -mf16c`, on my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
+  - Common settings to set for `WHISPER_CFLAGS` on Mac/Linux/Windows are `-mavx -mavx2 -mfma -mf16c` and extra possible flags `-msse3` and `mssse3` 
+      - E.g. on my local Windows machine I could set `-mavx -mavx2 -mfma -mf16c`
+      - For Mac users you can set `Sys.setenv(WHISPER_ACCELERATE = "1")` if your computer has the Accelerate framework
+      - On my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
   - If you need extra settings in `PKG_CPPFLAGS` (`CXXFLAGS`), you can e.g. use `Sys.setenv(WHISPER_CPPFLAGS = "-mcpu=native")` before installing the package
-  - If you need custom settings, you can update `PKG_CFLAGS` / `PKG_CPPFLAGS` in [/src/Makevars](/src/Makevars) directly.
+  - If you need extra settings in `PKG_LIBS`, you can e.g. use `Sys.setenv(WHISPER_LIBS = "-framework Accelerate")` before installing the package
+  - If you need custom settings, you can update `PKG_CFLAGS` / `PKG_CPPFLAGS` / `PKG_LIBS` in [/src/Makevars](/src/Makevars) directly.
 
 Note that *if your hardware does not support these compilation flags, you'll get a crash* when transcribing audio.
+
 
 -----
 
