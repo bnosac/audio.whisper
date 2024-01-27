@@ -6,10 +6,10 @@
 \usage{
 whisper_download_model(
   x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium",
-    "medium.en", "large-v1", "large"),
+    "medium.en", "large-v1", "large-v2", "large-v3", "large"),
   model_dir = getwd(),
   repos = c("huggingface", "ggerganov"),
-  version = "1.2.1",
+  version = c("1.5.4", "1.2.1"),
   overwrite = TRUE,
   ...
 )
@@ -50,7 +50,7 @@ Download a pretrained Whisper model. The list of available models are
 \item{base & base.en: 142 MB, RAM required: ~500 MB. Multilingual and English only version.}
 \item{small & small.en: 466 MB, RAM required: ~1.0 GB. Multilingual and English only version.}
 \item{medium & medium.en: 1.5 GB, RAM required: ~2.6 GB. Multilingual and English only version.}
-\item{large-v1 & large: 2.9 GB, RAM required: ~4.7 GB. Multilingual version 1 and version 2}
+\item{large-v1, large-v2, large-v3: 2.9 GB, RAM required: ~4.7 GB. Multilingual}
 }
 }
 \examples{
@@ -65,7 +65,8 @@ whisper_download_model("small.en")
 whisper_download_model("medium")
 whisper_download_model("medium.en")
 whisper_download_model("large-v1")
-whisper_download_model("large")
+whisper_download_model("large-v2")
+whisper_download_model("large-v3")
 }
 \dontshow{
 if(file.exists(path$file_model)) file.remove(path$file_model)

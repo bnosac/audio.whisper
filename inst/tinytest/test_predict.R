@@ -11,6 +11,13 @@ expect_true(is.data.frame(trans$tokens))
 expect_equal(nrow(trans$tokens), 0)
 
 if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
+  onlyalpha <- function(x){
+    x <- gsub("[^[:alnum:] ]", "", x)
+    x <- x[nchar(x) > 0]
+    x <- tolower(x)
+    x
+  }
+  
   ## JFK example full fragment using tiny model
   model <- whisper("tiny")
   trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), language = "en")
@@ -19,11 +26,11 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_true(is.data.frame(trans$data))
   expect_equal(nrow(trans$data), 1)
   expect_true(is.data.frame(trans$tokens))
-  expect_equal(nrow(trans$tokens), 23)
-  expect_equal(trimws(trans$data$text), "And so my fellow Americans ask not what your country can do for you ask what you can do for your country.")
-  expect_equal(trimws(trans$tokens$token), c("And", "so", "my", "fellow", "Americans", "ask", "not", "what", 
+  expect_equal(length(onlyalpha(trimws(trans$tokens$token))), 22)
+  expect_equal(onlyalpha(trimws(trans$data$text)), onlyalpha("And so my fellow Americans ask not what your country can do for you ask what you can do for your country."))
+  expect_equal(onlyalpha(trimws(trans$tokens$token)), onlyalpha(c("And", "so", "my", "fellow", "Americans", "ask", "not", "what", 
                                              "your", "country", "can", "do", "for", "you", "ask", "what", 
-                                             "you", "can", "do", "for", "your", "country", "."))
+                                             "you", "can", "do", "for", "your", "country", ".")))
   
   ## Dutch example with base model
   model <- whisper("base")

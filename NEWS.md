@@ -1,3 +1,8 @@
+## CHANGES IN audio.whisper VERSION 0.3
+
+- Upgrade to whisper.cpp version v1.5.4
+- whisper_download_model allows to download 'large-v1', 'large-v2', 'large-v3' while model 'large' should no longer be used
+
 ## CHANGES IN audio.whisper VERSION 0.2.2
 
 - Add option to pass on float entropy_thold (similar to compression_ratio_threshold), logprob_thold, beam_size, best_of, split_on_word, max_context when doing the prediction
