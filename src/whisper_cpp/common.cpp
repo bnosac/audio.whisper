@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #define _USE_MATH_DEFINES // for M_PI
 
 #include "common.h"
@@ -24,9 +25,9 @@ std::string get_next_arg(int& i, int argc, char** argv, const std::string& flag,
     if (i + 1 < argc && argv[i + 1][0] != '-') {
         return argv[++i];
     } else {
-        fprintf(stderr, "error: %s requires one argument.\n", flag.c_str());
+        Rprintf("error: %s requires one argument.\n", flag.c_str());
         gpt_print_usage(argc, argv, params);
-        exit(0);
+        Rcpp::stop("whispercpp error");
     }
 }
 
@@ -71,12 +72,12 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
             params.interactive_port = std::stoi(get_next_arg(i, argc, argv, arg, params));
         } else if (arg == "-h" || arg == "--help") {
             gpt_print_usage(argc, argv, params);
-            exit(0);
+            Rcpp::stop("whispercpp error");
         } else if (arg == "-f" || arg == "--file") {
             get_next_arg(i, argc, argv, arg, params);
             std::ifstream file(argv[i]);
             if (!file) {
-                fprintf(stderr, "error: failed to open file '%s'\n", argv[i]);
+                Rprintf("error: failed to open file '%s'\n", argv[i]);
                 break;
             }
             std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.prompt));
@@ -87,9 +88,9 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
             params.token_test = get_next_arg(i, argc, argv, arg, params);
         }
         else {
-            fprintf(stderr, "error: unknown argument: %s\n", arg.c_str());
+            Rprintf("error: unknown argument: %s\n", arg.c_str());
             gpt_print_usage(argc, argv, params);
-            exit(0);
+            Rcpp::stop("whispercpp error");
         }
     }
 
@@ -97,31 +98,31 @@ bool gpt_params_parse(int argc, char ** argv, gpt_params & params) {
 }
 
 void gpt_print_usage(int /*argc*/, char ** argv, const gpt_params & params) {
-    fprintf(stderr, "usage: %s [options]\n", argv[0]);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "options:\n");
-    fprintf(stderr, "  -h, --help            show this help message and exit\n");
-    fprintf(stderr, "  -s SEED, --seed SEED  RNG seed (default: -1)\n");
-    fprintf(stderr, "  -t N, --threads N     number of threads to use during computation (default: %d)\n", params.n_threads);
-    fprintf(stderr, "  -p PROMPT, --prompt PROMPT\n");
-    fprintf(stderr, "                        prompt to start generation with (default: random)\n");
-    fprintf(stderr, "  -f FNAME, --file FNAME\n");
-    fprintf(stderr, "                        load prompt from a file\n");
-    fprintf(stderr, "  -tt TOKEN_TEST, --token_test TOKEN_TEST\n");
-    fprintf(stderr, "                        test tokenization\n");
-    fprintf(stderr, "  -n N, --n_predict N   number of tokens to predict (default: %d)\n", params.n_predict);
-    fprintf(stderr, "  --top_k N             top-k sampling (default: %d)\n", params.top_k);
-    fprintf(stderr, "  --top_p N             top-p sampling (default: %.1f)\n", params.top_p);
-    fprintf(stderr, "  --temp N              temperature (default: %.1f)\n", params.temp);
-    fprintf(stderr, "  --repeat-last-n N     last n tokens to consider for penalize (default: %d, 0 = disabled)\n", params.repeat_last_n);
-    fprintf(stderr, "  --repeat-penalty N    penalize repeat sequence of tokens (default: %.2f, 1.0 = disabled)\n", (double)params.repeat_penalty);
-    fprintf(stderr, "  -b N, --batch_size N  batch size for prompt processing (default: %d)\n", params.n_batch);
-    fprintf(stderr, "  -c N, --context N     context / KV cache size (default: %d)\n", params.n_ctx);
-    fprintf(stderr, "  --ignore-eos          ignore EOS token during generation\n");
-    fprintf(stderr, "  -ngl N, --gpu-layers N  number of layers to offload to GPU on supported models (default: %d)\n", params.n_gpu_layers);
-    fprintf(stderr, "  -m FNAME, --model FNAME\n");
-    fprintf(stderr, "                        model path (default: %s)\n", params.model.c_str());
-    fprintf(stderr, "\n");
+    Rprintf("usage: %s [options]\n", argv[0]);
+    Rprintf("\n");
+    Rprintf("options:\n");
+    Rprintf("  -h, --help            show this help message and exit\n");
+    Rprintf("  -s SEED, --seed SEED  RNG seed (default: -1)\n");
+    Rprintf("  -t N, --threads N     number of threads to use during computation (default: %d)\n", params.n_threads);
+    Rprintf("  -p PROMPT, --prompt PROMPT\n");
+    Rprintf("                        prompt to start generation with (default: random)\n");
+    Rprintf("  -f FNAME, --file FNAME\n");
+    Rprintf("                        load prompt from a file\n");
+    Rprintf("  -tt TOKEN_TEST, --token_test TOKEN_TEST\n");
+    Rprintf("                        test tokenization\n");
+    Rprintf("  -n N, --n_predict N   number of tokens to predict (default: %d)\n", params.n_predict);
+    Rprintf("  --top_k N             top-k sampling (default: %d)\n", params.top_k);
+    Rprintf("  --top_p N             top-p sampling (default: %.1f)\n", params.top_p);
+    Rprintf("  --temp N              temperature (default: %.1f)\n", params.temp);
+    Rprintf("  --repeat-last-n N     last n tokens to consider for penalize (default: %d, 0 = disabled)\n", params.repeat_last_n);
+    Rprintf("  --repeat-penalty N    penalize repeat sequence of tokens (default: %.2f, 1.0 = disabled)\n", (double)params.repeat_penalty);
+    Rprintf("  -b N, --batch_size N  batch size for prompt processing (default: %d)\n", params.n_batch);
+    Rprintf("  -c N, --context N     context / KV cache size (default: %d)\n", params.n_ctx);
+    Rprintf("  --ignore-eos          ignore EOS token during generation\n");
+    Rprintf("  -ngl N, --gpu-layers N  number of layers to offload to GPU on supported models (default: %d)\n", params.n_gpu_layers);
+    Rprintf("  -m FNAME, --model FNAME\n");
+    Rprintf("                        model path (default: %s)\n", params.model.c_str());
+    Rprintf("\n");
 }
 
 std::string gpt_random_prompt(std::mt19937 & rng) {
@@ -170,8 +171,8 @@ std::map<std::string, int32_t> json_parse(const std::string & fname) {
     {
         std::ifstream ifs(fname);
         if (!ifs) {
-            fprintf(stderr, "Failed to open %s\n", fname.c_str());
-            exit(1);
+            Rprintf("Failed to open %s\n", fname.c_str());
+            Rcpp::stop("whispercpp error");
         }
 
         json = std::string((std::istreambuf_iterator<char>(ifs)),
@@ -233,7 +234,7 @@ std::map<std::string, int32_t> json_parse(const std::string & fname) {
                     try {
                         result[str_key] = std::stoi(str_val);
                     } catch (...) {
-                        //fprintf(stderr, "%s: ignoring key '%s' with value '%s'\n", fname.c_str(), str_key.c_str(), str_val.c_str());
+                        //Rprintf("%s: ignoring key '%s' with value '%s'\n", fname.c_str(), str_key.c_str(), str_val.c_str());
 
                     }
                     str_key = "";
@@ -326,7 +327,7 @@ std::vector<gpt_vocab::id> gpt_tokenize(const gpt_vocab & vocab, const std::stri
                     break;
                 }
                 else if (j == i){ // word.substr(i, 1) has no matching
-                    fprintf(stderr, "%s: unknown token '%s'\n", __func__, word.substr(i, 1).data());
+                    Rprintf("%s: unknown token '%s'\n", __func__, word.substr(i, 1).data());
                     i++;
                 }
             }
@@ -350,7 +351,7 @@ std::vector<gpt_vocab::id> parse_tokens_from_string(const std::string& input, ch
 
 std::map<std::string, std::vector<gpt_vocab::id>> extract_tests_from_file(const std::string & fpath_test){
     if (fpath_test.empty()){
-        fprintf(stderr, "%s : No test file found.\n", __func__);
+        Rprintf("%s : No test file found.\n", __func__);
         return std::map<std::string, std::vector<gpt_vocab::id>>();
     }
 
@@ -383,25 +384,25 @@ void test_gpt_tokenizer(gpt_vocab & vocab, const std::string & fpath_test){
             n_fails++;
 
             // print out failure cases
-            fprintf(stderr, "%s : failed test: '%s'\n", __func__, test.first.c_str());
-            fprintf(stderr, "%s : tokens in hf:   ", __func__);
+            Rprintf("%s : failed test: '%s'\n", __func__, test.first.c_str());
+            Rprintf("%s : tokens in hf:   ", __func__);
             for (const auto & t : test.second) {
-                fprintf(stderr, "%s(%d), ", vocab.id_to_token[t].c_str(), t);
+                Rprintf("%s(%d), ", vocab.id_to_token[t].c_str(), t);
             }
-            fprintf(stderr, "\n");
-            fprintf(stderr, "%s : tokens in ggml: ", __func__);
+            Rprintf("\n");
+            Rprintf("%s : tokens in ggml: ", __func__);
             for (const auto & t : tokens) {
-                fprintf(stderr, "%s(%d), ", vocab.id_to_token[t].c_str(), t);
+                Rprintf("%s(%d), ", vocab.id_to_token[t].c_str(), t);
             }
-            fprintf(stderr, "\n");
+            Rprintf("\n");
         }
     }
 
-    fprintf(stderr, "%s : %zu tests failed out of %zu tests.\n", __func__, n_fails, tests.size());
+    Rprintf("%s : %zu tests failed out of %zu tests.\n", __func__, n_fails, tests.size());
 }
 
 bool gpt_vocab_init(const std::string & fname, gpt_vocab & vocab) {
-    printf("%s: loading vocab from '%s'\n", __func__, fname.c_str());
+    Rprintf("%s: loading vocab from '%s'\n", __func__, fname.c_str());
 
     vocab.token_to_id = ::json_parse(fname);
 
@@ -409,11 +410,11 @@ bool gpt_vocab_init(const std::string & fname, gpt_vocab & vocab) {
         vocab.id_to_token[kv.second] = kv.first;
     }
 
-    printf("%s: vocab size = %d\n", __func__, (int) vocab.token_to_id.size());
+    Rprintf("%s: vocab size = %d\n", __func__, (int) vocab.token_to_id.size());
 
     // print the vocabulary
     //for (auto kv : vocab.token_to_id) {
-    //    printf("'%s' -> %d\n", kv.first.data(), kv.second);
+    //    Rprintf("'%s' -> %d\n", kv.first.data(), kv.second);
     //}
 
     return true;
@@ -489,9 +490,9 @@ gpt_vocab::id gpt_sample_top_k_top_p(
 
     //printf("\n");
     //for (int i = 0; i < (int) probs.size(); i++) {
-    //    printf("%d: '%s' %f\n", i, vocab.id_to_token.at(logits_id[i].second).c_str(), probs[i]);
+    //    Rprintf("%d: '%s' %f\n", i, vocab.id_to_token.at(logits_id[i].second).c_str(), probs[i]);
     //}
-    //exit(0);
+    //Rcpp::stop("whispercpp error");
 
     std::discrete_distribution<> dist(probs.begin(), probs.end());
     int idx = dist(rng);
@@ -602,10 +603,10 @@ gpt_vocab::id gpt_sample_top_k_top_p_repeat(
         }
     }
 
-//    printf("\n");
+//    Rprintf("\n");
 //    for (int i = 0; i < (int) probs.size(); i++) {
 //    for (int i = 0; i < 10; i++) {
-//        printf("%d: '%s' %f\n", i, vocab.id_to_token.at(logits_id[i].second).c_str(), probs[i]);
+//        Rprintf("%d: '%s' %f\n", i, vocab.id_to_token.at(logits_id[i].second).c_str(), probs[i]);
 //    }
 
     std::discrete_distribution<> dist(probs.begin(), probs.end());
@@ -633,34 +634,34 @@ bool read_wav(const std::string & fname, std::vector<float>& pcmf32, std::vector
         }
 
         if (drwav_init_memory(&wav, wav_data.data(), wav_data.size(), nullptr) == false) {
-            fprintf(stderr, "error: failed to open WAV file from stdin\n");
+            Rprintf("error: failed to open WAV file from stdin\n");
             return false;
         }
 
-        fprintf(stderr, "%s: read %zu bytes from stdin\n", __func__, wav_data.size());
+        Rprintf("%s: read %zu bytes from stdin\n", __func__, wav_data.size());
     }
     else if (drwav_init_file(&wav, fname.c_str(), nullptr) == false) {
-        fprintf(stderr, "error: failed to open '%s' as WAV file\n", fname.c_str());
+        Rprintf("error: failed to open '%s' as WAV file\n", fname.c_str());
         return false;
     }
 
     if (wav.channels != 1 && wav.channels != 2) {
-        fprintf(stderr, "%s: WAV file '%s' must be mono or stereo\n", __func__, fname.c_str());
+        Rprintf("%s: WAV file '%s' must be mono or stereo\n", __func__, fname.c_str());
         return false;
     }
 
     if (stereo && wav.channels != 2) {
-        fprintf(stderr, "%s: WAV file '%s' must be stereo for diarization\n", __func__, fname.c_str());
+        Rprintf("%s: WAV file '%s' must be stereo for diarization\n", __func__, fname.c_str());
         return false;
     }
 
     if (wav.sampleRate != COMMON_SAMPLE_RATE) {
-        fprintf(stderr, "%s: WAV file '%s' must be %i kHz\n", __func__, fname.c_str(), COMMON_SAMPLE_RATE/1000);
+        Rprintf("%s: WAV file '%s' must be %i kHz\n", __func__, fname.c_str(), COMMON_SAMPLE_RATE/1000);
         return false;
     }
 
     if (wav.bitsPerSample != 16) {
-        fprintf(stderr, "%s: WAV file '%s' must be 16-bit\n", __func__, fname.c_str());
+        Rprintf("%s: WAV file '%s' must be 16-bit\n", __func__, fname.c_str());
         return false;
     }
 
@@ -739,7 +740,7 @@ bool vad_simple(std::vector<float> & pcmf32, int sample_rate, int last_ms, float
     energy_last /= n_samples_last;
 
     if (verbose) {
-        fprintf(stderr, "%s: energy_all: %f, energy_last: %f, vad_thold: %f, freq_thold: %f\n", __func__, energy_all, energy_last, vad_thold, freq_thold);
+        Rprintf("%s: energy_all: %f, energy_last: %f, vad_thold: %f, freq_thold: %f\n", __func__, energy_all, energy_last, vad_thold, freq_thold);
     }
 
     if (energy_last > vad_thold*energy_all) {
@@ -789,11 +790,11 @@ bool sam_params_parse(int argc, char ** argv, sam_params & params) {
             params.fname_out = argv[++i];
         } else if (arg == "-h" || arg == "--help") {
             sam_print_usage(argc, argv, params);
-            exit(0);
+            Rcpp::stop("whispercpp error");
         } else {
-            fprintf(stderr, "error: unknown argument: %s\n", arg.c_str());
+            Rprintf("error: unknown argument: %s\n", arg.c_str());
             sam_print_usage(argc, argv, params);
-            exit(0);
+            Rcpp::stop("whispercpp error");
         }
     }
 
@@ -801,17 +802,17 @@ bool sam_params_parse(int argc, char ** argv, sam_params & params) {
 }
 
 void sam_print_usage(int /*argc*/, char ** argv, const sam_params & params) {
-    fprintf(stderr, "usage: %s [options]\n", argv[0]);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "options:\n");
-    fprintf(stderr, "  -h, --help            show this help message and exit\n");
-    fprintf(stderr, "  -s SEED, --seed SEED  RNG seed (default: -1)\n");
-    fprintf(stderr, "  -t N, --threads N     number of threads to use during computation (default: %d)\n", params.n_threads);
-    fprintf(stderr, "  -m FNAME, --model FNAME\n");
-    fprintf(stderr, "                        model path (default: %s)\n", params.model.c_str());
-    fprintf(stderr, "  -i FNAME, --inp FNAME\n");
-    fprintf(stderr, "                        input file (default: %s)\n", params.fname_inp.c_str());
-    fprintf(stderr, "  -o FNAME, --out FNAME\n");
-    fprintf(stderr, "                        output file (default: %s)\n", params.fname_out.c_str());
-    fprintf(stderr, "\n");
+    Rprintf("usage: %s [options]\n", argv[0]);
+    Rprintf("\n");
+    Rprintf("options:\n");
+    Rprintf("  -h, --help            show this help message and exit\n");
+    Rprintf("  -s SEED, --seed SEED  RNG seed (default: -1)\n");
+    Rprintf("  -t N, --threads N     number of threads to use during computation (default: %d)\n", params.n_threads);
+    Rprintf("  -m FNAME, --model FNAME\n");
+    Rprintf("                        model path (default: %s)\n", params.model.c_str());
+    Rprintf("  -i FNAME, --inp FNAME\n");
+    Rprintf("                        input file (default: %s)\n", params.fname_inp.c_str());
+    Rprintf("  -o FNAME, --out FNAME\n");
+    Rprintf("                        output file (default: %s)\n", params.fname_out.c_str());
+    Rprintf("\n");
 }

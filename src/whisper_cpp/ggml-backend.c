@@ -1,3 +1,4 @@
+#include "R.h"
 #include "ggml-backend-impl.h"
 #include "ggml-alloc.h"
 #include "ggml-impl.h"
@@ -231,7 +232,7 @@ void ggml_backend_tensor_copy(struct ggml_tensor * src, struct ggml_tensor * dst
     //printf("dst: %s ne: [%d %d %d %d] nb: [%d %d %d %d]\n", dst->name, (int)dst->ne[0], (int)dst->ne[1], (int)dst->ne[2], (int)dst->ne[3], (int)dst->nb[0], (int)dst->nb[1], (int)dst->nb[2], (int)dst->nb[3]);
     GGML_ASSERT(ggml_are_same_layout(src, dst) && "cannot copy tensors with different layouts");
 
-    // fprintf(stderr, "cpy tensor %s from %s to %s (%lu bytes)\n", src->name, ggml_backend_name(src->backend), ggml_backend_name(dst->backend), ggml_nbytes(src));
+    // Rprintf("cpy tensor %s from %s to %s (%lu bytes)\n", src->name, ggml_backend_name(src->backend), ggml_backend_name(dst->backend), ggml_nbytes(src));
 
     if (src == dst) {
         return;
@@ -246,7 +247,7 @@ void ggml_backend_tensor_copy(struct ggml_tensor * src, struct ggml_tensor * dst
     } else {
         // shouldn't be hit when copying from/to CPU
         #ifndef NDEBUG
-        fprintf(stderr, "ggml_backend_tensor_copy: neither cpy_tensor_from nor cpy_tensor_to "
+        Rprintf("ggml_backend_tensor_copy: neither cpy_tensor_from nor cpy_tensor_to "
                         "are implemented for %s and %s, falling back to get/set\n", src->name, dst->name);
         #endif
         size_t nbytes = ggml_nbytes(src);
@@ -312,7 +313,7 @@ void ggml_backend_register(const char * name, ggml_backend_init_fn init_fn, ggml
     snprintf(ggml_backend_registry[id].name, sizeof(ggml_backend_registry[id].name), "%s", name);
 
 #ifndef NDEBUG
-    fprintf(stderr, "%s: registered backend %s\n", __func__, name);
+    Rprintf("%s: registered backend %s\n", __func__, name);
 #endif
 
     ggml_backend_registry_count++;
@@ -355,7 +356,7 @@ ggml_backend_t ggml_backend_reg_init_backend_from_str(const char * backend_str) 
     size_t backend_i = ggml_backend_reg_find_by_name(backend_name);
 
     if (backend_i == SIZE_MAX) {
-        fprintf(stderr, "%s: backend %s not found\n", __func__, backend_name);
+        Rprintf("%s: backend %s not found\n", __func__, backend_name);
         return NULL;
     }
 
@@ -510,7 +511,7 @@ static ggml_backend_buffer_t ggml_backend_cpu_hbm_buffer_type_alloc_buffer(ggml_
     void * ptr;
     int result = hbw_posix_memalign(&ptr, ggml_backend_cpu_buffer_type_get_alignment(buft), size);
     if (result != 0) {
-        fprintf(stderr, "failed to allocate HBM buffer of size %zu\n", size);
+        Rprintf("failed to allocate HBM buffer of size %zu\n", size);
         return NULL;
     }
 
@@ -842,13 +843,13 @@ static void sched_print_assignments(ggml_backend_sched_t sched, struct ggml_cgra
     for (int i = 0; i < graph->n_nodes; i++) {
         if (cur_split < sched->n_splits && i == sched->splits[cur_split].i_start) {
             ggml_backend_t split_backend = get_allocr_backend(sched, sched->splits[cur_split].tallocr);
-            fprintf(stderr, "\n## SPLIT #%d: %s # %d inputs: ", cur_split, ggml_backend_name(split_backend),
+            Rprintf("\n## SPLIT #%d: %s # %d inputs: ", cur_split, ggml_backend_name(split_backend),
                 sched->splits[cur_split].n_inputs);
             for (int j = 0; j < sched->splits[cur_split].n_inputs; j++) {
-                fprintf(stderr, "[%s (%5.5s)] ", sched->splits[cur_split].inputs[j]->name,
+                Rprintf("[%s (%5.5s)] ", sched->splits[cur_split].inputs[j]->name,
                     fmt_size(ggml_nbytes(sched->splits[cur_split].inputs[j])));
             }
-            fprintf(stderr, "\n");
+            Rprintf("\n");
             cur_split++;
         }
         struct ggml_tensor * node = graph->nodes[i];
@@ -857,7 +858,7 @@ static void sched_print_assignments(ggml_backend_sched_t sched, struct ggml_cgra
         }
         ggml_tallocr_t node_allocr = node_allocr(node);
         ggml_backend_t node_backend = node_allocr ? get_allocr_backend(sched, node_allocr) : NULL; // FIXME:
-        fprintf(stderr, "node #%3d (%10.10s): %20.20s (%4.4s) [%4.4s %8.8s]:", i, ggml_op_name(node->op), node->name,
+        Rprintf("node #%3d (%10.10s): %20.20s (%4.4s) [%4.4s %8.8s]:", i, ggml_op_name(node->op), node->name,
             fmt_size(ggml_nbytes(node)), node_allocr ? ggml_backend_name(node_backend) : "NULL", GET_CAUSE(node));
         for (int j = 0; j < GGML_MAX_SRC; j++) {
             struct ggml_tensor * src = node->src[j];
@@ -866,10 +867,10 @@ static void sched_print_assignments(ggml_backend_sched_t sched, struct ggml_cgra
             }
             ggml_tallocr_t src_allocr = node_allocr(src);
             ggml_backend_t src_backend = src_allocr ? get_allocr_backend(sched, src_allocr) : NULL;
-            fprintf(stderr, " %20.20s (%4.4s) [%4.4s %8.8s]", src->name,
+            Rprintf(" %20.20s (%4.4s) [%4.4s %8.8s]", src->name,
                 fmt_size(ggml_nbytes(src)), src_backend ? ggml_backend_name(src_backend) : "NULL", GET_CAUSE(src));
         }
-        fprintf(stderr, "\n");
+        Rprintf("\n");
     }
 }
 
@@ -1049,7 +1050,7 @@ static void sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgraph * g
     sched->splits[cur_split].i_end = graph->n_nodes;
     sched->n_splits = cur_split + 1;
 
-    //fprintf(stderr, "PASS 4 ASSIGNMENTS\n"); sched_print_assignments(sched, graph); fflush(stdout);
+    //Rprintf("PASS 4 ASSIGNMENTS\n"); sched_print_assignments(sched, graph); R_CheckUserInterrupt();
 
 #if 1
     // sanity check: all sources should have the same backend as the node
@@ -1057,7 +1058,7 @@ static void sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgraph * g
         struct ggml_tensor * node = graph->nodes[i];
         ggml_tallocr_t node_allocr = node_allocr(node);
         if (node_allocr == NULL) {
-            fprintf(stderr, "!!!!!!! %s has no backend\n", node->name);
+            Rprintf("!!!!!!! %s has no backend\n", node->name);
         }
         for (int j = 0; j < GGML_MAX_SRC; j++) {
             struct ggml_tensor * src = node->src[j];
@@ -1066,7 +1067,7 @@ static void sched_split_graph(ggml_backend_sched_t sched, struct ggml_cgraph * g
             }
             ggml_tallocr_t src_allocr = node_allocr(src);
             if (src_allocr != node_allocr /* && src_backend != NULL */) { // ignore nulls for now
-                fprintf(stderr, "!!!! %s has backend %s, src %d (%s) has backend %s\n",
+                Rprintf("!!!! %s has backend %s, src %d (%s) has backend %s\n",
                     node->name, node_allocr ? ggml_backend_name(get_allocr_backend(sched, node_allocr)) : "NULL",
                     j, src->name, src_allocr ? ggml_backend_name(get_allocr_backend(sched, src_allocr)) : "NULL");
             }
@@ -1122,15 +1123,15 @@ static void sched_compute_splits(ggml_backend_sched_t sched) {
             struct ggml_tensor * input_cpy = sched->node_copies[hash_id(input)][sched_backend_prio(sched, split_backend)];
             if (input->buffer == NULL) {
                 if (input->view_src == NULL) {
-                    fprintf(stderr, "input %s has no buffer and no view_src\n", input->name);
-                    exit(1);
+                    Rprintf("input %s has no buffer and no view_src\n", input->name);
+                    Rf_error("whispercpp error");
                 }
                 // FIXME: may need to use the sched buffer instead
                 ggml_backend_view_init(input->view_src->buffer, input);
             }
             if (input_cpy->buffer == NULL) {
-                fprintf(stderr, "input_cpy %s has no buffer\n", input_cpy->name);
-                exit(1);
+                Rprintf("input_cpy %s has no buffer\n", input_cpy->name);
+                Rf_error("whispercpp error");
             }
             //GGML_ASSERT(input->buffer->backend != input_cpy->buffer->backend);
             //GGML_ASSERT(input_cpy->buffer->backend == split_backend);
@@ -1155,10 +1156,10 @@ static void sched_compute_splits(ggml_backend_sched_t sched) {
 
 #if 0
     // per-backend timings
-    fprintf(stderr, "sched_compute_splits times (%d splits):\n", sched->n_splits);
+    Rprintf("sched_compute_splits times (%d splits):\n", sched->n_splits);
     for (int i = 0; i < sched->n_backends; i++) {
         if (copy_us[i] > 0 || compute_us[i] > 0) {
-            fprintf(stderr, "\t%5.5s: %lu us copy, %lu us compute\n", ggml_backend_name(sched->backends[i]), copy_us[i], compute_us[i]);
+            Rprintf("\t%5.5s: %lu us copy, %lu us compute\n", ggml_backend_name(sched->backends[i]), copy_us[i], compute_us[i]);
         }
     }
 #endif

@@ -1,3 +1,4 @@
+#include "R.h"
 #define _CRT_SECURE_NO_DEPRECATE // Disables ridiculous "unsafe" warnings on Windows
 #define _USE_MATH_DEFINES // For M_PI on MSVC
 
@@ -160,24 +161,24 @@ void ggml_print_backtrace(void) {
 //
 
 #if (GGML_DEBUG >= 1)
-#define GGML_PRINT_DEBUG(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG(...)
 #endif
 
 #if (GGML_DEBUG >= 5)
-#define GGML_PRINT_DEBUG_5(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG_5(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG_5(...)
 #endif
 
 #if (GGML_DEBUG >= 10)
-#define GGML_PRINT_DEBUG_10(...) printf(__VA_ARGS__)
+#define GGML_PRINT_DEBUG_10(...) Rprintf(__VA_ARGS__)
 #else
 #define GGML_PRINT_DEBUG_10(...)
 #endif
 
-#define GGML_PRINT(...) printf(__VA_ARGS__)
+#define GGML_PRINT(...) Rprintf(__VA_ARGS__)
 
 //
 // end of logging block
@@ -1875,7 +1876,7 @@ inline static void ggml_critical_section_end(void) {
 
 void ggml_numa_init(void) {
     if (g_state.numa.n_nodes > 0) {
-        fprintf(stderr, "ggml_numa_init: NUMA already initialized\n");
+        Rprintf("ggml_numa_init: NUMA already initialized\n");
 
         return;
     }
@@ -10319,13 +10320,13 @@ static void ggml_compute_forward_out_prod_f32(
     //static int64_t acc = 0;
     //acc += t1 - t0;
     //if (t1 - t0 > 10) {
-    //    printf("\n");
-    //    printf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
-    //    printf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
-    //    printf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
-    //    printf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
+    //    Rprintf("\n");
+    //    Rprintf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
+    //    Rprintf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
+    //    Rprintf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
+    //    Rprintf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
 
-    //    printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
+    //    Rprintf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
     //}
 }
 
@@ -10429,13 +10430,13 @@ static void ggml_compute_forward_out_prod_q_f32(
     //static int64_t acc = 0;
     //acc += t1 - t0;
     //if (t1 - t0 > 10) {
-    //    printf("\n");
-    //    printf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
-    //    printf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
-    //    printf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
-    //    printf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
+    //    Rprintf("\n");
+    //    Rprintf("ne00 = %5d, ne01 = %5d, ne02 = %5d, ne03 = %5d\n", ne00, ne01, ne02, ne03);
+    //    Rprintf("nb00 = %5d, nb01 = %5d, nb02 = %5d, nb03 = %5d\n", nb00, nb01, nb02, nb03);
+    //    Rprintf("ne10 = %5d, ne11 = %5d, ne12 = %5d, ne13 = %5d\n", ne10, ne11, ne12, ne13);
+    //    Rprintf("nb10 = %5d, nb11 = %5d, nb12 = %5d, nb13 = %5d\n", nb10, nb11, nb12, nb13);
 
-    //    printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
+    //    Rprintf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX task %d/%d: %d us, acc = %d\n", ith, nth, (int) (t1 - t0), (int) acc);
     //}
 }
 
@@ -10849,14 +10850,14 @@ static void ggml_compute_forward_get_rows(
     //    for (int k = 0; k < dst->ne[1]; ++k) {
     //        for (int j = 0; j < dst->ne[0]/16; ++j) {
     //            for (int i = 0; i < 16; ++i) {
-    //                printf("%8.4f ", ((float *) dst->data)[k*dst->ne[0] + j*16 + i]);
+    //                Rprintf("%8.4f ", ((float *) dst->data)[k*dst->ne[0] + j*16 + i]);
     //            }
-    //            printf("\n");
+    //            Rprintf("\n");
     //        }
-    //        printf("\n");
+    //        Rprintf("\n");
     //    }
-    //    printf("\n");
-    //    exit(0);
+    //    Rprintf("\n");
+    //    Rf_error("whispercpp error");
     //}
 }
 
@@ -10958,14 +10959,14 @@ static void ggml_compute_forward_get_rows_back(
     //    for (int k = 0; k < dst->ne[1]; ++k) {
     //        for (int j = 0; j < dst->ne[0]/16; ++j) {
     //            for (int i = 0; i < 16; ++i) {
-    //                printf("%8.4f ", ((float *) dst->data)[k*dst->ne[0] + j*16 + i]);
+    //                Rprintf("%8.4f ", ((float *) dst->data)[k*dst->ne[0] + j*16 + i]);
     //            }
-    //            printf("\n");
+    //            Rprintf("\n");
     //        }
-    //        printf("\n");
+    //        Rprintf("\n");
     //    }
-    //    printf("\n");
-    //    exit(0);
+    //    Rprintf("\n");
+    //    Rf_error("whispercpp error");
     //}
 }
 
@@ -16164,7 +16165,7 @@ static void set_numa_thread_affinity(int thread_n, int n_threads) {
 
     int rv = pthread_setaffinity_np(pthread_self(), setsize, cpus);
     if (rv) {
-            fprintf(stderr, "warning: pthread_setaffinity_np() failed: %s\n",
+            Rprintf("warning: pthread_setaffinity_np() failed: %s\n",
                     strerror(rv));
     }
 
@@ -16186,7 +16187,7 @@ static void clear_numa_thread_affinity(void) {
 
     int rv = pthread_setaffinity_np(pthread_self(), setsize, cpus);
     if (rv) {
-        fprintf(stderr, "warning: pthread_setaffinity_np() failed: %s\n",
+        Rprintf("warning: pthread_setaffinity_np() failed: %s\n",
             strerror(rv));
     }
 
@@ -16459,11 +16460,11 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
             } break;
         default:
             {
-                fprintf(stderr, "%s: op not implemented: ", __func__);
+                Rprintf("%s: op not implemented: ", __func__);
                 if (node->op < GGML_OP_COUNT) {
-                    fprintf(stderr, "%s\n", ggml_op_name(node->op));
+                    Rprintf("%s\n", ggml_op_name(node->op));
                 } else {
-                    fprintf(stderr, "%d\n", node->op);
+                    Rprintf("%d\n", node->op);
                 }
                 GGML_ASSERT(false);
             } break;
@@ -16891,7 +16892,7 @@ static void ggml_graph_export_leaf(const struct ggml_tensor * tensor, FILE * fou
     const int64_t * ne = tensor->ne;
     const size_t  * nb = tensor->nb;
 
-    fprintf(fout, "%-6s %-12s %8d %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %16zu %16zu %16zu %16zu %16p %32s\n",
+    Rprintf("%-6s %-12s %8d %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %16zu %16zu %16zu %16zu %16p %32s\n",
             ggml_type_name(tensor->type),
             ggml_op_name  (tensor->op),
             ggml_n_dims(tensor),
@@ -16905,7 +16906,7 @@ static void ggml_graph_export_node(const struct ggml_tensor * tensor, const char
     const int64_t * ne = tensor->ne;
     const size_t  * nb = tensor->nb;
 
-    fprintf(fout, "%-6s %-6s %-12s %8d %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %16zu %16zu %16zu %16zu %16p %32s\n",
+    Rprintf("%-6s %-6s %-12s %8d %" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 " %16zu %16zu %16zu %16zu %16p %32s\n",
             arg,
             ggml_type_name(tensor->type),
             ggml_op_name  (tensor->op),
@@ -16927,18 +16928,18 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
 
     // print
     {
-        FILE * fout = stdout;
+        FILE * fout;
 
-        fprintf(fout, "\n");
-        fprintf(fout, "%-16s %8x\n", "magic",        GGML_FILE_MAGIC);
-        fprintf(fout, "%-16s %8d\n", "version",      GGML_FILE_VERSION);
-        fprintf(fout, "%-16s %8d\n", "leafs",        cgraph->n_leafs);
-        fprintf(fout, "%-16s %8d\n", "nodes",        cgraph->n_nodes);
-        fprintf(fout, "%-16s %" PRIu64 "\n", "eval", size_eval);
+        Rprintf("\n");
+        Rprintf("%-16s %8x\n", "magic",        GGML_FILE_MAGIC);
+        Rprintf("%-16s %8d\n", "version",      GGML_FILE_VERSION);
+        Rprintf("%-16s %8d\n", "leafs",        cgraph->n_leafs);
+        Rprintf("%-16s %8d\n", "nodes",        cgraph->n_nodes);
+        Rprintf("%-16s %" PRIu64 "\n", "eval", size_eval);
 
         // header
-        fprintf(fout, "\n");
-        fprintf(fout, "%-6s %-12s %8s %8s %8s %8s %8s %16s %16s %16s %16s %16s %16s\n",
+        Rprintf("\n");
+        Rprintf("%-6s %-12s %8s %8s %8s %8s %8s %16s %16s %16s %16s %16s %16s\n",
                 "TYPE", "OP", "NDIMS", "NE0", "NE1", "NE2", "NE3", "NB0", "NB1", "NB2", "NB3", "DATA", "NAME");
 
         for (int i = 0; i < cgraph->n_leafs; ++i) {
@@ -16950,8 +16951,8 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
         }
 
         // header
-        fprintf(fout, "\n");
-        fprintf(fout, "%-6s %-6s %-12s %8s %8s %8s %8s %8s %16s %16s %16s %16s %8s %16s %16s\n",
+        Rprintf("\n");
+        Rprintf("%-6s %-6s %-12s %8s %8s %8s %8s %8s %16s %16s %16s %16s %8s %16s %16s\n",
                 "ARG", "TYPE", "OP", "NDIMS", "NE0", "NE1", "NE2", "NE3", "NB0", "NB1", "NB2", "NB3", "NTASKS", "DATA", "NAME");
 
         for (int i = 0; i < cgraph->n_nodes; ++i) {
@@ -16963,10 +16964,10 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
                 }
             }
 
-            fprintf(fout, "\n");
+            Rprintf("\n");
         }
 
-        fprintf(fout, "\n");
+        Rprintf("\n");
     }
 
     // write binary data
@@ -16974,7 +16975,7 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
         FILE * fout = fopen(fname, "wb");
 
         if (!fout) {
-            fprintf(stderr, "%s: failed to open %s\n", __func__, fname);
+            Rprintf("%s: failed to open %s\n", __func__, fname);
             return;
         }
 
@@ -17079,7 +17080,7 @@ void ggml_graph_export(const struct ggml_cgraph * cgraph, const char * fname) {
                             }
 
                             if (idx == -1) {
-                                fprintf(stderr, "%s: failed to find tensor, arg = %d, node = %d\n", __func__, j, i);
+                                Rprintf("%s: failed to find tensor, arg = %d, node = %d\n", __func__, j, i);
                                 fclose(fout);
                                 return;
                             }
@@ -17111,7 +17112,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
     {
         FILE * fin = fopen(fname, "rb");
         if (!fin) {
-            fprintf(stderr, "%s: failed to open %s\n", __func__, fname);
+            Rprintf("%s: failed to open %s\n", __func__, fname);
             return result;
         }
 
@@ -17134,7 +17135,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
             *ctx_data = ggml_init(params);
 
             if (!*ctx_data) {
-                fprintf(stderr, "%s: failed to create ggml context\n", __func__);
+                Rprintf("%s: failed to create ggml context\n", __func__);
                 fclose(fin);
                 return result;
             }
@@ -17145,7 +17146,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
         {
             const size_t ret = fread(data->data, sizeof(char), fsize, fin);
             if (ret != fsize) {
-                fprintf(stderr, "%s: failed to read %s\n", __func__, fname);
+                Rprintf("%s: failed to read %s\n", __func__, fname);
                 fclose(fin);
                 return result;
             }
@@ -17161,14 +17162,14 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
         const uint32_t magic = *(const uint32_t *) ptr; ptr += sizeof(magic);
 
         if (magic != GGML_FILE_MAGIC) {
-            fprintf(stderr, "%s: invalid magic number, got %08x\n", __func__, magic);
+            Rprintf("%s: invalid magic number, got %08x\n", __func__, magic);
             return result;
         }
 
         const uint32_t version = *(const uint32_t *) ptr; ptr += sizeof(version);
 
         if (version != GGML_FILE_VERSION) {
-            fprintf(stderr, "%s: invalid version number\n", __func__);
+            Rprintf("%s: invalid version number\n", __func__);
             return result;
         }
 
@@ -17190,7 +17191,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
             *ctx_eval = ggml_init(params);
 
             if (!*ctx_eval) {
-                fprintf(stderr, "%s: failed to create ggml context\n", __func__);
+                Rprintf("%s: failed to create ggml context\n", __func__);
                 return result;
             }
         }
@@ -17241,7 +17242,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
 
                 ptr += ggml_nbytes(tensor);
 
-                fprintf(stderr, "%s: loaded leaf %d: '%16s', %9zu bytes\n", __func__, i, tensor->name, ggml_nbytes(tensor));
+                Rprintf("%s: loaded leaf %d: '%16s', %9zu bytes\n", __func__, i, tensor->name, ggml_nbytes(tensor));
             }
         }
 
@@ -17344,7 +17345,7 @@ struct ggml_cgraph * ggml_graph_import(const char * fname, struct ggml_context *
 
                 result->nodes[i] = tensor;
 
-                fprintf(stderr, "%s: loaded node %d: '%16s', %9zu bytes\n", __func__, i, tensor->name, ggml_nbytes(tensor));
+                Rprintf("%s: loaded node %d: '%16s', %9zu bytes\n", __func__, i, tensor->name, ggml_nbytes(tensor));
             }
         }
     }
@@ -18842,7 +18843,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
 
         for (uint32_t i = 0; i < sizeof(magic); i++) {
             if (magic[i] != GGUF_MAGIC[i]) {
-                fprintf(stderr, "%s: invalid magic characters '%c%c%c%c'\n", __func__, magic[0], magic[1], magic[2], magic[3]);
+                Rprintf("%s: invalid magic characters '%c%c%c%c'\n", __func__, magic[0], magic[1], magic[2], magic[3]);
                 fclose(file);
                 return NULL;
             }
@@ -18866,14 +18867,14 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
         ok = ok && gguf_fread_el(file, &ctx->header.n_kv,      sizeof(ctx->header.n_kv),      &offset);
 
         if (ctx->header.version == 1) {
-            fprintf(stderr, "%s: GGUFv1 is no longer supported. please use a more up-to-date version\n", __func__);
+            Rprintf("%s: GGUFv1 is no longer supported. please use a more up-to-date version\n", __func__);
             fclose(file);
             gguf_free(ctx);
             return NULL;
         }
 
         if (!ok) {
-            fprintf(stderr, "%s: failed to read header\n", __func__);
+            Rprintf("%s: failed to read header\n", __func__);
             fclose(file);
             gguf_free(ctx);
             return NULL;
@@ -18887,12 +18888,12 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
         for (uint64_t i = 0; i < ctx->header.n_kv; ++i) {
             struct gguf_kv * kv = &ctx->kv[i];
 
-            //fprintf(stderr, "%s: reading kv %d\n", __func__, i);
+            //Rprintf("%s: reading kv %d\n", __func__, i);
 
             ok = ok && gguf_fread_str(file, &kv->key,                    &offset);
             ok = ok && gguf_fread_el (file, &kv->type, sizeof(kv->type), &offset);
 
-            //fprintf(stderr, "%s: reading kv with key %s\n", __func__, kv->key.data);
+            //Rprintf("%s: reading kv with key %s\n", __func__, kv->key.data);
 
             switch (kv->type) {
                 case GGUF_TYPE_UINT8:   ok = ok && gguf_fread_el (file, &kv->value.uint8,   sizeof(kv->value.uint8),   &offset); break;
@@ -18948,7 +18949,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
         }
 
         if (!ok) {
-            fprintf(stderr, "%s: failed to read key-value pairs\n", __func__);
+            Rprintf("%s: failed to read key-value pairs\n", __func__);
             fclose(file);
             gguf_free(ctx);
             return NULL;
@@ -18975,7 +18976,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
             ok = ok && gguf_fread_el (file, &info->offset, sizeof(info->offset),  &offset);
 
             if (!ok) {
-                fprintf(stderr, "%s: failed to read tensor info\n", __func__);
+                Rprintf("%s: failed to read tensor info\n", __func__);
                 fclose(file);
                 gguf_free(ctx);
                 return NULL;
@@ -19016,7 +19017,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
                 (int64_t) info->ne[3];
 
             if (ne % ggml_blck_size(info->type) != 0) {
-                fprintf(stderr, "%s: tensor '%s' number of elements (%" PRId64 ") is not a multiple of block size (%d)\n",
+                Rprintf("%s: tensor '%s' number of elements (%" PRId64 ") is not a multiple of block size (%d)\n",
                         __func__, info->name.data, ne, ggml_blck_size(info->type));
                 fclose(file);
                 gguf_free(ctx);
@@ -19062,7 +19063,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
             ok = ok && gguf_fread_el(file, data->data, ctx->size, &offset);
 
             if (!ok) {
-                fprintf(stderr, "%s: failed to read tensor data\n", __func__);
+                Rprintf("%s: failed to read tensor data\n", __func__);
                 fclose(file);
                 ggml_free(ctx_data);
                 gguf_free(ctx);
@@ -19101,7 +19102,7 @@ struct gguf_context * gguf_init_from_file(const char * fname, struct gguf_init_p
         }
 
         if (!ok) {
-            fprintf(stderr, "%s: failed to read the tensor data\n", __func__);
+            Rprintf("%s: failed to read the tensor data\n", __func__);
             fclose(file);
             ggml_free(ctx_data);
             gguf_free(ctx);

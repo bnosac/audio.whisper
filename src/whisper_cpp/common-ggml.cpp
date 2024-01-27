@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "common-ggml.h"
 
 #include <regex>
@@ -27,7 +28,7 @@ enum ggml_ftype ggml_parse_ftype(const char * str) {
     if (str[0] == 'q') {
         const auto it = GGML_FTYPE_MAP.find(str);
         if (it == GGML_FTYPE_MAP.end()) {
-            fprintf(stderr, "%s: unknown ftype '%s'\n", __func__, str);
+            Rprintf("%s: unknown ftype '%s'\n", __func__, str);
             return GGML_FTYPE_UNKNOWN;
         }
         ftype = it->second;
@@ -63,13 +64,13 @@ bool ggml_common_quantize_0(
         case GGML_FTYPE_MOSTLY_F16:
         case GGML_FTYPE_MOSTLY_Q4_1_SOME_F16:
                 {
-                    fprintf(stderr, "%s: invalid model type %d\n", __func__, ftype);
+                    Rprintf("%s: invalid model type %d\n", __func__, ftype);
                     return false;
                 }
     };
 
     if (!ggml_is_quantized(qtype)) {
-        fprintf(stderr, "%s: invalid quantization type %d (%s)\n", __func__, qtype, ggml_type_name(qtype));
+        Rprintf("%s: invalid quantization type %d (%s)\n", __func__, qtype, ggml_type_name(qtype));
         return false;
     }
 
@@ -107,7 +108,7 @@ bool ggml_common_quantize_0(
         std::string name(length, 0);
         finp.read (&name[0], length);
 
-        printf("%64s - [%5d, %5d, %5d], type = %6s ", name.data(), ne[0], ne[1], ne[2], ggml_type_name((ggml_type) ttype));
+        Rprintf("%64s - [%5d, %5d, %5d], type = %6s ", name.data(), ne[0], ne[1], ne[2], ggml_type_name((ggml_type) ttype));
 
         bool quantize = false;
 
@@ -132,7 +133,7 @@ bool ggml_common_quantize_0(
 
         if (quantize) {
             if (ttype != GGML_TYPE_F32 && ttype != GGML_TYPE_F16) {
-                fprintf(stderr, "%s: unsupported ttype %d (%s) for integer quantization\n", __func__, ttype, ggml_type_name((ggml_type) ttype));
+                Rprintf("%s: unsupported ttype %d (%s) for integer quantization\n", __func__, ttype, ggml_type_name((ggml_type) ttype));
                 return false;
             }
 
@@ -193,7 +194,7 @@ bool ggml_common_quantize_0(
                 case GGML_TYPE_Q8_K:
                 case GGML_TYPE_COUNT:
                     {
-                        fprintf(stderr, "%s: unsupported quantization type %d (%s)\n", __func__, ttype, ggml_type_name((ggml_type) ttype));
+                        Rprintf("%s: unsupported quantization type %d (%s)\n", __func__, ttype, ggml_type_name((ggml_type) ttype));
                         return false;
                     }
             }
@@ -201,17 +202,17 @@ bool ggml_common_quantize_0(
             fout.write(reinterpret_cast<char *>(work.data()), cur_size);
             total_size_new += cur_size;
 
-            printf("size = %8.2f MB -> %8.2f MB | hist: ", nelements * sizeof(float)/1024.0/1024.0, cur_size/1024.0/1024.0);
+            Rprintf("size = %8.2f MB -> %8.2f MB | hist: ", nelements * sizeof(float)/1024.0/1024.0, cur_size/1024.0/1024.0);
             for (int i = 0; i < (int) hist_cur.size(); ++i) {
                 hist_all[i] += hist_cur[i];
             }
 
             for (int i = 0; i < (int) hist_cur.size(); ++i) {
-                printf("%5.3f ", hist_cur[i] / (float)nelements);
+                Rprintf("%5.3f ", hist_cur[i] / (float)nelements);
             }
-            printf("\n");
+            Rprintf("\n");
         } else {
-            printf("size = %8.3f MB\n", data_u8.size()/1024.0/1024.0);
+            Rprintf("size = %8.3f MB\n", data_u8.size()/1024.0/1024.0);
             fout.write(reinterpret_cast<char *>(data_u8.data()), data_u8.size());
             total_size_new += data_u8.size();
         }
@@ -219,8 +220,8 @@ bool ggml_common_quantize_0(
         total_size_org += nelements * sizeof(float);
     }
 
-    printf("%s: model size  = %8.2f MB\n", __func__, total_size_org/1024.0/1024.0);
-    printf("%s: quant size  = %8.2f MB | ftype = %d (%s)\n", __func__, total_size_new/1024.0/1024.0, ftype, ggml_type_name(qtype));
+    Rprintf("%s: model size  = %8.2f MB\n", __func__, total_size_org/1024.0/1024.0);
+    Rprintf("%s: quant size  = %8.2f MB | ftype = %d (%s)\n", __func__, total_size_new/1024.0/1024.0, ftype, ggml_type_name(qtype));
 
     {
         int64_t sum_all = 0;
@@ -228,11 +229,11 @@ bool ggml_common_quantize_0(
             sum_all += hist_all[i];
         }
 
-        printf("%s: hist: ", __func__);
+        Rprintf("%s: hist: ", __func__);
         for (int i = 0; i < (int) hist_all.size(); ++i) {
-            printf("%5.3f ", hist_all[i] / (float)sum_all);
+            Rprintf("%5.3f ", hist_all[i] / (float)sum_all);
         }
-        printf("\n");
+        Rprintf("\n");
     }
 
     return true;
