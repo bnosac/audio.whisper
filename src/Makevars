@@ -31,7 +31,7 @@ ifeq ($(UNAME_M),$(filter $(UNAME_M),x86_64 i686 amd64))
 		CPUINFO_CMD := sysctl machdep.cpu.features machdep.cpu.leaf7_features
 	else ifeq ($(UNAME_S),Linux)
 		CPUINFO_CMD := cat /proc/cpuinfo
-	else ifneq (,$(filter MINGW32_NT% MINGW64_NT%,$(UNAME_S)))
+	else ifneq (,$(filter MINGW32_NT% MINGW64_NT% MSYS_NT%,$(UNAME_S)))
 		CPUINFO_CMD := cat /proc/cpuinfo
 	else ifneq (,$(filter DragonFly FreeBSD,$(UNAME_S)))
 		CPUINFO_CMD := grep Features /var/run/dmesg.boot
@@ -149,21 +149,6 @@ ifneq ($(filter armv8%,$(UNAME_M)),)
 	PKG_CPPFLAGS += -mfpu=neon-fp-armv8 -mfp16-format=ieee -funsafe-math-optimizations -mno-unaligned-access
 endif
 
-#
-# Print build information
-#
-
-$(info I whisper.cpp build info: )
-$(info I UNAME_S:  $(UNAME_S))
-$(info I UNAME_P:  $(UNAME_P))
-$(info I UNAME_M:  $(UNAME_M))
-$(info I PKG_CFLAGS:   $(PKG_CFLAGS))
-$(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
-$(info I PKG_LIBS:  $(PKG_LIBS))
-#$(info I CC:       $(CCV))
-#$(info I CXX:      $(CXXV))
-$(info )
-
 
 ##############################################################################################################
 ##################### OVERWRITE PKG_CFLAGS / PKG_CPPFLAGS IF THE USER KNOWS WHAT TO DO #######################
@@ -231,6 +216,21 @@ ifeq ($(filter $(UNAME_S),Linux Darwin DragonFly FreeBSD NetBSD OpenBSD Haiku),$
 	PKG_CFLAGS   += -pthread
 	PKG_CPPFLAGS += -pthread
 endif
+
+#
+# Print build information
+#
+
+$(info I whisper.cpp build info: )
+$(info I UNAME_S:  $(UNAME_S))
+$(info I UNAME_P:  $(UNAME_P))
+$(info I UNAME_M:  $(UNAME_M))
+$(info I PKG_CFLAGS:   $(PKG_CFLAGS))
+$(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
+$(info I PKG_LIBS:  $(PKG_LIBS))
+#$(info I CC:       $(CCV))
+#$(info I CXX:      $(CXXV))
+$(info )
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
 #PKG_CFLAGS = -msse3
