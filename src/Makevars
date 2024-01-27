@@ -1,8 +1,5 @@
 PKG_LIBS = 
 CXX_STD = CXX11
-PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp 
-PKG_CFLAGS   += -D_XOPEN_SOURCE=600
-PKG_CPPFLAGS += -D_XOPEN_SOURCE=600
 
 #CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
 #CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
@@ -24,56 +21,6 @@ ifndef NVCC_VERSION
 	ifeq ($(call,$(shell which nvcc))$(.SHELLSTATUS),0)
 		NVCC_VERSION := $(shell nvcc --version | egrep -o "V[0-9]+.[0-9]+.[0-9]+" | cut -c2-)
 	endif
-endif
-
-# Somehow in OpenBSD whenever POSIX conformance is specified
-# some string functions rely on locale_t availability,
-# which was introduced in POSIX.1-2008, forcing us to go higher
-ifeq ($(UNAME_S),OpenBSD)
-	PKG_CFLAGS   += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
-	PKG_CPPFLAGS += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
-endif
-
-# Data types, macros and functions related to controlling CPU affinity
-# are available on Linux through GNU extensions in libc
-ifeq ($(UNAME_S),Linux)
-	PKG_CFLAGS   += -D_GNU_SOURCE
-	PKG_CPPFLAGS += -D_GNU_SOURCE
-endif
-
-# RLIMIT_MEMLOCK came in BSD, is not specified in POSIX.1,
-# and on macOS its availability depends on enabling Darwin extensions
-# similarly on DragonFly, enabling BSD extensions is necessary
-ifeq ($(UNAME_S),Darwin)
-	PKG_CFLAGS   += -D_DARWIN_C_SOURCE
-	PKG_CPPFLAGS += -D_DARWIN_C_SOURCE
-endif
-ifeq ($(UNAME_S),DragonFly)
-	PKG_CFLAGS   += -D__BSD_VISIBLE
-	PKG_CPPFLAGS += -D__BSD_VISIBLE
-endif
-
-# alloca is a non-standard interface that is not visible on BSDs when
-# POSIX conformance is specified, but not all of them provide a clean way
-# to enable it in such cases
-ifeq ($(UNAME_S),FreeBSD)
-	PKG_CFLAGS   += -D__BSD_VISIBLE
-	PKG_CPPFLAGS += -D__BSD_VISIBLE
-endif
-ifeq ($(UNAME_S),NetBSD)
-	PKG_CFLAGS   += -D_NETBSD_SOURCE
-	PKG_CPPFLAGS += -D_NETBSD_SOURCE
-endif
-ifeq ($(UNAME_S),OpenBSD)
-	PKG_CFLAGS   += -D_BSD_SOURCE
-	PKG_CPPFLAGS += -D_BSD_SOURCE
-endif
-
-# OS specific
-# TODO: support Windows
-ifeq ($(filter $(UNAME_S),Linux Darwin DragonFly FreeBSD NetBSD OpenBSD Haiku),$(UNAME_S))
-	PKG_CFLAGS   += -pthread
-	PKG_CPPFLAGS += -pthread
 endif
 
 # Architecture specific
@@ -229,6 +176,60 @@ PKG_CPPFLAGS = $(WHISPER_CPPFLAGS)
 endif
 ifdef WHISPER_LIBS
 PKG_LIBS = $(WHISPER_LIBS) 
+endif
+
+PKG_CPPFLAGS += -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp 
+PKG_CFLAGS   += -D_XOPEN_SOURCE=600
+PKG_CPPFLAGS += -D_XOPEN_SOURCE=600
+
+# Somehow in OpenBSD whenever POSIX conformance is specified
+# some string functions rely on locale_t availability,
+# which was introduced in POSIX.1-2008, forcing us to go higher
+ifeq ($(UNAME_S),OpenBSD)
+	PKG_CFLAGS   += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
+	PKG_CPPFLAGS += -U_XOPEN_SOURCE -D_XOPEN_SOURCE=700
+endif
+
+# Data types, macros and functions related to controlling CPU affinity
+# are available on Linux through GNU extensions in libc
+ifeq ($(UNAME_S),Linux)
+	PKG_CFLAGS   += -D_GNU_SOURCE
+	PKG_CPPFLAGS += -D_GNU_SOURCE
+endif
+
+# RLIMIT_MEMLOCK came in BSD, is not specified in POSIX.1,
+# and on macOS its availability depends on enabling Darwin extensions
+# similarly on DragonFly, enabling BSD extensions is necessary
+ifeq ($(UNAME_S),Darwin)
+	PKG_CFLAGS   += -D_DARWIN_C_SOURCE
+	PKG_CPPFLAGS += -D_DARWIN_C_SOURCE
+endif
+ifeq ($(UNAME_S),DragonFly)
+	PKG_CFLAGS   += -D__BSD_VISIBLE
+	PKG_CPPFLAGS += -D__BSD_VISIBLE
+endif
+
+# alloca is a non-standard interface that is not visible on BSDs when
+# POSIX conformance is specified, but not all of them provide a clean way
+# to enable it in such cases
+ifeq ($(UNAME_S),FreeBSD)
+	PKG_CFLAGS   += -D__BSD_VISIBLE
+	PKG_CPPFLAGS += -D__BSD_VISIBLE
+endif
+ifeq ($(UNAME_S),NetBSD)
+	PKG_CFLAGS   += -D_NETBSD_SOURCE
+	PKG_CPPFLAGS += -D_NETBSD_SOURCE
+endif
+ifeq ($(UNAME_S),OpenBSD)
+	PKG_CFLAGS   += -D_BSD_SOURCE
+	PKG_CPPFLAGS += -D_BSD_SOURCE
+endif
+
+# OS specific
+# TODO: support Windows
+ifeq ($(filter $(UNAME_S),Linux Darwin DragonFly FreeBSD NetBSD OpenBSD Haiku),$(UNAME_S))
+	PKG_CFLAGS   += -pthread
+	PKG_CPPFLAGS += -pthread
 endif
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
