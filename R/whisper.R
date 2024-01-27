@@ -214,7 +214,7 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   out <- data.frame(model = x,
                     file_model = to,
                     url = url,
-                    download_failed = download_failed,
+                    download_success = !download_failed,
                     download_message = download_message,
                     stringsAsFactors = FALSE)
   class(out) <- c("data.frame", "whisper_download")
