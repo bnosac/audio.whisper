@@ -123,6 +123,8 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 #' \item{medium & medium.en: 1.5 GB, RAM required: ~2.6 GB. Multilingual and English only version.}
 #' \item{large-v1, large-v2, large-v3: 2.9 GB, RAM required: ~4.7 GB. Multilingual}
 #' }
+#' Note that the larger models may take longer than 60 seconds to download, so consider 
+#' increasing the timeout option in R via \code{options(timeout=120)}
 #' @param x the name of the model
 #' @param model_dir a path where the model will be downloaded to. Defaults to the current working directory
 #' @param repos character string with the repository to download the model from. Either
