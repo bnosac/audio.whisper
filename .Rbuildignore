@@ -1,6 +1,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 .github
+.vscode
 inst/dev
 inst/model-repository
 LICENSE.note
