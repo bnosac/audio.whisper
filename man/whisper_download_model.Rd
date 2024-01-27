@@ -52,6 +52,8 @@ Download a pretrained Whisper model. The list of available models are
 \item{medium & medium.en: 1.5 GB, RAM required: ~2.6 GB. Multilingual and English only version.}
 \item{large-v1, large-v2, large-v3: 2.9 GB, RAM required: ~4.7 GB. Multilingual}
 }
+Note that the larger models may take longer than 60 seconds to download, so consider 
+increasing the timeout option in R via \code{options(timeout=120)}
 }
 \examples{
 path <- whisper_download_model("tiny")
