@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.3.1
 
 - Makevars: added detection of AVX512F for adding compilation flags to PKG_CFLAGS/PKG_CPPFLAGS
+- Add whisper_languages to get a data.frame of all languages the Whisper model can handle
 
 ## CHANGES IN audio.whisper VERSION 0.3
 
