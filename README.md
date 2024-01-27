@@ -43,7 +43,11 @@ model <- whisper("tiny")
 model <- whisper("base")
 model <- whisper("small")
 model <- whisper("medium")
-model <- whisper("large")
+model <- whisper("large-v1")
+model <- whisper("large-v2")
+model <- whisper("large-v3")
+path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
+model <- whisper(path)
 ```
 
 **Transcribe a `.wav` audio file** 

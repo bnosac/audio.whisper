@@ -40,7 +40,7 @@ trans
 model <- whisper("medium")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
-model <- whisper("large")
+model <- whisper("large-v1")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
 

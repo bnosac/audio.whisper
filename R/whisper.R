@@ -79,7 +79,7 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
 #' model <- whisper("medium")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' trans
-#' model <- whisper("large")
+#' model <- whisper("large-v1")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' trans
 #' 
@@ -101,7 +101,7 @@ predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ..
 #'                  language = "en", duration = 1000)
 #' }
 whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
-  if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large")){
+  if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large")){
     x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
   if(inherits(x, "whisper_download")){
@@ -121,7 +121,7 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 #' \item{base & base.en: 142 MB, RAM required: ~500 MB. Multilingual and English only version.}
 #' \item{small & small.en: 466 MB, RAM required: ~1.0 GB. Multilingual and English only version.}
 #' \item{medium & medium.en: 1.5 GB, RAM required: ~2.6 GB. Multilingual and English only version.}
-#' \item{large-v1 & large: 2.9 GB, RAM required: ~4.7 GB. Multilingual version 1 and version 2}
+#' \item{large-v1, large-v2, large-v3: 2.9 GB, RAM required: ~4.7 GB. Multilingual}
 #' }
 #' @param x the name of the model
 #' @param model_dir a path where the model will be downloaded to. Defaults to the current working directory
@@ -156,12 +156,13 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 #' whisper_download_model("medium")
 #' whisper_download_model("medium.en")
 #' whisper_download_model("large-v1")
-#' whisper_download_model("large")
+#' whisper_download_model("large-v2")
+#' whisper_download_model("large-v3")
 #' }
 #' \dontshow{
 #' if(file.exists(path$file_model)) file.remove(path$file_model)
 #' }
-whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large"),
+whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large"),
                                    model_dir = getwd(),
                                    repos = c("huggingface", "ggerganov"),
                                    version = c("1.5.4", "1.2.1"),
