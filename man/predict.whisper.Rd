@@ -47,5 +47,5 @@ trans <- predict(model, newdata = audio, language = "en")
 trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 }
 \seealso{
-\code{\link{whisper}}
+\code{\link{whisper}}, \code{\link{whisper_languages}}
 }

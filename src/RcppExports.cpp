@@ -54,11 +54,22 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// whisper_language_info
+Rcpp::DataFrame whisper_language_info();
+RcppExport SEXP _audio_whisper_whisper_language_info() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(whisper_language_info());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 1},
     {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 17},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
+    {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
     {NULL, NULL, 0}
 };
 
