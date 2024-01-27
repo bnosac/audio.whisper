@@ -18,7 +18,7 @@
 #' @export
 #' @seealso \code{\link{whisper}}
 #' @examples
-#' \dontrun{ 
+#' \donttest{ 
 #' model <- whisper("tiny")
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 #' trans <- predict(model, newdata = audio)
@@ -223,7 +223,7 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
 #' @seealso \code{\link{whisper}}
 #' @examples
 #' \dontrun{ 
-#' model <- whisper("tiny")
+#' model <- whisper("tiny", overwrite = FALSE)
 #' whisper_benchmark(model)
 #' }
 whisper_benchmark <- function(object = whisper(system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")), 

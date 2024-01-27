@@ -24,7 +24,7 @@ fake data. \url{https://github.com/ggerganov/whisper.cpp/issues/89}
 }
 \examples{
 \dontrun{ 
-model <- whisper("tiny")
+model <- whisper("tiny", overwrite = FALSE)
 whisper_benchmark(model)
 }
 }

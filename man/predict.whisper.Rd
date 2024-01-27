@@ -31,7 +31,7 @@ an object of class \code{whisper_transcription} which is a list with the followi
 Automatic Speech Recognition using Whisper on 16-bit WAV files
 }
 \examples{
-\dontrun{ 
+\donttest{ 
 model <- whisper("tiny")
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio)
