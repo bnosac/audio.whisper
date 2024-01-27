@@ -16,7 +16,7 @@
 #' \item{timing: a list with elements start, end and duration indicating how long it took to do the transcription}
 #' }
 #' @export
-#' @seealso \code{\link{whisper}}
+#' @seealso \code{\link{whisper}}, \code{\link{whisper_languages}}
 #' @examples
 #' \donttest{ 
 #' model <- whisper("tiny")
@@ -243,4 +243,17 @@ whisper_benchmark <- function(object = whisper(system.file(package = "audio.whis
   stopifnot(inherits(object, "whisper"))
   whisper_print_benchmark(object$model, threads)
   invisible()
+}
+
+
+
+#' @title Get the language capabilities of Whisper
+#' @description Extract the list of languages a multilingual whisper model is able to handle
+#' @return a data.frame with columns id, language and language_label showing the languages
+#' @export
+#' @examples
+#' x <- whisper_languages()
+#' x
+whisper_languages <- function(){
+  whisper_language_info()
 }

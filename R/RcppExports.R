@@ -13,3 +13,7 @@ whisper_print_benchmark <- function(model, n_threads = 1L) {
     invisible(.Call('_audio_whisper_whisper_print_benchmark', PACKAGE = 'audio.whisper', model, n_threads))
 }
 
+whisper_language_info <- function() {
+    .Call('_audio_whisper_whisper_language_info', PACKAGE = 'audio.whisper')
+}
+
