@@ -142,13 +142,13 @@ ifneq ($(filter ppc64%,$(UNAME_M)),)
 	endif
 endif
 
-#ifndef WHISPER_NO_ACCELERATE
-#	# Mac M1 - include Accelerate framework
-#	ifeq ($(UNAME_S),Darwin)
-#		PKG_CFLAGS  += -DGGML_USE_ACCELERATE
-#		PKG_LIBS += -framework Accelerate
-#	endif
-#endif
+ifdef WHISPER_ACCELERATE
+	# Mac M1 - include Accelerate framework
+	ifeq ($(UNAME_S),Darwin)
+		PKG_CFLAGS  += -DGGML_USE_ACCELERATE
+		PKG_LIBS += -framework Accelerate
+	endif
+endif
 
 ifdef WHISPER_COREML
 	PKG_CPPFLAGS += -DWHISPER_USE_COREML
@@ -159,15 +159,15 @@ ifdef WHISPER_COREML_ALLOW_FALLBACK
 endif
 endif
 
-#ifndef WHISPER_NO_METAL
-#	ifeq ($(UNAME_S),Darwin)
-#		WHISPER_METAL := 1
-#
-#		PKG_CFLAGS   += -DGGML_USE_METAL
-#		PKG_CPPFLAGS += -DGGML_USE_METAL
-#		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
-#	endif
-#endif
+ifdef WHISPER_METAL
+	ifeq ($(UNAME_S),Darwin)
+		WHISPER_METAL := 1
+
+		PKG_CFLAGS   += -DGGML_USE_METAL
+		PKG_CPPFLAGS += -DGGML_USE_METAL
+		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
+	endif
+endif
 
 ## Note/TODO: removed sections on WHISPER_OPENBLAS / WHISPER_CUBLAS / WHISPER_HIPBLAS / WHISPER_CLBLAST
 
