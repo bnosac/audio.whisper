@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.3.1
+
+- Makevars: added detection of AVX512F for adding compilation flags to PKG_CFLAGS/PKG_CPPFLAGS
+
 ## CHANGES IN audio.whisper VERSION 0.3
 
 - Upgrade to whisper.cpp version v1.5.4
