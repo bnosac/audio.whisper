@@ -2,6 +2,7 @@
 
 - Makevars: added detection of AVX512F for adding compilation flags to PKG_CFLAGS/PKG_CPPFLAGS
 - Add whisper_languages to get a data.frame of all languages the Whisper model can handle
+- whisper_download_model change default timeout to 10 minutes if no timeout is set by the user + change output element in the list to 'download_success' instead of 'download_failed'
 
 ## CHANGES IN audio.whisper VERSION 0.3
 

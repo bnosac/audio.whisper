@@ -250,8 +250,8 @@ Sys.unsetenv("WHISPER_CFLAGS")
 
 To find out which hardware acceleration options your hardware supports, you can go to https://github.com/bnosac/audio.whisper/issues/26 and look for the CFLAGS (and optionally CXXFLAGS and LDFLAGS) settings which make sense on your hardware 
 
-  - Common settings to set for `WHISPER_CFLAGS` on Mac/Linux/Windows are `-mavx -mavx2 -mfma -mf16c` and extra possible flags `-msse3` and `mssse3` 
-      - E.g. on my local Windows machine I could set `-mavx -mavx2 -mfma -mf16c`
+  - Common settings to set for `WHISPER_CFLAGS` are `-mavx -mavx2 -mfma -mf16c` and extra possible flags `-msse3` and `mssse3` 
+      - E.g. on my local Windows Intel machine I could set `-mavx -mavx2 -mfma -mf16c`
       - For Mac users you can set `Sys.setenv(WHISPER_ACCELERATE = "1")` if your computer has the Accelerate framework
       - On my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
   - If you need extra settings in `PKG_CPPFLAGS` (`CXXFLAGS`), you can e.g. use `Sys.setenv(WHISPER_CPPFLAGS = "-mcpu=native")` before installing the package
