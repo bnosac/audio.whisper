@@ -140,7 +140,7 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
 #'  \item{model: The model as provided by the input parameter \code{x}}
 #'  \item{file_model: The path to the file on disk where the model was downloaded to}
 #'  \item{url: The URL where the model was downloaded from}
-#'  \item{download_failed: A logical indicating if the download has failed or not due to internet connectivity issues}
+#'  \item{download_success: A logical indicating if the download has succeeded or not due to internet connectivity issues}
 #'  \item{download_message: A character string with the error message in case the downloading of the model failed}
 #' }
 #' @export
@@ -214,7 +214,7 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   out <- data.frame(model = x,
                     file_model = to,
                     url = url,
-                    download_failed = download_failed,
+                    download_success = !download_failed,
                     download_message = download_message,
                     stringsAsFactors = FALSE)
   class(out) <- c("data.frame", "whisper_download")
