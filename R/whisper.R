@@ -195,6 +195,13 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
   to <- file.path(model_dir, basename(url))
   download_failed  <- FALSE
   download_message <- "OK"
+  oldtimeout <- getOption("timeout")
+  if(length(oldtimeout) == 0 || is.na(as.integer(oldtimeout)) || as.integer(oldtimeout) < 60*10){
+    options(timeout = 60*10)
+    on.exit({
+      options(timeout = oldtimeout)
+    })
+  }
   if(overwrite || !file.exists(to)){
     dl <- suppressWarnings(try(
       utils::download.file(url = url, destfile = to, mode = "wb"),  
