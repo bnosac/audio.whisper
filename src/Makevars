@@ -112,6 +112,8 @@ ifdef WHISPER_COREML_ALLOW_FALLBACK
 endif
 endif
 
+SOURCES_METAL = 
+OBJECTS_METAL = 
 ifdef WHISPER_METAL
 	ifeq ($(UNAME_S),Darwin)
 		WHISPER_METAL := 1
@@ -119,6 +121,9 @@ ifdef WHISPER_METAL
 		PKG_CFLAGS   += -DGGML_USE_METAL
 		PKG_CPPFLAGS += -DGGML_USE_METAL
 		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
+		
+		SOURCES_METAL =+ ggml-metal.m
+		OBJECTS_METAL =+ ggml-metal.o
 	endif
 endif
 
@@ -246,3 +251,8 @@ $(info )
 
 SOURCES = whisper_cpp/ggml-quants.c whisper_cpp/ggml-backend.c whisper_cpp/ggml-alloc.c whisper_cpp/ggml.c whisper_cpp/whisper.cpp whisper_cpp/common-ggml.cpp whisper_cpp/common.cpp rcpp_whisper.cpp RcppExports.cpp
 OBJECTS = whisper_cpp/ggml-quants.o whisper_cpp/ggml-backend.o whisper_cpp/ggml-alloc.o whisper_cpp/ggml.o whisper_cpp/whisper.o   whisper_cpp/common-ggml.o   whisper_cpp/common.o   rcpp_whisper.o   RcppExports.o
+
+SOURCES += $(SOURCES_METAL)
+OBJECTS += $(OBJECTS_METAL)
+
+OBJECTS_METAL = 
