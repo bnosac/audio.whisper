@@ -298,14 +298,10 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
           Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
         }
         
-        /*
-        // print system information
-        {
-            fprintf(stderr, "\n");
-            fprintf(stderr, "system_info: n_threads = %d / %d | %s\n",
-                    params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());
+        if(trace > 0){
+          Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
         }
-        */
+        
         {
             if (!whisper_is_multilingual(ctx)) {
                 if (params.language != "en" || params.translate) {
@@ -314,7 +310,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                     Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
                 }
             }
-            Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
+            if(trace > 0){
+              Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
+            }
         }
         
         // run the inference
