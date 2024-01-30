@@ -254,5 +254,3 @@ OBJECTS = whisper_cpp/ggml-quants.o whisper_cpp/ggml-backend.o whisper_cpp/ggml-
 
 SOURCES += $(SOURCES_METAL)
 OBJECTS += $(OBJECTS_METAL)
-
-OBJECTS_METAL = 
