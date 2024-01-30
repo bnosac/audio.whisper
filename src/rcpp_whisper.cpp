@@ -257,6 +257,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           bool split_on_word = false,
                           int max_context = -1,
                           std::string prompt = "") {
+    float audio_duration=0;
+  
     whisper_params params;
     params.language = language;
     params.translate = translate;
@@ -314,6 +316,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
             }
         }
+        audio_duration = float(pcmf32.size())/WHISPER_SAMPLE_RATE;
         
         // run the inference
         {
@@ -468,6 +471,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                            Rcpp::Named("tokens") = tokens,
                                            Rcpp::Named("params") = Rcpp::List::create(
                                                Rcpp::Named("audio") = path,
+                                               Rcpp::Named("audio_duration_seconds") = audio_duration,
                                                Rcpp::Named("language") = params.language, 
                                                Rcpp::Named("offset") = offset,
                                                Rcpp::Named("duration") = duration,

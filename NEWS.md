@@ -6,6 +6,7 @@
 - Add whisper_languages to get a data.frame of all languages the Whisper model can handle
 - whisper_download_model change default timeout to 10 minutes if no timeout is set by the user + change output element in the list to 'download_success' instead of 'download_failed'
 - Add option to pass on initial prompt in predict.whisper
+- Output of predict.whisper adds the audio duration of the wav file in seconds in the params list element
 
 ## CHANGES IN audio.whisper VERSION 0.3
 
