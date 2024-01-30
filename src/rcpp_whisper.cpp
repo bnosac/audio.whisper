@@ -273,6 +273,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.best_of = best_of;
     params.split_on_word = split_on_word;
     params.max_context = max_context;
+    params.prompt = prompt;
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
@@ -346,8 +347,6 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
 
             wparams.initial_prompt   = params.prompt.c_str();
             
-            Rcpp::Rcout << "initial_prompt=" << params.prompt.c_str() << ";" << std::endl;
-            Rcpp::Rcout << "prompt=" << prompt.c_str() << ";" << std::endl;
             
 
             wparams.greedy.best_of        = params.best_of;
