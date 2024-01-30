@@ -122,8 +122,8 @@ ifdef WHISPER_METAL
 		PKG_CPPFLAGS += -DGGML_USE_METAL
 		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
 		
-		SOURCES_METAL =+ ggml-metal.m
-		OBJECTS_METAL =+ ggml-metal.o
+		SOURCES_METAL = ggml-metal.m
+		OBJECTS_METAL = ggml-metal.o
 	endif
 endif
 
