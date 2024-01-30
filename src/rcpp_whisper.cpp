@@ -255,7 +255,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           int beam_size = -1,
                           int best_of = 5,
                           bool split_on_word = false,
-                          int max_context = -1) {
+                          int max_context = -1,
+                          std::string prompt = "") {
     whisper_params params;
     params.language = language;
     params.translate = translate;
@@ -344,6 +345,10 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
 
             wparams.initial_prompt   = params.prompt.c_str();
+            
+            Rcpp::Rcout << "initial_prompt=" << params.prompt.c_str() << ";" << std::endl;
+            Rcpp::Rcout << "prompt=" << prompt.c_str() << ";" << std::endl;
+            
 
             wparams.greedy.best_of        = params.best_of;
             wparams.beam_search.beam_size = params.beam_size;
@@ -513,7 +518,7 @@ Rcpp::DataFrame whisper_language_info() {
   std::vector<int> id;
   std::vector<std::string> language;
   std::vector<std::string> label;
-  for (int i = 0; i < max_id; ++i) {
+  for (int i = 0; i <= max_id; ++i) {
     id.push_back(i);
     language.push_back(whisper_lang_str(i));
     label.push_back(whisper_lang_str_full(i));
