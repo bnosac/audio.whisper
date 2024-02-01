@@ -4,6 +4,7 @@
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
+#' @param type character string with the type of prediction, can either be 'transcribe' or 'translate'
 #' @param language the language of the audio. Defaults to 'auto'
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only
@@ -24,6 +25,9 @@
 #' trans <- predict(model, newdata = audio)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
+#' 
+#' audio <- system.file(package = "audio.whisper", "samples", "proficiat.wav")
+#' trans <- predict(model, newdata = audio, language = "nl", type = "translate")
 #' }
 #' 
 #' ## Predict using a quantised model
@@ -32,11 +36,16 @@
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
-predict.whisper <- function(object, newdata, language = "auto", trim = FALSE, ...){
+predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, ...){
+  type <- match.arg(type)
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
   start <- Sys.time()
-  out <- whisper_encode(model = object$model, path = newdata, language = language, ...)
+  if(type == "transcribe"){
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, ...)
+  }else if(type == "translate"){
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, ...)
+  }
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
   if(trim){

@@ -4,12 +4,21 @@
 \alias{predict.whisper}
 \title{Transcribe audio files using a Whisper model}
 \usage{
-\method{predict}{whisper}(object, newdata, language = "auto", trim = FALSE, ...)
+\method{predict}{whisper}(
+  object,
+  newdata,
+  type = c("transcribe", "translate"),
+  language = "auto",
+  trim = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{a whisper object}
 
 \item{newdata}{the path to a 16-bit .wav file}
+
+\item{type}{character string with the type of prediction, can either be 'transcribe' or 'translate'}
 
 \item{language}{the language of the audio. Defaults to 'auto'}
 
@@ -37,6 +46,9 @@ audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio)
 trans <- predict(model, newdata = audio, language = "en")
 trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
+
+audio <- system.file(package = "audio.whisper", "samples", "proficiat.wav")
+trans <- predict(model, newdata = audio, language = "nl", type = "translate")
 }
 
 ## Predict using a quantised model
