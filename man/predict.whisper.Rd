@@ -48,6 +48,9 @@ trans <- predict(model, newdata = audio, language = "en")
 trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 
 audio <- system.file(package = "audio.whisper", "samples", "proficiat.wav")
+model <- whisper("tiny")
+trans <- predict(model, newdata = audio, language = "nl", type = "transcribe")
+model <- whisper("tiny")
 trans <- predict(model, newdata = audio, language = "nl", type = "translate")
 }
 
