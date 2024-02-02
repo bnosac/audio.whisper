@@ -325,6 +325,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
 
             wparams.print_realtime   = false;
+            if(trace > 0){
+              wparams.print_realtime = true;
+            }
             wparams.print_progress   = params.print_progress;
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;
