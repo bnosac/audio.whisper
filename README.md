@@ -233,6 +233,13 @@ $tokens
 
 -----
 
+### Notes on silences
+
+If you want remove silences from your audio files. You could use R packages
+
+- [audio.vadwebrtc](https://github.com/bnosac/audio.vadwebrtc)
+- [audio.vadsilero](https://github.com/bnosac/audio.vadsilero)
+
 ### Speed of transcribing
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
