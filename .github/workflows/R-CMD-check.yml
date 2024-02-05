@@ -50,6 +50,10 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          
+      - name: InstallationTest
+        run: |
+          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -57,7 +61,7 @@ jobs:
           upload-snapshots: true
           error-on: '"error"' 
           
-      - name: Compilation setup
+      - name: Speed
         run: |
           Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
@@ -100,6 +104,10 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          
+      - name: InstallationTest
+        run: |
+          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -107,7 +115,7 @@ jobs:
           upload-snapshots: true
           error-on: '"error"' 
           
-      - name: Compilation setup
+      - name: Speed
         run: |
           Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
