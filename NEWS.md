@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.3.2
+
+- Documentation of arguments in predict.whisper
+
 ## CHANGES IN audio.whisper VERSION 0.3.1
 
 - Makevars

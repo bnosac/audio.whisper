@@ -4,10 +4,23 @@
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
-#' @param type character string with the type of prediction, can either be 'transcribe' or 'translate'
+#' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
 #' @param language the language of the audio. Defaults to 'auto'
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
-#' @param ... further arguments, directly passed on to the C++ function, for expert usage only
+#' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
+#' @details 
+#' \itemize{
+#' \item{offset: milliseconds indicating to start transcribing from that timepoint onwards. Defaults to 0.}
+#' \item{duration: how many milliseconds need to be transcribed. Defaults to the whole audio file.}
+#' \item{token_timestamps: logical indicating to get the timepoints of each token}
+#' \item{n_threads: how many threads to use to make the prediction. Defaults to 1}
+#' \item{prompt: the initial prompt to pass on the model. Defaults to ''}
+#' \item{entropy_thold: entropy threshold for decoder fail. Defaults to 2.4}
+#' \item{logprob_thold: log probability threshold for decoder fail. Defaults to -1}
+#' \item{beam_size: beam size for beam search. Defaults to -1}
+#' \item{best_of: number of best candidates to keep. Defaults to 5}
+#' \item{max_context: maximum number of text context tokens to store. Defaults to -1}
+#' }
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
