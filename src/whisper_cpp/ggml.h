@@ -1,6 +1,3 @@
-#ifndef R_NO_REMAP
-#define R_NO_REMAP 1
-#endif
 #include "R.h"
 #pragma once
 
