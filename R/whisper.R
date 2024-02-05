@@ -67,9 +67,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   stopifnot(file.exists(newdata))
   start <- Sys.time()
   if(type == "transcribe"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, ...)
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, trace = trace, ...)
   }else if(type == "translate"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, ...)
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, trace = trace, ...)
   }
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
