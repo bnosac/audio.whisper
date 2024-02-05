@@ -95,13 +95,13 @@ ifneq ($(filter ppc64%,$(UNAME_M)),)
 	endif
 endif
 
-ifdef WHISPER_ACCELERATE
+#ifdef WHISPER_ACCELERATE
 	# Mac M1 - include Accelerate framework
 	ifeq ($(UNAME_S),Darwin)
 		PKG_CFLAGS  += -DGGML_USE_ACCELERATE
 		PKG_LIBS += -framework Accelerate
 	endif
-endif
+#endif
 
 SOURCES_COREML = 
 OBJECTS_COREML = 
@@ -119,7 +119,7 @@ endif
 
 SOURCES_METAL = 
 OBJECTS_METAL = 
-ifdef WHISPER_METAL
+#ifdef WHISPER_METAL
 	ifeq ($(UNAME_S),Darwin)
 		WHISPER_METAL := 1
 
@@ -130,7 +130,7 @@ ifdef WHISPER_METAL
 		SOURCES_METAL = whisper_cpp/ggml-metal.m
 		OBJECTS_METAL = whisper_cpp/ggml-metal.o
 	endif
-endif
+#endif
 
 ifdef WHISPER_OPENBLAS
 	PKG_CFLAGS  += -DGGML_USE_OPENBLAS $(shell pkg-config --libs openblas)
