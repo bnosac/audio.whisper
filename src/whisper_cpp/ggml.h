@@ -1,9 +1,7 @@
 #ifndef R_NO_REMAP
 #define R_NO_REMAP 1
 #endif
-#include "R_ext/Print.h"
-#include "R_ext/Utils.h"
-#include "R_ext/Error.h"
+#include "R.h"
 #pragma once
 
 //

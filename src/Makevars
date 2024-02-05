@@ -129,9 +129,6 @@ ifdef WHISPER_METAL
 		
 		SOURCES_METAL = whisper_cpp/ggml-metal.m
 		OBJECTS_METAL = whisper_cpp/ggml-metal.o
-		
-		PKG_CFLAGS   += -DR_NO_REMAP
-		PKG_CPPFLAGS += -DR_NO_REMAP
 	endif
 endif
 
