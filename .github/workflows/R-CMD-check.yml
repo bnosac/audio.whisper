@@ -110,4 +110,4 @@ jobs:
       - name: Compilation setup
         run: |
           Rscript -e "install.packages('remotes');remotes::install_local()"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
+          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"

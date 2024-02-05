@@ -39,6 +39,10 @@
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
+#' ## Predict using a quantised model with the GPU
+#' model <- whisper(path, use_gpu = TRUE)
+#' trans <- predict(model, newdata = audio, language = "en")
+#' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
