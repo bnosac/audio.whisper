@@ -179,40 +179,22 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
             t0 = whisper_full_get_segment_t0(ctx, i);
             t1 = whisper_full_get_segment_t1(ctx, i);
         }
-
-        
         if (params.diarize && pcmf32s.size() == 2) {
             speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
         }
-
-        if (params.print_colors) {
-            for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
-                if (params.print_special == false) {
-                    const whisper_token id = whisper_full_get_token_id(ctx, i, j);
-                    if (id >= whisper_token_eot(ctx)) {
-                        continue;
-                    }
-                }
-
-                const char * text = whisper_full_get_token_text(ctx, i, j);
-                const float  p    = whisper_full_get_token_p   (ctx, i, j);
-
-                const int col = std::max(0, std::min((int) k_colors.size() - 1, (int) (std::pow(p, 3)*float(k_colors.size()))));
-
-                Rprintf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
-            }
-        } else {
-            const char * text = whisper_full_get_segment_text(ctx, i);
-            if (!params.no_timestamps) {
-              Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
-            }else{
-              Rprintf("%s%s\n", speaker.c_str(), text);
-            }
+        const char * text = whisper_full_get_segment_text(ctx, i);
+        if(params.print_special){
+          if (!params.no_timestamps) {
+            Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
+          }else{
+            Rprintf("%s%s\n", speaker.c_str(), text);
+          }   
         }
-
         if (params.tinydiarize) {
             if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
-                Rprintf("%s", params.tdrz_speaker_turn.c_str());
+                if(params.print_special){
+                    Rprintf("%s", params.tdrz_speaker_turn.c_str());
+                }
             }
         }
         Rcpp::checkUserInterrupt();
@@ -248,7 +230,7 @@ SEXP whisper_load_model(std::string model, bool use_gpu = false) {
 
 // [[Rcpp::export]]
 Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, 
-                          bool token_timestamps = false, bool translate = false, bool print_special = false, int duration = 0, int offset = 0, bool trace = true,
+                          bool token_timestamps = false, bool translate = false, int duration = 0, int offset = 0, bool trace = true,
                           int n_threads = 1, int n_processors = 1,
                           float entropy_thold = 2.40,
                           float logprob_thold = -1.00,
@@ -262,7 +244,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     whisper_params params;
     params.language = language;
     params.translate = translate;
-    params.print_special = print_special;
+    params.print_special = false;
     params.duration_ms = duration;
     params.offset_t_ms = offset;
     params.fname_inp.push_back(path);
@@ -276,6 +258,10 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.split_on_word = split_on_word;
     params.max_context = max_context;
     params.prompt = prompt;
+    params.print_special = false;
+    if(trace > 0){
+      params.print_special = true;
+    }
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
@@ -328,6 +314,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             if(trace > 0){
               wparams.print_realtime = true;
             }
+            wparams.print_realtime   = true;
+            
             wparams.print_progress   = params.print_progress;
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;

@@ -7,6 +7,7 @@
 #' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
 #' @param language the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
+#' @param trace logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
 #' @details 
 #' \itemize{
@@ -60,7 +61,7 @@
 #' model <- whisper(path, use_gpu = TRUE)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
-predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, ...){
+predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, trace = TRUE, ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
@@ -130,7 +131,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' path
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
-#'                  language = "en", duration = 1000)
+#'                  language = "en")
 #' 
 #' \dontshow{
 #' ## Or provide the path to the model

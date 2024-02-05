@@ -10,6 +10,7 @@
   type = c("transcribe", "translate"),
   language = "auto",
   trim = FALSE,
+  trace = TRUE,
   ...
 )
 }
@@ -23,6 +24,8 @@
 \item{language}{the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.}
 
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
+
+\item{trace}{logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}}
 
 \item{...}{further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.}
 }

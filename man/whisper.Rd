@@ -64,7 +64,7 @@ path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
 path
 model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
-                 language = "en", duration = 1000)
+                 language = "en")
 
 \dontshow{
 ## Or provide the path to the model
