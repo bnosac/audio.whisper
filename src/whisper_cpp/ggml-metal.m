@@ -1,3 +1,4 @@
+#define R_NO_REMAP 1
 #import "R.h"
 #import "ggml-metal.h"
 
