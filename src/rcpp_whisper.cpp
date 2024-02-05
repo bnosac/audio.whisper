@@ -171,7 +171,9 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
     const int s0 = n_segments - n_new;
 
     if (s0 == 0) {
-        Rprintf("\n");
+        if(params.print_progress){
+            Rprintf("\n");
+        }
     }
 
     for (int i = s0; i < n_segments; i++) {
