@@ -131,6 +131,7 @@ ifdef WHISPER_METAL
 		OBJECTS_METAL = whisper_cpp/ggml-metal.o
 		
 		PKG_CFLAGS   += -DR_NO_REMAP
+		PKG_CPPFLAGS += -DR_NO_REMAP
 	endif
 endif
 
