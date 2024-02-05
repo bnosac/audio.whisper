@@ -53,6 +53,8 @@ path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 ```
 
+  - If you have a GPU (e.g. Mac with Metal and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying: `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
+
 **Transcribe a `.wav` audio file** 
   - using `predict(model, "path/to/audio/file.wav")` and 
   - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
