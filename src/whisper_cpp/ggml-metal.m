@@ -1,3 +1,4 @@
+#import "R.h"
 #import "ggml-metal.h"
 
 #import "ggml-backend-impl.h"
@@ -183,7 +184,7 @@ struct ggml_metal_context {
 
 
 static void ggml_metal_default_log_callback(enum ggml_log_level level, const char * msg, void * user_data) {
-    fprintf(stderr, "%s", msg);
+    Rprintf("%s", msg);
 
     UNUSED(level);
     UNUSED(user_data);
