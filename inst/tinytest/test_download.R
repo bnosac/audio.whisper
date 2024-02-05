@@ -11,4 +11,6 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_inherits(model, class = "whisper")
   expect_inherits(model$model, class = "externalptr")
   expect_false(identical(model$model, new("externalptr")))
+  
+  if(file.exists(path$file_model)) file.remove(path$file_model)
 }

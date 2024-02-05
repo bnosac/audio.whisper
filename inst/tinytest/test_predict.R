@@ -31,6 +31,7 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_equal(onlyalpha(trimws(trans$tokens$token)), onlyalpha(c("And", "so", "my", "fellow", "Americans", "ask", "not", "what", 
                                              "your", "country", "can", "do", "for", "you", "ask", "what", 
                                              "you", "can", "do", "for", "your", "country", ".")))
+  if(file.exists(model$file)) file.remove(model$file)
   
   ## Dutch example with base model
   model <- whisper("base")
@@ -41,4 +42,5 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_equal(nrow(trans$data), 1)
   expect_true(is.data.frame(trans$tokens))
   expect_equal(trimws(trans$data$text), "Proficiat goed gedaan.")
+  if(file.exists(model$file)) file.remove(model$file)
 }

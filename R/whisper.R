@@ -31,6 +31,10 @@
 #' trans <- predict(model, newdata = audio, language = "nl", type = "transcribe")
 #' model <- whisper("tiny")
 #' trans <- predict(model, newdata = audio, language = "nl", type = "translate")
+#' 
+#' \dontshow{
+#' if(file.exists(model$file)) file.remove(model$file)
+#' }
 #' }
 #' 
 #' ## Predict using a quantised model
