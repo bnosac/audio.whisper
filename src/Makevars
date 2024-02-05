@@ -122,7 +122,6 @@ OBJECTS_METAL =
 ifdef WHISPER_METAL
 	ifeq ($(UNAME_S),Darwin)
 		WHISPER_METAL := 1
-		R_NO_REMAP := 1 
 
 		PKG_CFLAGS   += -DGGML_USE_METAL
 		PKG_CPPFLAGS += -DGGML_USE_METAL
@@ -130,6 +129,8 @@ ifdef WHISPER_METAL
 		
 		SOURCES_METAL = whisper_cpp/ggml-metal.m
 		OBJECTS_METAL = whisper_cpp/ggml-metal.o
+		
+		PKG_CFLAGS   += -DR_NO_REMAP
 	endif
 endif
 
