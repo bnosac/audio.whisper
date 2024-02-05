@@ -122,7 +122,8 @@ OBJECTS_METAL =
 ifdef WHISPER_METAL
 	ifeq ($(UNAME_S),Darwin)
 		WHISPER_METAL := 1
-
+    GGML_METAL_NDEBUG := 1
+    
 		PKG_CFLAGS   += -DGGML_USE_METAL
 		PKG_CPPFLAGS += -DGGML_USE_METAL
 		PKG_LIBS  += -framework Foundation -framework Metal -framework MetalKit
