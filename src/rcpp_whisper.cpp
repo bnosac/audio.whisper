@@ -238,13 +238,14 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           int best_of = 5,
                           bool split_on_word = false,
                           int max_context = -1,
-                          std::string prompt = "") {
+                          std::string prompt = "",
+                          bool print_special = false) {
     float audio_duration=0;
   
     whisper_params params;
     params.language = language;
     params.translate = translate;
-    params.print_special = false;
+    params.print_special = print_special;
     params.duration_ms = duration;
     params.offset_t_ms = offset;
     params.fname_inp.push_back(path);
