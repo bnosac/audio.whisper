@@ -258,13 +258,13 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
 #else
         bundle = [NSBundle bundleForClass:[GGMLMetalClass class]];
 #endif
-        NSError * error = nil;
+        NSError * errormetal = nil;
         NSString * libPath = [bundle pathForResource:@"default" ofType:@"metallib"];
         if (libPath != nil) {
             // pre-compiled library found
             NSURL * libURL = [NSURL fileURLWithPath:libPath];
             GGML_METAL_LOG_INFO("%s: loading '%s'\n", __func__, [libPath UTF8String]);
-            ctx->library = [ctx->device newLibraryWithURL:libURL error:&error];
+            ctx->library = [ctx->device newLibraryWithURL:libURL error:&errormetal];
         } else {
             GGML_METAL_LOG_INFO("%s: default.metallib not found, loading from source\n", __func__);
 
@@ -283,7 +283,7 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
                 sourcePath = @"ggml-metal.metal";
             }
             GGML_METAL_LOG_INFO("%s: loading '%s'\n", __func__, [sourcePath UTF8String]);
-            NSString * src = [NSString stringWithContentsOfFile:sourcePath encoding:NSUTF8StringEncoding error:&error];
+            NSString * src = [NSString stringWithContentsOfFile:sourcePath encoding:NSUTF8StringEncoding error:&errormetal];
             if (error) {
                 GGML_METAL_LOG_ERROR("%s: error: %s\n", __func__, [[error description] UTF8String]);
                 return NULL;
@@ -301,7 +301,7 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
             //       and go through the "pre-compiled library found" path above
             //[options setFastMathEnabled:false];
 
-            ctx->library = [ctx->device newLibraryWithSource:src options:options error:&error];
+            ctx->library = [ctx->device newLibraryWithSource:src options:options error:&errormetal];
         }
 
         if (error) {
@@ -335,7 +335,7 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
 
     // load kernels
     {
-        NSError * error = nil;
+        NSError * errormetal = nil;
 
         /*
         GGML_METAL_LOG_INFO("%s: loaded %-32s %16p | th_max = %4d | th_width = %4d\n", __func__, "kernel_"#name, (void *) ctx->pipeline_##name, \
@@ -344,7 +344,7 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
         */
 #define GGML_METAL_ADD_KERNEL(name) \
         ctx->function_##name = [ctx->library newFunctionWithName:@"kernel_"#name]; \
-        ctx->pipeline_##name = [ctx->device newComputePipelineStateWithFunction:ctx->function_##name error:&error]; \
+        ctx->pipeline_##name = [ctx->device newComputePipelineStateWithFunction:ctx->function_##name error:&errormetal]; \
         if (error) { \
             GGML_METAL_LOG_ERROR("%s: error: load pipeline error: %s\n", __func__, [[error description] UTF8String]); \
             return NULL; \
