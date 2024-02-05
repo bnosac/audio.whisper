@@ -155,7 +155,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.geten
 #' \item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
 #' \item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 #' }
-#' @param version character string with the version of the model. Defaults to "1.2.1".
+#' @param version character string with the version of the model. Defaults to "1.5.4".
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
 #' it will download the model and overwrite the file if the file already existed. If set to \code{FALSE},
 #' the model will only be downloaded if it does not exist on disk yet in the \code{model_dir} folder.
