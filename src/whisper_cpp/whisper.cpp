@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "whisper.h"
 
 #ifdef WHISPER_USE_COREML
@@ -139,7 +140,7 @@ static void whisper_log_callback_default(ggml_log_level level, const char * text
     do { \
         if (!(x)) { \
             WHISPER_LOG_ERROR("WHISPER_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
-            abort(); \
+            Rcpp::stop("whispercpp error"); \
         } \
     } while (0)
 
@@ -4259,7 +4260,7 @@ static void whisper_suppress_invalid_grammar(
     //if (!allow_eot) {
     //    logits[eot] -= params.grammar_penalty;
     //}
-    //fprintf(stderr, "Allowed: (%zu tokens)\n", size - rejects.size());
+    //Rprintf("Allowed: (%zu tokens)\n", size - rejects.size());
 }
 
 static void whisper_grammar_accept_token(whisper_context & ctx, whisper_grammar & grammar, whisper_token token) {
@@ -4267,15 +4268,15 @@ static void whisper_grammar_accept_token(whisper_context & ctx, whisper_grammar 
         return;
     }
 
-    //fprintf(stderr, "Accept: '%s'\n", ctx.vocab.id_to_token[token].c_str());
+    //Rprintf("Accept: '%s'\n", ctx.vocab.id_to_token[token].c_str());
 
     const std::string & text = ctx.vocab.id_to_token[token];
 
     if (text.rfind("[_", 0) == 0) {
-        // fprintf(stderr, " (skipped)\n");
+        // Rprintf(" (skipped)\n");
         return;
     }
-    // fprintf(stderr, "\n");
+    // Rprintf("\n");
 
     // Note terminating 0 in decoded string
     const auto   decoded     = decode_utf8(text.c_str(), grammar.partial_utf8);
@@ -4727,7 +4728,7 @@ static void whisper_process_logits(
     //    const auto prob    = probs[i];
     //    const auto logit   = logits[i];
     //    const auto logprob = logprobs[i];
-    //    printf("%16s : prob=%9.5f logit=%9.5f logprob=%9.5f\n", token.c_str(), prob, logit, logprob);
+    //    Rprintf("%16s : prob=%9.5f logit=%9.5f logprob=%9.5f\n", token.c_str(), prob, logit, logprob);
     //}
 
     // print sorted
@@ -4747,10 +4748,10 @@ static void whisper_process_logits(
             const auto prob    = pairs[i].first;
             const auto logit   = logits[pairs[i].second];
             const auto logprob = logprobs[pairs[i].second];
-            printf("%16s : id=%6d prob=%9.5f logit=%9.5f logprob=%9.5f '%s'\n", token.c_str(), pairs[i].second, prob, logit, logprob, token.c_str());
+            Rprintf("%16s : id=%6d prob=%9.5f logit=%9.5f logprob=%9.5f '%s'\n", token.c_str(), pairs[i].second, prob, logit, logprob, token.c_str());
         }
 
-        printf("----------------\n");
+        Rprintf("----------------\n");
     }
 
     // "And", "and", " And", " and"
@@ -5721,10 +5722,10 @@ int whisper_full_with_state(
 
                             if (params.print_realtime) {
                                 if (params.print_timestamps) {
-                                    printf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
+                                    Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                                 } else {
-                                    printf("%s", text.c_str());
-                                    fflush(stdout);
+                                    Rprintf("%s", text.c_str());
+                                    Rcpp::checkUserInterrupt();
                                 }
                             }
 
@@ -5768,10 +5769,10 @@ int whisper_full_with_state(
 
                     if (params.print_realtime) {
                         if (params.print_timestamps) {
-                            printf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
+                            Rprintf("[%s --> %s]  %s\n", to_timestamp(tt0).c_str(), to_timestamp(tt1).c_str(), text.c_str());
                         } else {
-                            printf("%s", text.c_str());
-                            fflush(stdout);
+                            Rprintf("%s", text.c_str());
+                            Rcpp::checkUserInterrupt();
                         }
                     }
 
@@ -6025,7 +6026,7 @@ float whisper_full_get_token_p(struct whisper_context * ctx, int i_segment, int 
 //
 
 WHISPER_API int whisper_bench_memcpy(int n_threads) {
-    fputs(whisper_bench_memcpy_str(n_threads), stderr);
+    Rcpp::Rcout << whisper_bench_memcpy_str(n_threads);
     return 0;
 }
 
@@ -6064,7 +6065,7 @@ WHISPER_API const char * whisper_bench_memcpy_str(int n_threads) {
 
             tsum += (t1 - t0)*1e-6;
 
-            src[rand() % size] = rand() % 256;
+            src[((int) floor(R::runif(0, 32767))) % size] = ((int) floor(R::runif(0, 32767))) % 256;
         }
 
         snprintf(strbuf, sizeof(strbuf), "memcpy: %7.2f GB/s (heat-up)\n", (double) (n*size)/(tsum*1e9));
@@ -6099,7 +6100,7 @@ WHISPER_API const char * whisper_bench_memcpy_str(int n_threads) {
 
             tsum += (t1 - t0)*1e-6;
 
-            src[rand() % size] = rand() % 256;
+            src[((int) floor(R::runif(0, 32767))) % size] = ((int) floor(R::runif(0, 32767))) % 256;
         }
 
         snprintf(strbuf, sizeof(strbuf), "memcpy: %7.2f GB/s ( 1 thread)\n", (double) (n*size)/(tsum*1e9));
@@ -6133,7 +6134,7 @@ WHISPER_API const char * whisper_bench_memcpy_str(int n_threads) {
             for (size_t i = 0; i < n; i++) {
                 memcpy(dst + i0, src + i0, i1 - i0);
 
-                src[i0 + rand() % (i1 - i0)] = rand() % 256;
+                src[i0 + ((int) floor(R::runif(0, 32767))) % (i1 - i0)] = ((int) floor(R::runif(0, 32767))) % 256;
             };
         };
 
@@ -6173,7 +6174,7 @@ WHISPER_API const char * whisper_bench_memcpy_str(int n_threads) {
 }
 
 WHISPER_API int whisper_bench_ggml_mul_mat(int n_threads) {
-    fputs(whisper_bench_ggml_mul_mat_str(n_threads), stderr);
+    Rcpp::Rcout << whisper_bench_ggml_mul_mat_str(n_threads);
     return 0;
 }
 
@@ -6589,7 +6590,7 @@ static void whisper_exp_compute_token_level_timestamps(
     //for (int j = 0; j < n; ++j) {
     //    const auto & token = tokens[j];
     //    const auto tt = token.pt > thold_pt && token.ptsum > 0.01 ? whisper_token_to_str(&ctx, token.tid) : "[?]";
-    //    printf("%s: %10s %6.3f %6.3f %6.3f %6.3f %5d %5d '%s'\n", __func__,
+    //    Rprintf("%s: %10s %6.3f %6.3f %6.3f %6.3f %5d %5d '%s'\n", __func__,
     //            tt, token.p, token.pt, token.ptsum, token.vlen, (int) token.t0, (int) token.t1, whisper_token_to_str(&ctx, token.id));
 
     //    if (tokens[j].id >= whisper_token_eot(&ctx)) {
@@ -6624,6 +6625,6 @@ static void whisper_log_internal(ggml_log_level level, const char * format, ...)
 static void whisper_log_callback_default(ggml_log_level level, const char * text, void * user_data) {
     (void) level;
     (void) user_data;
-    fputs(text, stderr);
-    fflush(stderr);
+    Rcpp::Rcout << text;
+    Rcpp::checkUserInterrupt();
 }
