@@ -230,7 +230,7 @@ SEXP whisper_load_model(std::string model, bool use_gpu = false) {
 
 // [[Rcpp::export]]
 Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, 
-                          bool token_timestamps = false, bool translate = false, int duration = 0, int offset = 0, bool trace = true,
+                          bool token_timestamps = false, bool translate = false, int duration = 0, int offset = 0, int trace = 1,
                           int n_threads = 1, int n_processors = 1,
                           float entropy_thold = 2.40,
                           float logprob_thold = -1.00,

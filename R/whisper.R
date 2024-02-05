@@ -55,7 +55,7 @@
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 #' path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
 #' model <- whisper(path)
-#' trans <- predict(model, newdata = audio, language = "en")
+#' trans <- predict(model, newdata = audio, language = "en", trace = FALSE)
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
 #' ## Predict using a quantised model with the GPU
 #' model <- whisper(path, use_gpu = TRUE)
@@ -67,9 +67,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   stopifnot(file.exists(newdata))
   start <- Sys.time()
   if(type == "transcribe"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, trace = trace, ...)
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, trace = as.integer(trace), ...)
   }else if(type == "translate"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, trace = trace, ...)
+    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, trace = as.integer(trace), ...)
   }
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
