@@ -7,7 +7,7 @@
 whisper_download_model(
   x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium",
     "medium.en", "large-v1", "large-v2", "large-v3", "large"),
-  model_dir = getwd(),
+  model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
   repos = c("huggingface", "ggerganov"),
   version = c("1.5.4", "1.2.1"),
   overwrite = TRUE,
@@ -17,7 +17,7 @@ whisper_download_model(
 \arguments{
 \item{x}{the name of the model}
 
-\item{model_dir}{a path where the model will be downloaded to. Defaults to the current working directory}
+\item{model_dir}{a path where the model will be downloaded to. Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory}
 
 \item{repos}{character string with the repository to download the model from. Either
 \itemize{

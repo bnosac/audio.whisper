@@ -74,7 +74,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
 #' @param use_gpu logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
-#' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.
+#' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
+#' Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory
+#' @param repos character string with the repository to download the model from. See \code{\link{whisper_download_model}}.
 #' @param ... further arguments, passed on to the internal C++ function \code{whisper_load_model}
 #' @return an object of class \code{whisper} which is list with the following elements: 
 #' \itemize{
@@ -117,7 +119,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en", duration = 1000)
 #' }
-whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), ...){
+whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()), ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large")){
     x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
@@ -144,7 +146,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), 
 #' Note that the larger models may take longer than 60 seconds to download, so consider 
 #' increasing the timeout option in R via \code{options(timeout=120)}
 #' @param x the name of the model
-#' @param model_dir a path where the model will be downloaded to. Defaults to the current working directory
+#' @param model_dir a path where the model will be downloaded to. Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory
 #' @param repos character string with the repository to download the model from. Either
 #' \itemize{
 #' \item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
@@ -183,7 +185,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), 
 #' if(file.exists(path$file_model)) file.remove(path$file_model)
 #' }
 whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large"),
-                                   model_dir = getwd(),
+                                   model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
                                    repos = c("huggingface", "ggerganov"),
                                    version = c("1.5.4", "1.2.1"),
                                    overwrite = TRUE, 

@@ -4,7 +4,13 @@
 \alias{whisper}
 \title{Automatic Speech Recognition using Whisper}
 \usage{
-whisper(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), ...)
+whisper(
+  x,
+  use_gpu = FALSE,
+  overwrite = FALSE,
+  model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
+  ...
+)
 }
 \arguments{
 \item{x}{the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
@@ -14,9 +20,12 @@ the name of the model which can be passed on to \code{\link{whisper_download_mod
 
 \item{overwrite}{logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
 
-\item{model_dir}{a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.}
+\item{model_dir}{a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
+Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory}
 
 \item{...}{further arguments, passed on to the internal C++ function \code{whisper_load_model}}
+
+\item{repos}{character string with the repository to download the model from. See \code{\link{whisper_download_model}}.}
 }
 \value{
 an object of class \code{whisper} which is list with the following elements: 
