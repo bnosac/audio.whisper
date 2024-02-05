@@ -1,3 +1,4 @@
+#define R_NO_REMAP 1
 #include "R_ext/Print.h"
 #include "R_ext/Utils.h"
 #include "R_ext/Error.h"
