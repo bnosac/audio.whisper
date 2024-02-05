@@ -74,3 +74,6 @@ whisper_download_model("large-v3")
 if(file.exists(path$file_model)) file.remove(path$file_model)
 }
 }
+\seealso{
+\code{\link{whisper}}, \code{\link{predict.whisper}}, \code{\link{whisper_languages}}
+}

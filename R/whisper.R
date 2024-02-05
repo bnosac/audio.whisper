@@ -5,7 +5,7 @@
 #' @param object a whisper object
 #' @param newdata the path to a 16-bit .wav file
 #' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
-#' @param language the language of the audio. Defaults to 'auto'
+#' @param language the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
 #' @details 
@@ -52,7 +52,7 @@
 #' 
 #' ## Predict using a quantised model
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
-#' path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
+#' path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
@@ -100,6 +100,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' \item{model: an Rcpp pointer to the loaded Whisper model}
 #' }
 #' @export
+#' @seealso \code{\link{predict.whisper}}
 #' @examples
 #' \dontrun{ 
 #' model <- whisper("tiny")
@@ -123,6 +124,13 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' }
+#' 
+#' ## Or provide the path to the model you have downloaded previously
+#' path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
+#' path
+#' model <- whisper(path)
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+#'                  language = "en", duration = 1000)
 #' 
 #' \dontshow{
 #' ## Or provide the path to the model
@@ -182,6 +190,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.geten
 #'  \item{download_message: A character string with the error message in case the downloading of the model failed}
 #' }
 #' @export
+#' @seealso \code{\link{whisper}}, \code{\link{predict.whisper}}, \code{\link{whisper_languages}}
 #' @examples
 #' path <- whisper_download_model("tiny")
 #' path <- whisper_download_model("tiny", overwrite = FALSE)

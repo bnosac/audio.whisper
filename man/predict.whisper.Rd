@@ -20,7 +20,7 @@
 
 \item{type}{character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.}
 
-\item{language}{the language of the audio. Defaults to 'auto'}
+\item{language}{the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.}
 
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 
@@ -74,7 +74,7 @@ if(file.exists(model$file)) file.remove(model$file)
 
 ## Predict using a quantised model
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
-path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
+path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
 model <- whisper(path)
 trans <- predict(model, newdata = audio, language = "en")
 trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)

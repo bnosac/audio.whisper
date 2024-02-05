@@ -59,6 +59,13 @@ model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 }
 
+## Or provide the path to the model you have downloaded previously
+path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny-q5_1.bin")
+path
+model <- whisper(path)
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
+                 language = "en", duration = 1000)
+
 \dontshow{
 ## Or provide the path to the model
 path  <- system.file(package = "audio.whisper", "models", "for-tests-ggml-tiny.bin")
@@ -70,4 +77,7 @@ model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
                  language = "en", duration = 1000)
 }
+}
+\seealso{
+\code{\link{predict.whisper}}
 }
