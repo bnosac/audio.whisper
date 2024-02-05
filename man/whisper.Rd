@@ -24,8 +24,6 @@ the name of the model which can be passed on to \code{\link{whisper_download_mod
 Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory}
 
 \item{...}{further arguments, passed on to the internal C++ function \code{whisper_load_model}}
-
-\item{repos}{character string with the repository to download the model from. See \code{\link{whisper_download_model}}.}
 }
 \value{
 an object of class \code{whisper} which is list with the following elements: 

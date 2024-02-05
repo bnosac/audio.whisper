@@ -80,7 +80,6 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
 #' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
 #' Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory
-#' @param repos character string with the repository to download the model from. See \code{\link{whisper_download_model}}.
 #' @param ... further arguments, passed on to the internal C++ function \code{whisper_load_model}
 #' @return an object of class \code{whisper} which is list with the following elements: 
 #' \itemize{
