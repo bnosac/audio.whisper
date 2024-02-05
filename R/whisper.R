@@ -135,7 +135,7 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
   
   
   
-  out$model <- whisper_load_model(out$file, use_gpu = TRUE, ...)
+  out$model <- whisper_load_model(out$file, ...)
   class(out) <- "whisper"
   out
 }
