@@ -183,7 +183,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
             speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
         }
         const char * text = whisper_full_get_segment_text(ctx, i);
-        if(params.print_special){
+        if(params.print_progress){
           if (!params.no_timestamps) {
             Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
           }else{
@@ -192,7 +192,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
         }
         if (params.tinydiarize) {
             if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
-                if(params.print_special){
+                if(params.print_progress){
                     Rprintf("%s", params.tdrz_speaker_turn.c_str());
                 }
             }
@@ -258,10 +258,6 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.split_on_word = split_on_word;
     params.max_context = max_context;
     params.prompt = prompt;
-    params.print_special = false;
-    if(trace > 0){
-      params.print_special = true;
-    }
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
@@ -311,7 +307,10 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
 
             wparams.print_realtime   = false;
-            wparams.print_progress   = params.print_progress;
+            wparams.print_progress   = false;
+            if(trace > 0){
+              wparams.print_progress = true;
+            }
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;
             wparams.translate        = params.translate;
