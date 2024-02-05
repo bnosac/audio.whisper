@@ -1,3 +1,4 @@
+#include "R.h"
 #include "ggml-alloc.h"
 #include "ggml-backend-impl.h"
 #include "ggml.h"
@@ -14,7 +15,7 @@
 
 //#define GGML_ALLOCATOR_DEBUG
 
-//#define AT_PRINTF(...) fprintf(stderr, __VA_ARGS__)
+//#define AT_PRINTF(...) RRprintf(__VA_ARGS__)
 #define AT_PRINTF(...)
 
 // TODO: GGML_PAD ?
@@ -65,7 +66,7 @@ static void remove_allocated_tensor(ggml_tallocr_t alloc, struct ggml_tensor * t
             return;
         }
     }
-    printf("tried to free tensor %s not found\n", tensor->name);
+    Rprintf("tried to free tensor %s not found\n", tensor->name);
     GGML_ASSERT(!"tensor not found");
 }
 #endif
@@ -111,7 +112,7 @@ void ggml_tallocr_alloc(ggml_tallocr_t alloc, struct ggml_tensor * tensor) {
         if (block->size >= size) {
             best_fit_block = alloc->n_free_blocks - 1;
         } else {
-            fprintf(stderr, "%s: not enough space in the buffer (needed %zu, largest block available %zu)\n",
+            Rprintf("%s: not enough space in the buffer (needed %zu, largest block available %zu)\n",
                     __func__, size, max_avail);
             GGML_ASSERT(!"not enough space in the buffer");
             return;
@@ -139,13 +140,13 @@ void ggml_tallocr_alloc(ggml_tallocr_t alloc, struct ggml_tensor * tensor) {
     add_allocated_tensor(alloc, tensor);
     size_t cur_max = (char*)addr - (char*)alloc->base + size;
     if (cur_max > alloc->max_size) {
-        printf("max_size = %.2f MB: tensors: ", cur_max / 1024.0 / 1024.0);
+        Rprintf("max_size = %.2f MB: tensors: ", cur_max / 1024.0 / 1024.0);
         for (int i = 0; i < 1024; i++) {
             if (alloc->allocated_tensors[i]) {
-                printf("%s (%.2f MB) ", alloc->allocated_tensors[i]->name, ggml_nbytes(alloc->allocated_tensors[i]) / 1024.0 / 1024.0);
+                Rprintf("%s (%.2f MB) ", alloc->allocated_tensors[i]->name, ggml_nbytes(alloc->allocated_tensors[i]) / 1024.0 / 1024.0);
             }
         }
-        printf("\n");
+        Rprintf("\n");
     }
 #endif
 
