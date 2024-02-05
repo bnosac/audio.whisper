@@ -2,7 +2,7 @@
 
 - Makevars
   - Added detection of AVX512F for adding compilation flags to PKG_CFLAGS/PKG_CPPFLAGS
-  - Enable Metal
+  - Enable Metal for speeding up transcriptions on the GPU on Mac
   - Enable compiling with OpenBLAS to speed up the transcriptions
 - Add whisper_languages to get a data.frame of all languages the Whisper model can handle
 - whisper_download_model 

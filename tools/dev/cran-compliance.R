@@ -78,3 +78,9 @@ x <- gsub(x, pattern = "fputs(whisper_bench_memcpy_str(n_threads), stderr)", rep
 x <- gsub(x, pattern = "fputs(text, stderr);", replacement = "Rcpp::Rcout << text;", fixed = TRUE)
 x <- gsub(x, pattern = "rand()", replacement = "((int) floor(R::runif(0, 32767)))", fixed = TRUE)
 writeLines(x, "src/whisper_cpp/common.cpp")
+
+## Make sure Metal works - otherwise 
+x <- readLines("src/whisper_cpp/ggml-metal.m")
+x <- c('#ifndef R_NO_REMAP', '#define R_NO_REMAP 1', '#endif', '#import "R.h"', x)
+x <- gsub(x, pattern = "fprintf(stderr, ", replacement = "Rprintf(", fixed = TRUE)
+writeLines(x, "src/whisper_cpp/ggml-metal.m")

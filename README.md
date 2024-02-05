@@ -259,7 +259,9 @@ To find out which hardware acceleration options your hardware supports, you can 
 
   - Common settings to set for `WHISPER_CFLAGS` are `-mavx -mavx2 -mfma -mf16c` and extra possible flags `-msse3` and `mssse3` 
       - E.g. on my local Windows Intel machine I could set `-mavx -mavx2 -mfma -mf16c`
-      - For Mac users you can set `Sys.setenv(WHISPER_ACCELERATE = "1")` if your computer has the Accelerate framework
+      - For Mac users you can speed up transcriptions by setting before installation of audio.whisper
+          - `Sys.setenv(WHISPER_ACCELERATE = "1")` if your computer has the Accelerate framework
+          - `Sys.setenv(WHISPER_METAL = "1")` if your computer has a GPU based on Metal
       - On my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
       - If you have OpenBLAS installed, you can considerably speed up transcription by installing the R package with `Sys.setenv(WHISPER_OPENBLAS = "1")`
   - If you need extra settings in `PKG_CPPFLAGS` (`CXXFLAGS`), you can e.g. use `Sys.setenv(WHISPER_CPPFLAGS = "-mcpu=native")` before installing the package
