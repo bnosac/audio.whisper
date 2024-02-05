@@ -225,7 +225,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
-        WhisperModel(std::string model, bool use_gpu = false){
+        WhisperModel(std::string model, bool use_gpu = true){
           struct whisper_context_params cparams;
           cparams.use_gpu = use_gpu;
           ctx = whisper_init_from_file_with_params(model.c_str(), cparams);

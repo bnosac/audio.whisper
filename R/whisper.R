@@ -125,7 +125,8 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
   }else{
     out        <- list(file = x)  
   }
-  Sys.setenv("GGML_METAL_PATH_RESOURCES" = system.file(package = "audio.whisper", "metal"))
+  #Sys.setenv("GGML_METAL_PATH_RESOURCES" = system.file(package = "audio.whisper", "metal"))
+  file.copy(system.file(package = "audio.whisper", "metal", "ggml-metal.metal"), "ggml-metal.metal")
   out$model <- whisper_load_model(out$file, use_gpu = TRUE, ...)
   class(out) <- "whisper"
   out
