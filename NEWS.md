@@ -7,6 +7,7 @@
   - small-q5_1, small.en-q5_1
   - medium-q5_1, medium.en-q5_1
   - large-v2-q5_0 and large-v3-q5_0
+- Allow to disable printing the transcription evolution during the prediction with the trace argument
 
 ## CHANGES IN audio.whisper VERSION 0.3.1
 
