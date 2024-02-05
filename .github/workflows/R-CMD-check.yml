@@ -65,7 +65,7 @@ jobs:
   macOS-latest:
     runs-on: ${{ matrix.config.os }}
 
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    name: "macos-latest-accelerate-metal"
 
     strategy:
       fail-fast: false
@@ -82,6 +82,11 @@ jobs:
       WHISPER_METAL: "1"
     steps:
       - uses: actions/checkout@v3
+
+      - name: Dependencies
+        run: |
+          brew update
+          brew install sdl2
 
       - uses: r-lib/actions/setup-pandoc@v2
 
