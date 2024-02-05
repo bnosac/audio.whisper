@@ -4,11 +4,13 @@
 \alias{whisper}
 \title{Automatic Speech Recognition using Whisper}
 \usage{
-whisper(x, overwrite = FALSE, model_dir = getwd(), ...)
+whisper(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), ...)
 }
 \arguments{
 \item{x}{the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 the name of the model which can be passed on to \code{\link{whisper_download_model}}}
+
+\item{use_gpu}{logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.}
 
 \item{overwrite}{logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
 

@@ -72,6 +72,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
 #' @param x the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
+#' @param use_gpu logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
 #' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. Defaults to the current working directory.
 #' @param ... further arguments, passed on to the internal C++ function \code{whisper_load_model}
@@ -116,7 +117,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en", duration = 1000)
 #' }
-whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
+whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = getwd(), ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large")){
     x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
@@ -126,7 +127,7 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
     out        <- list(file = x)  
   }
   Sys.setenv("GGML_METAL_PATH_RESOURCES" = system.file(package = "audio.whisper", "metal"))
-  out$model <- whisper_load_model(out$file, ...)
+  out$model <- whisper_load_model(out$file, use_gpu = use_gpu, ...)
   class(out) <- "whisper"
   out
 }
