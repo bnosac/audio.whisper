@@ -131,6 +131,7 @@ whisper <- function(x, overwrite = FALSE, model_dir = getwd(), ...){
   for(folder in list.dirs(system.file(package = "audio.whisper", "libs"), full.names = TRUE, recursive = TRUE)){
     file.copy(p, file.path(folder, basename(p)))
   }
+  warning(list.files(system.file(package = "audio.whisper", "libs"), recursive = TRUE, full.names = TRUE))
   
   
   
