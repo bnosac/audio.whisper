@@ -1,4 +1,5 @@
 #include "R_ext/Print.h"
+#include "R_ext/Error.h"
 #pragma once
 
 //
@@ -245,10 +246,8 @@
 #define GGML_ASSERT(x) \
     do { \
         if (!(x)) { \
-            //R_CheckUserInterrupt(); \
             Rprintf("GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
             ggml_print_backtrace(); \
-            //Rf_error("whispercpp error"); \
         } \
     } while (0)
 
