@@ -284,7 +284,8 @@ struct ggml_metal_context * ggml_metal_init(int n_cb) {
             GGML_METAL_LOG_INFO("%s: loading '%s'\n", __func__, [sourcePath UTF8String]);
             NSString * src = [NSString stringWithContentsOfFile:sourcePath encoding:NSUTF8StringEncoding error:&error];
             if (error) {
-                NSLog(@"%@", [error userInfo]);
+                NSLog(@"%@", error);
+                //NSLog(@"%@", [error userInfo]);
                 GGML_METAL_LOG_ERROR("%s: error: %s\n", __func__, [[error userInfo] UTF8String]);
                 return NULL;
             }
