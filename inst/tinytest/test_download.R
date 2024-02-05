@@ -13,4 +13,16 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_false(identical(model$model, new("externalptr")))
   
   if(file.exists(path$file_model)) file.remove(path$file_model)
+  
+  ## Download a quantised model + load it
+  path  <- whisper_download_model("tiny-q5_1", overwrite = FALSE)
+  expect_inherits(path, "data.frame")
+  expect_true(path$download_success)
+  
+  model <- whisper("tiny")
+  expect_inherits(model, class = "whisper")
+  expect_inherits(model$model, class = "externalptr")
+  expect_false(identical(model$model, new("externalptr")))
+  
+  if(file.exists(path$file_model)) file.remove(path$file_model)
 }
