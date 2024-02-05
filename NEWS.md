@@ -8,8 +8,9 @@
 - whisper_download_model 
   - change default timeout to 10 minutes if no timeout is set by the user + change output element in the list to 'download_success' instead of 'download_failed'
   - model_dir now defaults to the directory set in the environment variable WHISPER_MODEL_DIR and if this is not set, the current working directory
-- predict.whisper
+- whisper
   - Add option use_gpu to be able to run the prediction on a GPU (e.g. Metal)
+- predict.whisper
   - Add option to pass on initial prompt
   - Output of predict.whisper adds the audio duration of the wav file in seconds in the params list element
   - Gains an extra argument indicating to transcribe or translate
