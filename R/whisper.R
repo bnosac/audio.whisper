@@ -87,11 +87,11 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 
 
 #' @title Automatic Speech Recognition using Whisper
-#' @description Automatic Speech Recognition using Whisper on 16-bit WAV files
+#' @description Automatic Speech Recognition using Whisper on 16-bit WAV files. Load the speech recognition model.
 #' @param x the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
 #' @param use_gpu logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.
-#' @param overwrite logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
+#' @param overwrite logical indicating to overwrite the model file if the model file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
 #' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
 #' Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory
 #' @param ... further arguments, passed on to the internal C++ function \code{whisper_load_model}
@@ -104,6 +104,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' @seealso \code{\link{predict.whisper}}
 #' @examples
 #' \dontrun{ 
+#' ## Provide shorthands 'tiny', 'base', 'small', 'medium', ...
 #' model <- whisper("tiny")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' trans

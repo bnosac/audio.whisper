@@ -18,7 +18,7 @@ the name of the model which can be passed on to \code{\link{whisper_download_mod
 
 \item{use_gpu}{logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.}
 
-\item{overwrite}{logical indicating to overwrite the file if the file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
+\item{overwrite}{logical indicating to overwrite the model file if the model file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
 
 \item{model_dir}{a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
 Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory}
@@ -33,10 +33,11 @@ an object of class \code{whisper} which is list with the following elements:
 }
 }
 \description{
-Automatic Speech Recognition using Whisper on 16-bit WAV files
+Automatic Speech Recognition using Whisper on 16-bit WAV files. Load the speech recognition model.
 }
 \examples{
 \dontrun{ 
+## Provide shorthands 'tiny', 'base', 'small', 'medium', ...
 model <- whisper("tiny")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
