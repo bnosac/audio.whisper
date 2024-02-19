@@ -1,6 +1,3 @@
-#include "R_ext/Print.h"
-#include "R_ext/Utils.h"
-#include "R_ext/Error.h"
 #pragma once
 
 //
@@ -71,7 +68,7 @@
 //
 //       ggml_graph_compute_with_ctx(ctx, &gf, n_threads);
 //
-//       Rprintf("f = %f\n", ggml_get_f32_1d(f, 0));
+//       printf("f = %f\n", ggml_get_f32_1d(f, 0));
 //
 //       ...
 //   }
@@ -247,10 +244,10 @@
 #define GGML_ASSERT(x) \
     do { \
         if (!(x)) { \
-            R_CheckUserInterrupt(); \
-            Rprintf("GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
+            fflush(stdout); \
+            fprintf(stderr, "GGML_ASSERT: %s:%d: %s\n", __FILE__, __LINE__, #x); \
             ggml_print_backtrace(); \
-            Rf_error("whispercpp error"); \
+            abort(); \
         } \
     } while (0)
 
