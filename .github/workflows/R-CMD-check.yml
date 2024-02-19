@@ -160,7 +160,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
-          sub-packages: '["nvcc", "visual_studio_integration"]'
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp", "npp_dev", "visual_studio_integration"]'
           cuda: '${{ matrix.cuda-toolkit }}'
           
       - name: Install CUDA Toolkit - Linux
