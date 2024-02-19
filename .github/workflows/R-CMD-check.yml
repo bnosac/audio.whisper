@@ -176,6 +176,7 @@ jobs:
           nvcc -V
           Rscript -e "print(sprintf('Cuda install location: %s', Sys.getenv('CUDA_PATH')))"
           Rscript -e "file.remove(list.files(pattern = '.exe$', full.names = TRUE))"
+          Rscript -e "file.remove(list.files(pattern = '.deb$', full.names = TRUE))"
           
       - name: List paths
         run: |
