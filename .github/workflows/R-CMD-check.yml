@@ -160,7 +160,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
-          sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime", "visual_studio_integration"]'
+          sub-packages: '["nvcc", "visual_studio_integration"]'
           cuda: '${{ matrix.cuda-toolkit }}'
           
       - name: Install CUDA Toolkit - Linux
@@ -177,7 +177,7 @@ jobs:
           nvcc -V
           nvcc --list-gpu-arch
           Rscript -e "print(sprintf('Cuda install location: %s', Sys.getenv('CUDA_PATH')))"
-          Rscript -e "file.remove(list.files(pattern = '.exe$', full.names = TRUE, recursive = TRUE))"
+          Rscript -e "#file.remove(list.files(pattern = '.exe$', full.names = TRUE, recursive = TRUE))"
           Rscript -e "file.remove(list.files(pattern = '.deb$', full.names = TRUE, recursive = TRUE))"
           
       - name: List paths
