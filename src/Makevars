@@ -152,8 +152,8 @@ ifdef WHISPER_CUBLAS
 	endif
 	
 	NVCC         = nvcc
-	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I$(CUDA_PATH)/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
-	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I$(CUDA_PATH)/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
+	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
+	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
 	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L$(CUDA_PATH)/lib64 -L$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib
 	NVCCFLAGS    = --forward-unknown-to-host-compiler -arch=$(CUDA_ARCH_FLAG)
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
