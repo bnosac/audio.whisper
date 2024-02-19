@@ -164,7 +164,7 @@ jobs:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
           sub-packages: '["nvcc"]'
-          non-cuda-sub-packages: '["libcublas"]'
+          non-cuda-sub-packages: '["cudart", "cudart-dev", "cublas", "cublas-dev"]'
       
       - name: CUDA setup
         run: |
@@ -178,15 +178,11 @@ jobs:
         shell: powershell
         run: |
           ls $env:CUDA_PATH
-          ls $env:CUDA_PATH\bin
-          ls $env:CUDA_PATH\include
 
       - name: List paths (linux)
         if: runner.os == 'Linux'
         run: |
-          ls $CUDA_PATH
-          ls $CUDA_PATH/bin
-          ls $CUDA_PATH/include
+          find $CUDA_PATH
           
       - name: Add msbuild to PATH
         if: runner.os == 'Windows'
