@@ -160,6 +160,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
+          sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime", "visual_studio_integration"]'
           cuda: '${{ matrix.cuda-toolkit }}'
           
       - name: Install CUDA Toolkit - Linux
@@ -169,7 +170,7 @@ jobs:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
           sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime"]'
-          non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev", "cuda-visual-tools"]'
+          non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
 
       - name: CUDA setup
         run: |
