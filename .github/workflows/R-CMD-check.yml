@@ -156,13 +156,13 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
           
-      - name: Install CUDA Toolkit
+      - name: Install CUDA Toolkit - Windows
         if: runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           
-      - name: Install CUDA Toolkit
+      - name: Install CUDA Toolkit - Linux
         if: runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
@@ -170,8 +170,7 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime"]'
           non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev", "cuda-visual-tools"]'
-          #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
-          
+
       - name: CUDA setup
         run: |
           nvcc -V
@@ -182,8 +181,7 @@ jobs:
         run: |
           Rscript -e "cat(list.files(Sys.getenv('CUDA_PATH'), full.names = TRUE, recursive = TRUE), sep = '\n')"
           Rscript -e "cat(list.files('/opt/cuda', full.names = TRUE, recursive = TRUE), sep = '\n')"
-          Rscript -e "cat(list.files(Sys.getenv('LD_LIBRARY_PATH'), full.names = TRUE, recursive = TRUE), sep = '\n')"
-        
+
       - name: Add msbuild to PATH
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v2
