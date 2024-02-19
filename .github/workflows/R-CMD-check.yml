@@ -154,7 +154,8 @@ jobs:
           cuda: '${{ matrix.cuda-toolkit }}'
       - run: echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
       - run: echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-          
+      - run: nvcc -V
+
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
