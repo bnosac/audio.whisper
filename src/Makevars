@@ -150,11 +150,11 @@ ifdef WHISPER_CUBLAS
 	else
 		CUDA_ARCH_FLAG ?= all
 	endif
-
+	
 	NVCC         = nvcc
-	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I/usr/local/cuda/include -I/opt/cuda/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
-	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I/usr/local/cuda/include -I/opt/cuda/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
-	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L/usr/local/cuda/lib64 -L/opt/cuda/lib64 -L$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib
+	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I$(CUDA_PATH)/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
+	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I$(CUDA_PATH)/include -I$(CUDA_PATH)/targets/$(UNAME_M)-linux/include
+	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L$(CUDA_PATH)/lib64 -L$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib
 	NVCCFLAGS    = --forward-unknown-to-host-compiler -arch=$(CUDA_ARCH_FLAG)
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
 
@@ -298,3 +298,5 @@ OBJECTS += $(OBJECTS_CUDA)
 all: $(SHLIB)
 
 $(SHLIB): $(OBJECTS)
+
+## SEE https://github.com/sfriedo/Rcpp-CUDA-TestPackage/blob/master/src/Makevars
