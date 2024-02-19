@@ -2,7 +2,6 @@
 ^\.Rproj\.user$
 .github
 .vscode
-*.exe
 inst/dev
 inst/model-repository
 LICENSE.note

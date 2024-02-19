@@ -163,8 +163,8 @@ jobs:
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
-          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp", "npp_dev", "visual_studio_integration"]'
-          #non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
+          sub-packages: '["nvcc", "cudart", "visual_studio_integration"]'
+          non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
           #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
       - name: CUDA setup
         run: |
@@ -172,6 +172,7 @@ jobs:
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           nvcc -V
           Rscript -e "print(Sys.getenv('CUDA_PATH'))"
+          Rscript -e "file.remove(list.files(pattern = '.exe$', full.names = TRUE))"
           
       - name: List paths (windows)
         if: runner.os == 'Windows'
