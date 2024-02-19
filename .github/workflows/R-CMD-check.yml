@@ -169,8 +169,8 @@ jobs:
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
-          sub-packages: '["nvcc", "cudart"]'
-          non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libnpp", "libnpp-dev", "cuda-visual-tools"]'
+          sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev"]'
+          non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev", "cuda-visual-tools"]'
           #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
           
       - name: CUDA setup
@@ -182,6 +182,7 @@ jobs:
       - name: List paths
         run: |
           Rscript -e "cat(list.files(Sys.getenv('CUDA_PATH'), full.names = TRUE, recursive = TRUE), sep = '\n')"
+          Rscript -e "cat(list.files('/opt/cuda', full.names = TRUE, recursive = TRUE), sep = '\n')"
           Rscript -e "cat(list.files(Sys.getenv('LD_LIBRARY_PATH'), full.names = TRUE, recursive = TRUE), sep = '\n')"
         
       - name: Add msbuild to PATH
