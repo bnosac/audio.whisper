@@ -114,8 +114,7 @@ jobs:
         run: |
           Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
-          
-          
+
   cublas:
     runs-on: ${{ matrix.config.os }}
     name: "cublas"
