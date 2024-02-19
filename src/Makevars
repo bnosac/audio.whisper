@@ -157,9 +157,6 @@ ifdef WHISPER_CUBLAS
 	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L$(CUDA_PATH)/lib64 -L$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib
 	NVCCFLAGS    = --forward-unknown-to-host-compiler -arch=$(CUDA_ARCH_FLAG)
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
-
-whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -Wno-pedantic -c $< -o $@
 endif
 
 ## Note/TODO: removed sections onWHISPER_HIPBLAS / WHISPER_CLBLAST
@@ -298,6 +295,9 @@ OBJECTS += $(OBJECTS_CUDA)
 all: $(SHLIB)
 
 $(SHLIB): $(OBJECTS)
+
+whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -Wno-pedantic -c $< -o $@
 
 ## SEE https://github.com/sfriedo/Rcpp-CUDA-TestPackage/blob/master/src/Makevars
 ## SEE https://github.com/cdeterman/gpuR/blob/master/inst/include/loader/Makefile
