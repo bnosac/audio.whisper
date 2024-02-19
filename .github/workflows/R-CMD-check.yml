@@ -158,14 +158,23 @@ jobs:
           needs: check
           
       - name: Install CUDA Toolkit
+        if: runner.os == 'Windows'
+        id: cuda-toolkit
+        uses: Jimver/cuda-toolkit@v0.2.14
+        with:
+          cuda: '${{ matrix.cuda-toolkit }}'
+          
+      - name: Install CUDA Toolkit
+        if: runner.os == 'Linux'
         id: cuda-toolkit
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
-          non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
+          non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libnpp", "libnpp-dev", "cuda-visual-tools"]'
           #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
+          
       - name: CUDA setup
         run: |
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
