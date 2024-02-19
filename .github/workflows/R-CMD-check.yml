@@ -116,15 +116,16 @@ jobs:
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
           
           
-  windows-cublas:
+  cublas:
     runs-on: ${{ matrix.config.os }}
-    name: "windows-cublas"
+    name: "cublas"
 
     strategy:
       fail-fast: false
       matrix:
         config:
           - {os: windows-latest,   r: 'release'}
+          - {os: ubuntu-latest,    r: 'release'}
         build: [Release]
         arch: [x64]
         cublas: [ON]
