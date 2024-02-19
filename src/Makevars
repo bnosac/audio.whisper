@@ -5,6 +5,10 @@ CXX_STD = CXX11
 #CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
 #LDFLAGS  =
 
+# Enable O3 optimisations
+PKG_CFLAGS   += -O3
+PKG_CPPFLAGS += -O3
+
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
 endif
