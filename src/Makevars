@@ -3,8 +3,6 @@ CXX_STD = CXX11
 
 CC    ="${R_HOME}/bin/R" CMD config CC
 CXX   ="${R_HOME}/bin/R" CMD config CXX
-CCV  := $(shell $(CC) --version | head -n 1)
-CXXV := $(shell $(CXX) --version | head -n 1)
 
 #CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
 #CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
@@ -258,10 +256,8 @@ $(info I UNAME_M:  $(UNAME_M))
 $(info I PKG_CFLAGS:   $(PKG_CFLAGS))
 $(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
 $(info I PKG_LIBS:  $(PKG_LIBS))
-$(info I CC:       $(CCV))
-$(info I CXX:      $(CXXV))
-$(info I CXX:      $(CXXV))
-$(info I CXXFLAGS:      $(CXXV))
+$(info I CC:       $(CC))
+$(info I CXX:      $(CXX))
 $(info )
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
@@ -278,3 +274,5 @@ OBJECTS += $(OBJECTS_METAL)
 
 SOURCES += $(SOURCES_COREML)
 OBJECTS += $(OBJECTS_COREML)
+
+all: $(SHLIB)
