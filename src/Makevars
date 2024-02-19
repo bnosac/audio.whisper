@@ -6,8 +6,8 @@ CXX_STD = CXX11
 #LDFLAGS  =
 
 # Enable O3 optimisations
-PKG_CFLAGS   += -O3
-PKG_CPPFLAGS += -O3
+PKG_CFLAGS   += -O3 -fPIC
+PKG_CPPFLAGS += -O3 -fPIC
 
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
@@ -156,7 +156,7 @@ ifdef WHISPER_CUBLAS
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
 endif
 
-## Note/TODO: removed sections onWHISPER_HIPBLAS / WHISPER_CLBLAST
+## Note/TODO: removed sections on WHISPER_HIPBLAS / WHISPER_CLBLAST
 
 ifdef WHISPER_GPROF
 	PKG_CFLAGS   += -pg
