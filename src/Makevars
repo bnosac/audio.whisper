@@ -159,7 +159,7 @@ ifdef WHISPER_CUBLAS
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
 
 whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) ${R_HOME}/include -Wno-pedantic -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -Wno-pedantic -c $< -o $@
 endif
 
 ## Note/TODO: removed sections onWHISPER_HIPBLAS / WHISPER_CLBLAST
