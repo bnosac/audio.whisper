@@ -162,6 +162,8 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
+          method: 'network'
+          sub-packages: '["nvcc"]'
       
       - name: CUDA setup
         run: |
