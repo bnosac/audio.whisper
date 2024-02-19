@@ -163,9 +163,9 @@ jobs:
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
-          sub-packages: '["nvcc"]'
-          non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
-      
+          sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp"]'
+          #non-cuda-sub-packages: '["libcublas", "libcublas-dev"]'
+          #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
       - name: CUDA setup
         run: |
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
