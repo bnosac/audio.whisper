@@ -125,6 +125,7 @@ jobs:
       matrix:
         config:
           - {os: windows-latest,   r: 'release'}
+          - {os: ubuntu-latest,   r: 'release'}
         build: [Release]
         arch: [x64]
         cublas: [ON]
