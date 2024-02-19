@@ -164,7 +164,7 @@ jobs:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
           sub-packages: '["nvcc"]'
-          non-cuda-sub-packages: '["libcudart", "libcublas", "libcublas_dev"]'
+          non-cuda-sub-packages: '["libcublas"]'
       
       - name: CUDA setup
         run: |
