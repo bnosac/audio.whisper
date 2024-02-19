@@ -159,14 +159,12 @@ jobs:
           
       - name: Install CUDA Toolkit
         if: runner.os == 'Windows'
-        id: cuda-toolkit
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           
       - name: Install CUDA Toolkit
         if: runner.os == 'Linux'
-        id: cuda-toolkit
         uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
@@ -177,10 +175,8 @@ jobs:
           
       - name: CUDA setup
         run: |
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           nvcc -V
-          Rscript -e "print(Sys.getenv('CUDA_PATH'))"
+          Rscript -e "print(sprintf('Cuda install location: %s', Sys.getenv('CUDA_PATH')))"
           Rscript -e "file.remove(list.files(pattern = '.exe$', full.names = TRUE))"
           
       - name: List paths (windows)
