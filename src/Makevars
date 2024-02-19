@@ -1,6 +1,9 @@
 PKG_LIBS = 
 CXX_STD = CXX11
 
+CCV  := $(shell $(CC) --version | head -n 1)
+CXXV := $(shell $(CXX) --version | head -n 1)
+
 #CFLAGS   = -I.              -O3 -DNDEBUG -std=c11   -fPIC
 #CXXFLAGS = -I. -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
 #LDFLAGS  =
@@ -253,8 +256,8 @@ $(info I UNAME_M:  $(UNAME_M))
 $(info I PKG_CFLAGS:   $(PKG_CFLAGS))
 $(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
 $(info I PKG_LIBS:  $(PKG_LIBS))
-#$(info I CC:       $(CCV))
-#$(info I CXX:      $(CXXV))
+$(info I CC:       $(CCV))
+$(info I CXX:      $(CXXV))
 $(info )
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
