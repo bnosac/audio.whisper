@@ -6,9 +6,22 @@
 library(av)
 download.file(url = "https://www.ubu.com/media/sound/dec_francis/Dec-Francis-E_rant1.mp3", 
               destfile = "rant1.mp3", mode = "wb")
-av_audio_convert("rant1.mp3", output = "output.wav", format = "wav", sample_rate = 16000)
+av_audio_convert("rant1.mp3", output = "output.wav", format = "wav", sample_rate = 16000, channels = 1)
 av_media_info("output.wav")
 ## 398 secs = 6.6 minutes
+
+## Detect segments with voice, predict these
+library(audio.vadwebrtc)
+vad    <- VAD("output.wav")
+voiced <- is.voiced(vad, units = "milliseconds")
+voiced <- subset(voiced, has_voice == TRUE)
+
+path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
+model <- whisper(path)
+i <- 2
+trans <- predict(model, newdata = "output.wav", language = "en", 
+                 offset = voiced$start[i] * 1000, duration = 10000, trace = FALSE)
+trans$data
 
 ## Function to make sure you unset environment variables relevant when installing audio.whisper
 ## to avoid mistakingly compiling with settings not wanted for the test
