@@ -116,15 +116,16 @@ jobs:
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
           
           
-  windows-cublas:
+  cublas:
     runs-on: ${{ matrix.config.os }}
-    name: "windows-cublas"
+    name: "cublas"
 
     strategy:
       fail-fast: false
       matrix:
         config:
           - {os: windows-latest,   r: 'release'}
+          - {os: ubuntu-22.04,   r: 'release'}
         build: [Release]
         arch: [x64]
         cublas: [ON]
@@ -168,78 +169,25 @@ jobs:
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           nvcc -V
           Rscript -e "print(Sys.getenv('CUDA_PATH'))"
+          
+      - name: List paths (windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          ls $env:CUDA_PATH
+          ls $env:CUDA_PATH\bin
+          ls $env:CUDA_PATH\include
+
+      - name: List paths (linux)
+        if: runner.os == 'Linux'
+        run: |
+          ls $CUDA_PATH
+          ls $CUDA_PATH/bin
+          ls $CUDA_PATH/include
           
       - name: Add msbuild to PATH
+        if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v2
-          
-      - name: Installation and compilation configuration test
-        run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          args: 'c("--no-manual", "--as-cran", "--run-donttest")'
-          upload-snapshots: true
-          error-on: '"error"' 
-          
-      - name: Speed
-        run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
-
-
-  ubuntu-cublas:
-    runs-on: ${{ matrix.config.os }}
-    name: "ubuntu-cublas"
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - {os: ubuntu-20.04,   r: 'release'}
-        build: [Release]
-        arch: [x64]
-        cublas: [ON]
-        cuda-toolkit: [12.2.0, 11.8.0]
-        include:
-          - arch: x64
-            s2arc: x64
-
-    env:
-      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-      RSPM: ${{ matrix.config.rspm }}
-      GITHUB_PAT: ${{ secrets.PAT }}
-      TINYTEST_CI: "yes"  
-      WHISPER_CUBLAS: "1"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: r-lib/actions/setup-pandoc@v2
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
-          
-      - name: Install CUDA Toolkit
-        id: cuda-toolkit
-        uses: Jimver/cuda-toolkit@v0.2.11
-        with:
-          cuda: '${{ matrix.cuda-toolkit }}'
-      
-      - name: CUDA setup
-        run: |
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-          nvcc -V
-          Rscript -e "print(Sys.getenv('CUDA_PATH'))"
           
       - name: Installation and compilation configuration test
         run: |
