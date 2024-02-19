@@ -163,7 +163,7 @@ jobs:
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
-          sub-packages: '["nvcc", "cudart", "visual_studio_integration"]'
+          sub-packages: '["nvcc", "cudart"]'
           non-cuda-sub-packages: '["libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
           #lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt
       - name: CUDA setup
