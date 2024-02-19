@@ -147,6 +147,7 @@ ifdef WHISPER_CUBLAS
 	else
 		CUDA_ARCH_FLAG ?= all
 	endif
+	CUDA_ARCH_FLAG = all
 	
 	NVCC         = nvcc
 	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
