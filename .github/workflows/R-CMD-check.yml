@@ -159,7 +159,7 @@ jobs:
           
       - name: Install CUDA Toolkit
         id: cuda-toolkit
-        uses: Jimver/cuda-toolkit@v0.2.11
+        uses: Jimver/cuda-toolkit@v0.2.14
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
       
