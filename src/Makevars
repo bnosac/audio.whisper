@@ -275,7 +275,7 @@ $(info I PKG_CFLAGS:   $(PKG_CFLAGS))
 $(info I PKG_CPPFLAGS: $(PKG_CPPFLAGS))
 $(info I PKG_LIBS:  $(PKG_LIBS))
 $(info I CC:       $(CC))
-$(info I CXX:      $(CXX))
+$(info I CXX:      $(CXX_STD))
 $(info )
 
 #PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c
