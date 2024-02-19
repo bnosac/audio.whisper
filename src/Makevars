@@ -295,4 +295,7 @@ all: $(SHLIB)
 $(SHLIB): $(OBJECTS)
 
 whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -Wno-pedantic -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -c $< -o $@
+
+## SEE https://github.com/sfriedo/Rcpp-CUDA-TestPackage/blob/master/src/Makevars
+## SEE https://github.com/cdeterman/gpuR/blob/master/inst/include/loader/Makefile
