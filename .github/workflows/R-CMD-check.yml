@@ -162,6 +162,7 @@ jobs:
         with:
           sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp", "npp_dev", "visual_studio_integration"]'
           cuda: '${{ matrix.cuda-toolkit }}'
+          #https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html
           
       - name: Install CUDA Toolkit - Linux
         if: runner.os == 'Linux'
@@ -171,6 +172,7 @@ jobs:
           method: 'network'
           sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime"]'
           non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
+          #https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/
 
       - name: CUDA setup
         run: |
