@@ -6,8 +6,8 @@ CXX_STD = CXX11
 #LDFLAGS  =
 
 # Enable O3 optimisations
-PKG_CFLAGS   += -O3 -fPIC
-PKG_CPPFLAGS += -O3 -fPIC
+PKG_CFLAGS   += -O3
+PKG_CPPFLAGS += -O3
 
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
@@ -295,7 +295,7 @@ all: $(SHLIB)
 $(SHLIB): $(OBJECTS)
 
 whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I${R_HOME}/include -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -fPIC -I${R_HOME}/include -c $< -o $@
 
 ## SEE https://github.com/sfriedo/Rcpp-CUDA-TestPackage/blob/master/src/Makevars
 ## SEE https://github.com/cdeterman/gpuR/blob/master/inst/include/loader/Makefile
