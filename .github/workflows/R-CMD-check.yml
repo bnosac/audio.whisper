@@ -179,17 +179,11 @@ jobs:
           Rscript -e "print(sprintf('Cuda install location: %s', Sys.getenv('CUDA_PATH')))"
           Rscript -e "file.remove(list.files(pattern = '.exe$', full.names = TRUE))"
           
-      - name: List paths (windows)
-        if: runner.os == 'Windows'
-        shell: powershell
+      - name: List paths
         run: |
-          ls $env:CUDA_PATH
-
-      - name: List paths (linux)
-        if: runner.os == 'Linux'
-        run: |
-          find $CUDA_PATH
-          
+          Rscript -e "cat(list.files(Sys.getenv('CUDA_PATH'), full.names = TRUE), sep = '\n')"
+          Rscript -e "cat(list.files(Sys.getenv('LD_LIBRARY_PATH'), full.names = TRUE), sep = '\n')"
+        
       - name: Add msbuild to PATH
         if: runner.os == 'Windows'
         uses: microsoft/setup-msbuild@v2
