@@ -142,20 +142,7 @@ jobs:
       WHISPER_CUBLAS: "1"
 
     steps:
-      - name: Clone
-        uses: actions/checkout@v3
-
-      - name: Install CUDA Toolkit
-        id: cuda-toolkit
-        uses: Jimver/cuda-toolkit@v0.2.11
-        with:
-          cuda: '${{ matrix.cuda-toolkit }}'
-      
-      - name: CUDA setup
-        run: |
-          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
-          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
-          nvcc -V
+      - uses: actions/checkout@v3
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -169,6 +156,19 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          
+      - name: Install CUDA Toolkit
+        id: cuda-toolkit
+        uses: Jimver/cuda-toolkit@v0.2.11
+        with:
+          cuda: '${{ matrix.cuda-toolkit }}'
+      
+      - name: CUDA setup
+        run: |
+          echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}"
+          echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
+          nvcc -V
+          Rscript -e "print(Sys.getenv('CUDA_PATH'))"
           
       - name: Installation and compilation configuration test
         run: |
