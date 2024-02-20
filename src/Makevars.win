@@ -150,9 +150,9 @@ ifdef WHISPER_CUBLAS
 	CUDA_ARCH_FLAG = all
 	
 	NVCC         = nvcc
-	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
-	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
-	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L$(CUDA_PATH)/lib64 -L/opt/cuda/lib64 -L$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib
+	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include"
+	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include"
+	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L$(CUDA_PATH)/lib/x64
 	NVCCFLAGS    = --forward-unknown-to-host-compiler -arch=$(CUDA_ARCH_FLAG)
 	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
 endif
@@ -295,7 +295,7 @@ all: $(SHLIB)
 $(SHLIB): $(OBJECTS)
 
 whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -fPIC -ccbin=$(CC) -I${R_HOME}/include -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -fPIC -I${R_HOME}/include -c $< -o $@
 
 ## SEE https://github.com/sfriedo/Rcpp-CUDA-TestPackage/blob/master/src/Makevars
 ## SEE https://github.com/cdeterman/gpuR/blob/master/inst/include/loader/Makefile
