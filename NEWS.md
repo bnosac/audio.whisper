@@ -1,3 +1,8 @@
+## CHANGES IN audio.whisper VERSION 0.3.3
+
+- Add option to download quantised models
+  - medium-q5_0, medium.en-q5_0 and remove medium-q5_1, medium.en-q5_1
+
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
 - Documentation of arguments in predict.whisper

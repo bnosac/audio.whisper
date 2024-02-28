@@ -150,7 +150,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.geten
               "tiny-q5_1", "tiny.en-q5_1", 
               "base-q5_1", "base.en-q5_1", 
               "small-q5_1", "small.en-q5_1", 
-              "medium-q5_1", "medium.en-q5_1", 
+              "medium-q5_0", "medium.en-q5_0", 
               "large-v2-q5_0", "large-v3-q5_0")){
     x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
@@ -216,7 +216,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.geten
 #' whisper_download_model("tiny-q5_1")
 #' whisper_download_model("base-q5_1")
 #' whisper_download_model("small-q5_1")
-#' whisper_download_model("medium-q5_1")
+#' whisper_download_model("medium-q5_0")
 #' whisper_download_model("large-v2-q5_0")
 #' whisper_download_model("large-v3-q5_0")
 #' }
@@ -227,7 +227,7 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
                                          "tiny-q5_1", "tiny.en-q5_1", 
                                          "base-q5_1", "base.en-q5_1", 
                                          "small-q5_1", "small.en-q5_1", 
-                                         "medium-q5_1", "medium.en-q5_1", 
+                                         "medium-q5_0", "medium.en-q5_0", 
                                          "large-v2-q5_0", "large-v3-q5_0"),
                                    model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
                                    repos = c("huggingface", "ggerganov"),

@@ -8,7 +8,7 @@ whisper_download_model(
   x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium",
     "medium.en", "large-v1", "large-v2", "large-v3", "large", "tiny-q5_1",
     "tiny.en-q5_1", "base-q5_1", "base.en-q5_1", "small-q5_1", "small.en-q5_1",
-    "medium-q5_1", "medium.en-q5_1", "large-v2-q5_0", "large-v3-q5_0"),
+    "medium-q5_0", "medium.en-q5_0", "large-v2-q5_0", "large-v3-q5_0"),
   model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
   repos = c("huggingface", "ggerganov"),
   version = c("1.5.4", "1.2.1"),
@@ -75,7 +75,7 @@ whisper_download_model("large-v3")
 whisper_download_model("tiny-q5_1")
 whisper_download_model("base-q5_1")
 whisper_download_model("small-q5_1")
-whisper_download_model("medium-q5_1")
+whisper_download_model("medium-q5_0")
 whisper_download_model("large-v2-q5_0")
 whisper_download_model("large-v3-q5_0")
 }
