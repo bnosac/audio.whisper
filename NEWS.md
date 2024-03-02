@@ -9,6 +9,8 @@
   - large-v2-q5_0 and large-v3-q5_0
 - Allow to disable printing the transcription evolution during the prediction with the trace argument
 - Enable O3 optimisations by default
+- Allow speedup of transcriptions by compiling with cuBLAS against CUDA on Linux
+  - specify Sys.setenv(WHISPER_CUBLAS = "1") before installing the package if you have a GPU with CUDA
 
 ## CHANGES IN audio.whisper VERSION 0.3.1
 

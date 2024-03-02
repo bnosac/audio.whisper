@@ -5,7 +5,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 ![](tools/logo-audio-whisper-x100.png)
 
 - The package allows to transcribe audio files using the ["Whisper" Automatic Speech Recognition model](https://github.com/openai/whisper)
-- The package is based on CPU-only inference engine written in C++11, no external software is needed, so that you can directly install and use it from R
+- The package is based on an inference engine written in C++11, no external software is needed, so that you can directly install and use it from R
 
 [![Actions Status](https://github.com/bnosac/audio.whisper/workflows/R-CMD-check/badge.svg)](https://github.com/bnosac/audio.whisper/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -53,7 +53,7 @@ path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 ```
 
-  - If you have a GPU (e.g. Mac with Metal and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying: `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
+  - If you have a GPU (e.g. Mac with Metal or Linux with CUDA and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying: `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
 
 **Transcribe a `.wav` audio file** 
   - using `predict(model, "path/to/audio/file.wav")` and 
@@ -246,8 +246,8 @@ If you want remove silences from your audio files. You could use R packages
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 
-  - It has AVX intrinsics support for x86 architectures, VSX intrinsics support for POWER architectures, Mixed F16 / F32 precision, for Apple silicon allows optimisation via Arm Neon and the Accelerate framework
-  - In order to gain from these **massive transcription speedups**, you need to set the correct C compilation flags when you install the R package, *otherwise transcription speed will be suboptimal*. 
+  - It has AVX intrinsics support for x86 architectures, VSX intrinsics support for POWER architectures, Mixed F16 / F32 precision, for Apple silicon allows optimisation via Arm Neon, the Accelerate framework and Metal and provides GPU support for NVIDIA
+  - In order to gain from these **massive transcription speedups**, you need to set the correct compilation flags when you install the R package, *otherwise transcription speed will be suboptimal*. 
   - Normally using the installation as described above, some of these compilation flags are detected and you'll see these printed when doing the installation   
   - It is however advised to set these compilation C flags yourself as follows right before you install the package such that [/src/Makevars](/src/Makevars) knows you want these optimisations for sure. This can be done by defining the environment variables `WHISPER_CFLAGS`, `WHISPER_CPPFLAGS`, `WHISPER_LIBS` as follows.
 
@@ -264,6 +264,9 @@ To find out which hardware acceleration options your hardware supports, you can 
       - For Mac users you can speed up transcriptions by setting before installation of audio.whisper
           - `Sys.setenv(WHISPER_ACCELERATE = "1")` if your computer has the Accelerate framework
           - `Sys.setenv(WHISPER_METAL = "1")` if your computer has a GPU based on Metal
+      - For Linux users which have a NVIDIA GPU, processing can be offloaded to the GPU to a large extent through cuBLAS. For this speedup, install the R package with following settings
+          - `Sys.setenv(WHISPER_CUBLAS = "1")`  
+          - set the path to CUDA if it is not at `/usr/local/cuda` as in `Sys.setenv(CUDA_PATH = "/usr/local/cuda-12.3")`
       - On my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
       - If you have OpenBLAS installed, you can considerably speed up transcription by installing the R package with `Sys.setenv(WHISPER_OPENBLAS = "1")`
   - If you need extra settings in `PKG_CPPFLAGS` (`CXXFLAGS`), you can e.g. use `Sys.setenv(WHISPER_CPPFLAGS = "-mcpu=native")` before installing the package
