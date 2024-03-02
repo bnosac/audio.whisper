@@ -1,4 +1,3 @@
-#include "R.h"
 #ifndef WHISPER_H
 #define WHISPER_H
 
@@ -56,14 +55,14 @@ extern "C" {
     //     struct whisper_context * ctx = whisper_init_from_file_with_params("/path/to/ggml-base.en.bin", cparams);
     //
     //     if (whisper_full(ctx, wparams, pcmf32.data(), pcmf32.size()) != 0) {
-    //         Rprintf("failed to process audio\n");
+    //         fprintf(stderr, "failed to process audio\n");
     //         return 7;
     //     }
     //
     //     const int n_segments = whisper_full_n_segments(ctx);
     //     for (int i = 0; i < n_segments; ++i) {
     //         const char * text = whisper_full_get_segment_text(ctx, i);
-    //         Rprintf("%s", text);
+    //         printf("%s", text);
     //     }
     //
     //     whisper_free(ctx);
