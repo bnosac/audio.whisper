@@ -141,7 +141,27 @@ ifdef WHISPER_OPENBLAS
 	PKG_LIBS    += $(shell pkg-config --cflags openblas)
 endif
 
-## Note/TODO: removed sections on WHISPER_CUBLAS / WHISPER_HIPBLAS / WHISPER_CLBLAST
+ifdef WHISPER_CUBLAS
+	ifeq ($(shell expr $(NVCC_VERSION) \>= 11.6), 1)
+		CUDA_ARCH_FLAG ?= native
+	else
+		CUDA_ARCH_FLAG ?= all
+	endif
+	#CUDA_ARCH_FLAG = all
+	
+	ifndef CUDA_PATH
+		CUDA_PATH := /usr/local/cuda
+  endif
+	
+	NVCC         = nvcc
+	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
+	PKG_CPPFLAGS += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
+	PKG_LIBS     += -lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L"$(CUDA_PATH)/lib64" -L/opt/cuda/lib64 -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib"
+	NVCCFLAGS    = --forward-unknown-to-host-compiler -arch=$(CUDA_ARCH_FLAG)
+	OBJECTS_CUDA = whisper_cpp/ggml-cuda.o
+endif
+
+## Note/TODO: removed sections on WHISPER_HIPBLAS / WHISPER_CLBLAST
 
 ifdef WHISPER_GPROF
 	PKG_CFLAGS   += -pg
@@ -271,3 +291,12 @@ OBJECTS += $(OBJECTS_METAL)
 
 SOURCES += $(SOURCES_COREML)
 OBJECTS += $(OBJECTS_COREML)
+
+OBJECTS += $(OBJECTS_CUDA)
+
+all: $(SHLIB)
+
+$(SHLIB): $(OBJECTS)
+
+whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -fPIC -I${R_HOME}/include -c $< -o $@
