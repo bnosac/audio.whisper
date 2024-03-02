@@ -151,7 +151,7 @@ ifdef WHISPER_CUBLAS
 	
 	ifndef CUDA_PATH
 		CUDA_PATH := /usr/local/cuda
-  endif
+	endif
 	
 	NVCC         = nvcc
 	PKG_CFLAGS   += -DGGML_USE_CUBLAS -I"$(CUDA_PATH)/include" -I"$(CUDA_PATH)/targets/$(UNAME_M)-linux/include"
