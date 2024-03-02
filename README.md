@@ -266,7 +266,7 @@ To find out which hardware acceleration options your hardware supports, you can 
           - `Sys.setenv(WHISPER_METAL = "1")` if your computer has a GPU based on Metal
       - For Linux users which have a NVIDIA GPU, processing can be offloaded to the GPU to a large extent through cuBLAS. For this speedup, install the R package with following settings
           - `Sys.setenv(WHISPER_CUBLAS = "1")`  
-          - set the path to CUDA if it is not at `/usr/local/cuda` as in `Sys.setenv(CUDA_PATH = "/usr/local/cuda-12.3")`
+          - make sure nvcc is in the PATH (e.g. `export PATH=/usr/local/cuda-12.3/bin${PATH:+:${PATH}}`) and set the path to CUDA if it is not at `/usr/local/cuda` as in `Sys.setenv(CUDA_PATH = "/usr/local/cuda-12.3")`
       - On my older local Ubuntu machine there were no optimisation possibilities. Your mileage may vary.
       - If you have OpenBLAS installed, you can considerably speed up transcription by installing the R package with `Sys.setenv(WHISPER_OPENBLAS = "1")`
   - If you need extra settings in `PKG_CPPFLAGS` (`CXXFLAGS`), you can e.g. use `Sys.setenv(WHISPER_CPPFLAGS = "-mcpu=native")` before installing the package
