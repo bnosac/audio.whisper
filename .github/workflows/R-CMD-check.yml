@@ -114,3 +114,98 @@ jobs:
         run: |
           Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
+
+  cublas:
+    runs-on: ${{ matrix.config.os }}
+    name: "cublas"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: windows-latest,   r: 'release'}
+          - {os: ubuntu-22.04,   r: 'release'}
+        build: [Release]
+        arch: [x64]
+        cublas: [ON]
+        cuda-toolkit: [12.2.0, 11.8.0]
+        include:
+          - arch: x64
+            s2arc: x64
+
+    env:
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      RSPM: ${{ matrix.config.rspm }}
+      GITHUB_PAT: ${{ secrets.PAT }}
+      TINYTEST_CI: "yes"  
+      WHISPER_CUBLAS: "1"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+          
+      - name: Install CUDA Toolkit - Windows
+        if: runner.os == 'Windows'
+        uses: Jimver/cuda-toolkit@v0.2.14
+        with:
+          #sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp", "npp_dev", "visual_studio_integration"]'
+          cuda: '${{ matrix.cuda-toolkit }}'
+          #https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html
+          
+      - name: Install CUDA Toolkit - Linux
+        if: runner.os == 'Linux'
+        uses: Jimver/cuda-toolkit@v0.2.14
+        with:
+          cuda: '${{ matrix.cuda-toolkit }}'
+          method: 'network'
+          sub-packages: '["nvcc", "cudart", "libraries", "libraries-dev", "runtime"]'
+          non-cuda-sub-packages: '["cuda", "libcublas", "libcublas-dev", "libnpp", "libnpp-dev"]'
+          #https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/
+
+      - name: CUDA setup
+        run: |
+          nvcc -V
+          nvcc --list-gpu-arch
+          Rscript -e "print(sprintf('Cuda install location: %s', Sys.getenv('CUDA_PATH')))"
+          Rscript -e "#file.remove(list.files(pattern = '.exe$', full.names = TRUE, recursive = TRUE))"
+          Rscript -e "file.remove(list.files(pattern = '.deb$', full.names = TRUE, recursive = TRUE))"
+          
+      - name: List paths
+        run: |
+          Rscript -e "cat(list.files(Sys.getenv('CUDA_PATH'), full.names = TRUE, recursive = TRUE), sep = '\n')"
+          Rscript -e "cat(list.files('/opt/cuda', full.names = TRUE, recursive = TRUE), sep = '\n')"
+
+      - name: Add msbuild to PATH
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+        
+      - name: Add cl.exe to PATH
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+          
+      - name: Installation and compilation configuration test
+        run: |
+          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--no-manual", "--as-cran", "--run-donttest")'
+          upload-snapshots: true
+          error-on: '"error"' 
+          
+      - name: Speed
+        run: |
+          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
