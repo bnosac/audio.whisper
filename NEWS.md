@@ -1,8 +1,3 @@
-## CHANGES IN audio.whisper VERSION 0.3.3
-
-- Add option to download quantised models
-  - medium-q5_0, medium.en-q5_0 and remove medium-q5_1, medium.en-q5_1
-
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
 - Documentation of arguments in predict.whisper
@@ -10,7 +5,7 @@
   - tiny-q5_1, tiny.en-q5_1
   - base-q5_1, base.en-q5_1
   - small-q5_1, small.en-q5_1
-  - medium-q5_1, medium.en-q5_1
+  - medium-q5_0, medium.en-q5_0
   - large-v2-q5_0 and large-v3-q5_0
 - Allow to disable printing the transcription evolution during the prediction with the trace argument
 - Enable O3 optimisations by default
