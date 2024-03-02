@@ -300,4 +300,4 @@ all: $(SHLIB)
 $(SHLIB): $(OBJECTS)
 
 whisper_cpp/ggml-cuda.o: whisper_cpp/ggml-cuda.cu whisper_cpp/ggml-cuda.h
-	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -fPIC -I${R_HOME}/include -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(PKG_CPPFLAGS) -I"$(R_INCLUDE_DIR)" -fPIC -c $< -o $@
