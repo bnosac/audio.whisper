@@ -16,6 +16,10 @@ vad    <- VAD("output.wav")
 voiced <- is.voiced(vad, units = "milliseconds")
 voiced <- subset(voiced, has_voice == TRUE)
 
+#av_audio_convert("output.wav", output = "example.wav", format = "wav", sample_rate = 16000, channels = 1, start_time = voiced$start / 1000, total_time = 5*60)
+#av_media_info("example.wav")
+
+
 path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 i <- 2
@@ -32,6 +36,7 @@ unset_whisper_env <- function(){
   Sys.unsetenv("WHISPER_ACCELERATE")
   Sys.unsetenv("WHISPER_METAL")
   Sys.unsetenv("WHISPER_OPENBLAS")
+  Sys.unsetenv("WHISPER_CUBLAS")
 }
 
 ##
@@ -52,6 +57,12 @@ remotes::install_github("bnosac/audio.whisper", force = TRUE)
 ##   note: on ubuntu install openblas with `sudo apt install libopenblas-dev`
 unset_whisper_env()
 Sys.setenv(WHISPER_OPENBLAS = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
+##
+## Install - with cuBLAS - see https://github.com/bnosac/audio.whisper/issues/27#issuecomment-1971417075
+##
+unset_whisper_env()
+Sys.setenv(WHISPER_CUBLAS = TRUE)
 remotes::install_github("bnosac/audio.whisper", force = TRUE)
 
 ##
