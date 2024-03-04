@@ -385,9 +385,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     // Get the data back in R
     const int n_segments = whisper_full_n_segments(ctx);
     std::vector<int> segment_nr;
-    Rcpp::StringVector transcriptions(n_segments);
-    Rcpp::StringVector transcriptions_from(n_segments);
-    Rcpp::StringVector transcriptions_to(n_segments);
+    Rcpp::StringVector transcriptions(0);
+    Rcpp::StringVector transcriptions_from(0);
+    Rcpp::StringVector transcriptions_to(0);
     std::vector<int> token_segment_nr;
     std::vector<int> token_segment_id;
     std::vector<std::string> token_segment_text;
@@ -397,11 +397,11 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     for (int i = 0; i < n_segments; ++i) {
         segment_nr.push_back(i + 1);
         const char * text = whisper_full_get_segment_text(ctx, i);
-        transcriptions[i] = Rcpp::String(text);
+        transcriptions.push_back(Rcpp::String(text));
         int64_t t0 = whisper_full_get_segment_t0(ctx, i);
         int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-        transcriptions_from[i] = Rcpp::String(to_timestamp(t0).c_str());
-        transcriptions_to[i] = Rcpp::String(to_timestamp(t1).c_str());
+        transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+        transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
         
         for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
             if (params.print_special == false) {
