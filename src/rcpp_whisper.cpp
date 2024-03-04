@@ -275,20 +275,19 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
         
+    if(trace > 0){
+        Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
+    }
+    const auto fname_inp = params.fname_inp[0];
+    std::vector<float> pcmf32;               // mono-channel F32 PCM
+    std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
+    
+    if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
+      Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
+      Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
+    }
+        
     for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
-        const auto fname_inp = params.fname_inp[f];
-        std::vector<float> pcmf32;               // mono-channel F32 PCM
-        std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
-
-        if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
-          Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
-          Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
-        }
-        
-        if(trace > 0){
-          Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
-        }
-        
         {
             if (!whisper_is_multilingual(ctx)) {
                 if (params.language != "en" || params.translate) {
