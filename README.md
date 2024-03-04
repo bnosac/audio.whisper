@@ -26,7 +26,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 For the *stable* version of this package: 
 
-- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.1")` (uses whisper.cpp version 1.5.4)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.2")` (uses whisper.cpp version 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (uses whisper.cpp version 1.2.1)
 
 Look to the documentation of the functions: `help(package = "audio.whisper")`
@@ -247,13 +247,13 @@ If you want remove silences from your audio files. You could use R packages
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 
   - It has AVX intrinsics support for x86 architectures, VSX intrinsics support for POWER architectures, Mixed F16 / F32 precision, for Apple silicon allows optimisation via Arm Neon, the Accelerate framework and Metal and provides GPU support for NVIDIA
-  - In order to gain from these **massive transcription speedups**, you need to set the correct compilation flags when you install the R package, *otherwise transcription speed will be suboptimal*. 
+  - In order to gain from these **massive transcription speedups**, you need to set the correct compilation flags when you install the R package, *otherwise transcription speed will be suboptimal* (a 5-minute audio fragment can either be transcribed in 40 minutes or 10 seconds depending on your hardware). 
   - Normally using the installation as described above, some of these compilation flags are detected and you'll see these printed when doing the installation   
   - It is however advised to set these compilation C flags yourself as follows right before you install the package such that [/src/Makevars](/src/Makevars) knows you want these optimisations for sure. This can be done by defining the environment variables `WHISPER_CFLAGS`, `WHISPER_CPPFLAGS`, `WHISPER_LIBS` as follows.
 
 ```
 Sys.setenv(WHISPER_CFLAGS = "-mavx -mavx2 -mfma -mf16c")
-remotes::install_github("bnosac/audio.whisper", ref = "0.3.1", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", ref = "0.3.2", force = TRUE)
 Sys.unsetenv("WHISPER_CFLAGS")
 ```
 
