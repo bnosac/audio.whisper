@@ -16,7 +16,7 @@ whisper(
 \item{x}{the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 the name of the model which can be passed on to \code{\link{whisper_download_model}}}
 
-\item{use_gpu}{logical indicating to use the GPU in case you have Metal. Defaults to \code{FALSE}.}
+\item{use_gpu}{logical indicating to use the GPU in case you have Metal or an NVIDIA GPU. Defaults to \code{FALSE}.}
 
 \item{overwrite}{logical indicating to overwrite the model file if the model file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
 

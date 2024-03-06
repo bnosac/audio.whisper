@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.3.3
+
+- Fixes of typos in documentation of functions
+
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
 - Documentation of arguments in predict.whisper
