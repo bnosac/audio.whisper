@@ -241,7 +241,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           bool split_on_word = false,
                           int max_context = -1,
                           std::string prompt = "",
-                          bool print_special = false) {
+                          bool print_special = false,
+                          bool diarize = false) {
     float audio_duration=0;
   
     whisper_params params;
@@ -261,6 +262,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.split_on_word = split_on_word;
     params.max_context = max_context;
     params.prompt = prompt;
+    params.diarize = diarize;
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
@@ -275,8 +277,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
         
-    for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
-        const auto fname_inp = params.fname_inp[f];
+    //for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
+        const auto fname_inp = params.fname_inp[0];
         std::vector<float> pcmf32;               // mono-channel F32 PCM
         std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
 
@@ -382,7 +384,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 Rcpp::stop("failed to process audio");
             }
         }
-    }
+    //}
     
     // Get the data back in R
     const int n_segments = whisper_full_n_segments(ctx);
@@ -390,6 +392,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     Rcpp::StringVector transcriptions(n_segments);
     Rcpp::StringVector transcriptions_from(n_segments);
     Rcpp::StringVector transcriptions_to(n_segments);
+    Rcpp::StringVector transcriptions_speaker(n_segments);
     std::vector<int> token_segment_nr;
     std::vector<int> token_segment_id;
     std::vector<std::string> token_segment_text;
@@ -404,6 +407,12 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         int64_t t1 = whisper_full_get_segment_t1(ctx, i);
         transcriptions_from[i] = Rcpp::String(to_timestamp(t0).c_str());
         transcriptions_to[i] = Rcpp::String(to_timestamp(t1).c_str());
+        if (params.diarize && pcmf32s.size() == 2) {
+          transcriptions_speaker[i] = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true));
+        }else{
+          transcriptions_speaker[i] = NA_STRING;  
+        }     
+        
         
         for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
             if (params.print_special == false) {
@@ -455,6 +464,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("from") = transcriptions_from,
                                                Rcpp::Named("to") = transcriptions_to,
                                                Rcpp::Named("text") = transcriptions, 
+                                               Rcpp::Named("speaker") = transcriptions_speaker,
                                                Rcpp::Named("stringsAsFactors") = false),
                                            Rcpp::Named("tokens") = tokens,
                                            Rcpp::Named("params") = Rcpp::List::create(
@@ -470,7 +480,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("logprob_thold") = params.logprob_thold,
                                                Rcpp::Named("beam_size") = params.beam_size,
                                                Rcpp::Named("best_of") = params.best_of,
-                                               Rcpp::Named("split_on_word") = params.split_on_word));
+                                               Rcpp::Named("split_on_word") = params.split_on_word,
+                                               Rcpp::Named("diarize") = params.diarize));
     
 
     

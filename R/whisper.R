@@ -21,11 +21,12 @@
 #' \item{beam_size: beam size for beam search. Defaults to -1}
 #' \item{best_of: number of best candidates to keep. Defaults to 5}
 #' \item{max_context: maximum number of text context tokens to store. Defaults to -1}
+#' \item{diarize: logical indicating to perform speaker diarization for audio with more than 1 channel}
 #' }
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
-#' \item{data: a data.frame with the transcription with columns segment, text, from and to}
+#' \item{data: a data.frame with the transcription with columns segment, text, from, to and optionally speaker if diarize=TRUE}
 #' \item{tokens: a data.frame with the transcription tokens with columns segment, token_id, token, token_prob indicating the token probability given the context}
 #' \item{params: a list with parameters used for inference}
 #' \item{timing: a list with elements start, end and duration indicating how long it took to do the transcription}
@@ -78,6 +79,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
     out$tokens$token           <- trimws(out$tokens$token)  
   }
   end <- Sys.time()
+  if(!out$diarize$params$diarize){
+    out$data$speaker <- NULL
+  }
   out$timing <- list(transcription_start = start, 
                      transcription_end = end, 
                      transcription_duration = difftime(end, start, units = "mins"))
@@ -133,6 +137,8 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en")
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
+#'                  language = "auto", diarize = TRUE)
 #' 
 #' \dontshow{
 #' ## Or provide the path to the model
