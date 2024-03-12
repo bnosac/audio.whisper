@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.3.3
 
 - Fixes of typos in documentation of functions
+- Add stereo.wav file
 
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
