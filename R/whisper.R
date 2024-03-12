@@ -62,6 +62,9 @@
 #' model <- whisper(path, use_gpu = TRUE)
 #' trans <- predict(model, newdata = audio, language = "en")
 #' trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
+#' ## Example of providing further arguments to predict.whisper
+#' audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
+#' trans <- predict(model, newdata = audio, language = "auto", diarize = TRUE)
 predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, trace = TRUE, ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
@@ -79,7 +82,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
     out$tokens$token           <- trimws(out$tokens$token)  
   }
   end <- Sys.time()
-  if(!out$diarize$params$diarize){
+  if(!out$params$diarize){
     out$data$speaker <- NULL
   }
   out$timing <- list(transcription_start = start, 

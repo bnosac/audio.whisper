@@ -86,6 +86,9 @@ trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRU
 model <- whisper(path, use_gpu = TRUE)
 trans <- predict(model, newdata = audio, language = "en")
 trans <- predict(model, newdata = audio, language = "en", token_timestamps = TRUE)
+## Example of providing further arguments to predict.whisper
+audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
+trans <- predict(model, newdata = audio, language = "auto", diarize = TRUE)
 }
 \seealso{
 \code{\link{whisper}}, \code{\link{whisper_languages}}
