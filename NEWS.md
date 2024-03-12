@@ -2,6 +2,7 @@
 
 - Fixes of typos in documentation of functions
 - Add stereo.wav file
+- Allow to do diarization for audio with 2 channels 
 
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
