@@ -66,6 +66,8 @@ path
 model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
                  language = "en")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
+                 language = "auto", diarize = TRUE)
 
 \dontshow{
 ## Or provide the path to the model
