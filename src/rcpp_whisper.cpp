@@ -115,7 +115,7 @@ struct whisper_print_user_data {
     int progress_prev;
 };
 
-std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s, int64_t t0, int64_t t1, bool id_only = false) {
+std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s, int64_t t0, int64_t t1, bool id_only = false, float energy_higher_percent = 1.1) {
     std::string speaker = "";
     const int64_t n_samples = pcmf32s[0].size();
 
@@ -130,9 +130,9 @@ std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s
         energy1 += fabs(pcmf32s[1][j]);
     }
 
-    if (energy0 > 1.1*energy1) {
+    if (energy0 > energy_higher_percent*energy1) {
         speaker = "0";
-    } else if (energy1 > 1.1*energy0) {
+    } else if (energy1 > energy_higher_percent*energy0) {
         speaker = "1";
     } else {
         speaker = "?";
@@ -158,7 +158,6 @@ void whisper_print_progress_callback(struct whisper_context * /*ctx*/, struct wh
 
 void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper_state * /*state*/, int n_new, void * user_data) {
     const auto & params  = *((whisper_print_user_data *) user_data)->params;
-    const auto & pcmf32s = *((whisper_print_user_data *) user_data)->pcmf32s;
 
     const int n_segments = whisper_full_n_segments(ctx);
 
@@ -181,23 +180,9 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
             t0 = whisper_full_get_segment_t0(ctx, i);
             t1 = whisper_full_get_segment_t1(ctx, i);
         }
-        if (params.diarize && pcmf32s.size() == 2) {
-            speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
-        }
         const char * text = whisper_full_get_segment_text(ctx, i);
         if(params.print_progress){
-          if (!params.no_timestamps) {
-            Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);
-          }else{
-            Rprintf("%s%s\n", speaker.c_str(), text);
-          }   
-        }
-        if (params.tinydiarize) {
-            if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
-                if(params.print_progress){
-                    Rprintf("%s", params.tdrz_speaker_turn.c_str());
-                }
-            }
+          Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);  
         }
         Rcpp::checkUserInterrupt();
     }
@@ -242,7 +227,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           int max_context = -1,
                           std::string prompt = "",
                           bool print_special = false,
-                          bool diarize = false) {
+                          bool diarize = false,
+                          float diarize_percent = 1.1) {
     float audio_duration=0;
   
     whisper_params params;
@@ -408,7 +394,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         transcriptions_from[i] = Rcpp::String(to_timestamp(t0).c_str());
         transcriptions_to[i] = Rcpp::String(to_timestamp(t1).c_str());
         if (params.diarize && pcmf32s.size() == 2) {
-          transcriptions_speaker[i] = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true));
+          transcriptions_speaker[i] = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent));
         }else{
           transcriptions_speaker[i] = NA_STRING;  
         }     

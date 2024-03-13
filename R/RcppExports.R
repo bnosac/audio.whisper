@@ -5,8 +5,8 @@ whisper_load_model <- function(model, use_gpu = FALSE) {
     .Call('_audio_whisper_whisper_load_model', PACKAGE = 'audio.whisper', model, use_gpu)
 }
 
-whisper_encode <- function(model, path, language, token_timestamps = FALSE, translate = FALSE, duration = 0L, offset = 0L, trace = 1L, n_threads = 1L, n_processors = 1L, entropy_thold = 2.40, logprob_thold = -1.00, beam_size = -1L, best_of = 5L, split_on_word = FALSE, max_context = -1L, prompt = "", print_special = FALSE, diarize = FALSE) {
-    .Call('_audio_whisper_whisper_encode', PACKAGE = 'audio.whisper', model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize)
+whisper_encode <- function(model, path, language, token_timestamps = FALSE, translate = FALSE, duration = 0L, offset = 0L, trace = 1L, n_threads = 1L, n_processors = 1L, entropy_thold = 2.40, logprob_thold = -1.00, beam_size = -1L, best_of = 5L, split_on_word = FALSE, max_context = -1L, prompt = "", print_special = FALSE, diarize = FALSE, diarize_percent = 1.1) {
+    .Call('_audio_whisper_whisper_encode', PACKAGE = 'audio.whisper', model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent)
 }
 
 whisper_print_benchmark <- function(model, n_threads = 1L) {
