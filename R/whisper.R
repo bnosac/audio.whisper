@@ -6,6 +6,7 @@
 #' @param newdata the path to a 16-bit .wav file
 #' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
 #' @param language the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.
+#' @param sections a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. Defaults to the full audio file. 
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param trace logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
@@ -65,10 +66,24 @@
 #' ## Example of providing further arguments to predict.whisper
 #' audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
 #' trans <- predict(model, newdata = audio, language = "auto", diarize = TRUE)
-predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, trace = TRUE, ...){
+predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", 
+                            sections = data.frame(start = integer(), duration = integer()), 
+                            trim = FALSE, trace = TRUE, ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
+  stopifnot(is.data.frame(sections) && all(c("start", "duration") %in% colnames(sections)))
+  ## If specific audio sections are requested
+  if(nrow(sections) > 0){
+    voiced  <- subset.wav(newdata, offset = sections$start, duration = sections$duration)
+    newdata <- voiced$file
+    on.exit({
+      if(file.exists(voiced$file)) file.remove(voiced$file)
+    })
+    skipped <- voiced$skipped
+  }else{
+    skipped <- data.frame(start = integer(), removed = integer())
+  }
   start <- Sys.time()
   if(type == "transcribe"){
     out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, trace = as.integer(trace), ...)
@@ -82,6 +97,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
     out$tokens$token           <- trimws(out$tokens$token)  
   }
   end <- Sys.time()
+  ## If specific audio sections are requested - make sure timestamps are correct 
+  if(nrow(sections) > 0){
+  }
   if(!out$params$diarize){
     out$data$speaker <- NULL
   }

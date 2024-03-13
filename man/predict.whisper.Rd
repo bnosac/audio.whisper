@@ -9,6 +9,7 @@
   newdata,
   type = c("transcribe", "translate"),
   language = "auto",
+  sections = data.frame(start = integer(), duration = integer()),
   trim = FALSE,
   trace = TRUE,
   ...
@@ -22,6 +23,8 @@
 \item{type}{character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.}
 
 \item{language}{the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.}
+
+\item{sections}{a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. Defaults to the full audio file.}
 
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 
