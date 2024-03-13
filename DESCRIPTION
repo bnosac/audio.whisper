@@ -22,7 +22,8 @@ Depends:
 Imports:
     Rcpp (>= 0.11.5)
 Suggests:
-    tinytest
+    tinytest,
+    audio
 LinkingTo: Rcpp
 SystemRequirements: GNU make
 RoxygenNote: 7.1.2
