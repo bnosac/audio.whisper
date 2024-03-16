@@ -26,7 +26,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 For the *stable* version of this package: 
 
-- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.2")` (uses whisper.cpp version 1.5.4)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (uses whisper.cpp version 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (uses whisper.cpp version 1.2.1)
 
 Look to the documentation of the functions: `help(package = "audio.whisper")`
@@ -253,7 +253,7 @@ The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](s
 
 ```
 Sys.setenv(WHISPER_CFLAGS = "-mavx -mavx2 -mfma -mf16c")
-remotes::install_github("bnosac/audio.whisper", ref = "0.3.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", ref = "0.3.3", force = TRUE)
 Sys.unsetenv("WHISPER_CFLAGS")
 ```
 
