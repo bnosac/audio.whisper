@@ -315,6 +315,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.print_progress   = false;
             if(trace > 0){
               wparams.print_progress = true;
+              wparams.print_realtime = true;
             }
             wparams.print_timestamps = !params.no_timestamps;
             wparams.print_special    = params.print_special;
@@ -354,30 +355,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 wparams.new_segment_callback           = whisper_print_segment_callback;
                 wparams.new_segment_callback_user_data = &user_data;
             }
-            
-            // examples for abort mechanism
-            // in examples below, we do not abort the processing, but we could if the flag is set to true
-
-            // the callback is called before every encoder run - if it returns false, the processing is aborted
-            {
-                static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-
-                wparams.encoder_begin_callback = [](struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, void * user_data) {
-                    bool is_aborted = *(bool*)user_data;
-                    return !is_aborted;
-                };
-                wparams.encoder_begin_callback_user_data = &is_aborted;
-            }
-
-            // the callback is called before every computation - if it returns true, the computation is aborted
-            {
-                static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-
-                wparams.abort_callback = [](void * user_data) {
-                    bool is_aborted = *(bool*)user_data;
-                    return is_aborted;
-                };
-                wparams.abort_callback_user_data = &is_aborted;
+            if(trace > 0 && offset.size() > 1){
+              Rcpp::Rcout << "Processing audio section " << wparams.offset_ms << "ms-" << wparams.offset_ms+wparams.duration_ms << "ms\n";
             }
             
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
