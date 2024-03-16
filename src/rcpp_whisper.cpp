@@ -302,6 +302,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     std::vector<float> token_segment_probability;
     std::vector<std::string> token_segment_from;
     std::vector<std::string> token_segment_to;
+    int n_segments;
     
     for (int f = 0; f < (int) offset.size(); ++f) {
         // run the inference
