@@ -303,7 +303,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     std::vector<std::string> token_segment_from;
     std::vector<std::string> token_segment_to;
     
-    //for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
+    for (int f = 0; f < (int) offset.size(); ++f) {
         // run the inference
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
@@ -383,7 +383,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 Rcpp::stop("failed to process audio");
             }
         }
-    //}
+    }
     const int n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
         segment_nr.push_back(i + 1);
