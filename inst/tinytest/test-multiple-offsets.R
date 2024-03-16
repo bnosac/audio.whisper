@@ -18,4 +18,18 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_equal(nrow(trans$data), 2)
   if(file.exists(model$file)) file.remove(model$file)
   if(file.exists(trans$params$audio)) file.remove(trans$params$audio)
+  
+  if(FALSE){
+    library(audio.whisper)
+    library(audio.vadwebrtc)
+    audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
+    ## Voice activity detection
+    vad    <- VAD(audio)
+    voiced <- is.voiced(vad, units = "milliseconds", silence_min = 1000)
+    voiced <- subset(voiced, has_voice == TRUE)
+    ## Transcription of voiced segments
+    path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
+    model <- whisper(path)
+    trans <- predict(model, newdata = audio, language = "auto", offset = voiced$start, duration = voiced$duration, trace = TRUE)
+  }
 }
