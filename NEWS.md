@@ -1,9 +1,12 @@
+## CHANGES IN audio.whisper VERSION 0.3.4
+
+- Allow to pass on multiple offset/durations
+
 ## CHANGES IN audio.whisper VERSION 0.3.3
 
 - Fixes of typos in documentation of functions
 - Add stereo.wav file
 - Allow to do diarization for audio with 2 channels by comparing the energy of the signal in each channel for each segment
-- Allow to pass on multiple offset/durations
 
 ## CHANGES IN audio.whisper VERSION 0.3.2
 
