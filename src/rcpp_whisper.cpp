@@ -385,9 +385,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             }
         }
     }
-    const int n_segments = whisper_full_n_segments(ctx);
+    n_segments = whisper_full_n_segments(ctx);
     for (int i = 0; i < n_segments; ++i) {
-        segment_nr.push_back(i + 1);
+        segment_nr.push_back(segment_nr.size() + 1);
         const char * text = whisper_full_get_segment_text(ctx, i);
         transcriptions.push_back(Rcpp::String(text));
         int64_t t0 = whisper_full_get_segment_t0(ctx, i);
