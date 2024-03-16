@@ -262,35 +262,34 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     struct whisper_context * ctx = whispermodel->ctx;
     //Rcpp::XPtr<whisper_context> ctx(model);
     //struct whisper_context * ctx = whisper_init(params.model.c_str());
-        
-    //for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
-        const auto fname_inp = params.fname_inp[0];
-        std::vector<float> pcmf32;               // mono-channel F32 PCM
-        std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
 
-        if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
-          Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
-          Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
+    const auto fname_inp = params.fname_inp[0];
+    std::vector<float> pcmf32;               // mono-channel F32 PCM
+    std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
+    
+    if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
+      Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
+      Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
+    }
+    
+    if(trace > 0){
+      Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
+    }
+    
+    {
+      if (!whisper_is_multilingual(ctx)) {
+        if (params.language != "en" || params.translate) {
+          params.language = "en";
+          params.translate = false;
+          Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
         }
-        
-        if(trace > 0){
-          Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
-        }
-        
-        {
-            if (!whisper_is_multilingual(ctx)) {
-                if (params.language != "en" || params.translate) {
-                    params.language = "en";
-                    params.translate = false;
-                    Rcpp::warning("WARNING: model is not multilingual, ignoring language and translation options");
-                }
-            }
-            if(trace > 0){
-              Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
-            }
-        }
-        audio_duration = float(pcmf32.size())/WHISPER_SAMPLE_RATE;
-        
+      }
+      if(trace > 0){
+        Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
+      }
+    }
+    audio_duration = float(pcmf32.size())/WHISPER_SAMPLE_RATE;
+    //for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
         // run the inference
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
