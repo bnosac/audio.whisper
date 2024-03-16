@@ -322,8 +322,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.detect_language  = params.detect_language;
             wparams.n_threads        = params.n_threads;
             wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
-            wparams.offset_ms        = params.offset_t_ms;
-            wparams.duration_ms      = params.duration_ms;
+            wparams.offset_ms        = (int) offset[f];
+            wparams.duration_ms      = (int) duration[f];
 
             wparams.token_timestamps = params.output_wts || params.output_jsn_full || params.max_len > 0;
             wparams.thold_pt         = params.word_thold;
