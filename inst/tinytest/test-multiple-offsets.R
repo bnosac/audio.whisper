@@ -30,6 +30,6 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
     ## Transcription of voiced segments
     path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
     model <- whisper(path)
-    trans <- predict(model, newdata = audio, language = "auto", offset = voiced$start, duration = voiced$duration, trace = TRUE)
+    trans <- predict(model, newdata = audio, language = "auto", offset = voiced$start, duration = voiced$duration, language = "es", trace = TRUE)
   }
 }
