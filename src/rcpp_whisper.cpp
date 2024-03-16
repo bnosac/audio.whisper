@@ -384,28 +384,27 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 Rcpp::stop("failed to process audio");
             }
         }
-    }
-    n_segments = whisper_full_n_segments(ctx);
-    for (int i = 0; i < n_segments; ++i) {
-        segment_nr.push_back(segment_nr.size() + 1);
-        const char * text = whisper_full_get_segment_text(ctx, i);
-        transcriptions.push_back(Rcpp::String(text));
-        int64_t t0 = whisper_full_get_segment_t0(ctx, i);
-        int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-        transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
-        transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
-        if (params.diarize && pcmf32s.size() == 2) {
-          transcriptions_speaker.push_back(Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent)));
-        }else{
-          transcriptions_speaker.push_back(NA_STRING);  
-        }     
-        
-        for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
+        n_segments = whisper_full_n_segments(ctx);
+        for (int i = 0; i < n_segments; ++i) {
+          segment_nr.push_back(segment_nr.size() + 1);
+          const char * text = whisper_full_get_segment_text(ctx, i);
+          transcriptions.push_back(Rcpp::String(text));
+          int64_t t0 = whisper_full_get_segment_t0(ctx, i);
+          int64_t t1 = whisper_full_get_segment_t1(ctx, i);
+          transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+          transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
+          if (params.diarize && pcmf32s.size() == 2) {
+            transcriptions_speaker.push_back(Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent)));
+          }else{
+            transcriptions_speaker.push_back(NA_STRING);  
+          }     
+          
+          for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
             if (params.print_special == false) {
-                const whisper_token id = whisper_full_get_token_id(ctx, i, j);
-                if (id >= whisper_token_eot(ctx)) {
-                    continue;
-                }
+              const whisper_token id = whisper_full_get_token_id(ctx, i, j);
+              if (id >= whisper_token_eot(ctx)) {
+                continue;
+              }
             }
             const char * text = whisper_full_get_token_text(ctx, i, j);
             const float  p    = whisper_full_get_token_p   (ctx, i, j);
@@ -416,12 +415,13 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             token_segment_text.push_back(str);
             token_segment_probability.push_back(p);
             if(token_timestamps){
-                whisper_token_data token = whisper_full_get_token_data(ctx, i, j);
-                t0 = token.t0;
-                t1 = token.t1;
-                token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
-                token_segment_to.push_back(to_timestamp(token.t1));
-            }
+              whisper_token_data token = whisper_full_get_token_data(ctx, i, j);
+              t0 = token.t0;
+              t1 = token.t1;
+              token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+              token_segment_to.push_back(to_timestamp(token.t1));
+            } 
+          }
         }
     }
     Rcpp::DataFrame tokens;
