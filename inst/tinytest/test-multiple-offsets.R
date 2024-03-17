@@ -22,14 +22,18 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   if(FALSE){
     library(audio.whisper)
     library(audio.vadwebrtc)
-    audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
+    library(av)
+    audio      <- system.file(package = "audio.whisper", "samples", "stereo.wav")
+    audio_mono <- audio
+    audio_mono <- tempfile(fileext = ".wav")
+    av_audio_convert(audio, channels = 1, output = audio_mono, format = "wav")
     ## Voice activity detection
-    vad    <- VAD(audio)
-    voiced <- is.voiced(vad, units = "milliseconds", silence_min = 1000)
+    vad    <- VAD(audio_mono)
+    voiced <- is.voiced(vad, units = "milliseconds", silence_min = 250)
     voiced <- subset(voiced, has_voice == TRUE)
     ## Transcription of voiced segments
-    path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
-    model <- whisper(path)
-    trans <- predict(model, newdata = audio, language = "auto", offset = voiced$start, duration = voiced$duration, language = "es", trace = TRUE)
+    model <- whisper("tiny")
+    trans <- predict(model, newdata = audio, language = "es", sections = voiced)
+    trans <- predict(model, newdata = audio, language = "es", offset = voiced$start, duration = voiced$duration)
   }
 }
