@@ -34,9 +34,20 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
     voiced
     p <- audio.whisper:::subset.wav(audio, offset = voiced$start, duration = voiced$duration)
     p
+    file.copy(p$file, to = "onlyvoiced.wav", overwrite = TRUE)
     ## Transcription of voiced segments
     model <- whisper("tiny")
     trans <- predict(model, newdata = audio, language = "es", sections = voiced)
     trans <- predict(model, newdata = audio, language = "es", offset = voiced$start, duration = voiced$duration)
+    
+    audio <- "example.wav"
+    download.file("https://github.com/jwijffels/example/raw/main/example.wav", audio)
+    model <- whisper("tiny")
+    sections <- data.frame(start = c(7*1000, 60*1000), duration = c(4*1500, 2*1000))
+    trans <- predict(model, newdata = audio, language = "en", offset = sections$start, duration = sections$duration)
+    trans <- predict(model, newdata = audio, language = "en", sections = sections)
+    p <- audio.whisper:::subset.wav(audio, offset = sections$start, duration = sections$duration)
+    p
+    file.copy(p$file, to = "onlyvoiced.wav", overwrite = TRUE)
   }
 }
