@@ -70,7 +70,8 @@ trans <- predict(model, newdata = system.file(package = "audio.whisper", "sample
                  language = "auto", diarize = TRUE)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
                  language = "auto", diarize = TRUE, 
-                 sections = data.frame(start = c(650, 6060, 10230), duration = c(4990, 3830, 11650)))
+                 sections = data.frame(start    = c( 650, 6060, 10230), 
+                                       duration = c(4990, 3830, 11650)))
 
 \dontshow{
 ## Or provide the path to the model
