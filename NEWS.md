@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.3.4
+
+- Allow to pass on multiple offset/durations
+
 ## CHANGES IN audio.whisper VERSION 0.3.3
 
 - Fixes of typos in documentation of functions
