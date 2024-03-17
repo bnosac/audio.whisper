@@ -24,7 +24,8 @@
 
 \item{language}{the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.}
 
-\item{sections}{a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. Defaults to the full audio file.}
+\item{sections}{a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. This will make a new audio file with 
+these sections, do the transcription and make sure the from/to timestamps are aligned to the original audio file. Defaults to transcribing the full audio file.}
 
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 

@@ -6,7 +6,8 @@
 #' @param newdata the path to a 16-bit .wav file
 #' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
 #' @param language the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.
-#' @param sections a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. Defaults to the full audio file. 
+#' @param sections a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. This will make a new audio file with 
+#' these sections, do the transcription and make sure the from/to timestamps are aligned to the original audio file. Defaults to transcribing the full audio file. 
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param trace logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
