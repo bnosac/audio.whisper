@@ -1,6 +1,7 @@
-## CHANGES IN audio.whisper VERSION 0.3.4
+## CHANGES IN audio.whisper VERSION 0.4
 
 - Allow to pass on multiple offset/durations
+- Allow to give sections in the audio (e.g. detected with a voice acitivy detector) to filter out these (voiced) data, make the transcription and make sure to add the amount of time which was cut out such that the resulting timepoints in from/to are aligned to the original audio file
 
 ## CHANGES IN audio.whisper VERSION 0.3.3
 
