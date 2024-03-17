@@ -55,5 +55,7 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
     p <- audio.whisper:::subset.wav(audio, offset = sections$start, duration = sections$duration)
     p
     file.copy(p$file, to = "onlyvoiced.wav", overwrite = TRUE)
+    trans <- predict(model, newdata = audio, language = "en", sections = sections, token_timestamps = TRUE)
+    
   }
 }
