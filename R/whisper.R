@@ -124,8 +124,15 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 align_skipped <- function(sentences, skipped){
   requireNamespace("data.table")
   #sentences       <- out$data
-  sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), format = "%Y-%m-%d %H:%M:%S:OS3"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
-  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to,   sep = " "), format = "%Y-%m-%d %H:%M:%S:OS3"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
+  
+  olddigits <- getOption("digits.secs")
+  options(digits.secs=3)
+  on.exit({
+    options(digits.secs = olddigits)
+    
+  })
+  sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
+  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to,   sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
   sentences       <- data.table::rbindlist(list(skipped   = skipped, 
                                                 sentences = sentences), 
                                            idcol = "grp", fill = TRUE)
@@ -134,8 +141,8 @@ align_skipped <- function(sentences, skipped){
   sentences$add   <- ifelse(is.na(sentences$add), 0, sentences$add)
   sentences$start <- sentences$start + sentences$add
   sentences$end   <- sentences$end   + sentences$add
-  sentences$from  <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$start / 1000, "%H:%M:%OS3")
-  sentences$to    <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$end   / 1000, "%H:%M:%OS3")
+  sentences$from  <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$start / 1000, "%H:%M:%OS")
+  sentences$to    <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$end   / 1000, "%H:%M:%OS")
   sentences       <- data.table::setDF(sentences)
   sentences
 }
