@@ -23,7 +23,8 @@ Imports:
     Rcpp (>= 0.11.5)
 Suggests:
     tinytest,
-    audio
+    audio,
+    data.table
 LinkingTo: Rcpp
 SystemRequirements: GNU make
 RoxygenNote: 7.1.2
