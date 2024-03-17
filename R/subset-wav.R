@@ -66,6 +66,7 @@ subset.wav <- function(x, offset, duration){
   ## extract what was removed
   voiced     <- data.frame(start = offset, end = offset + duration, duration = duration, has_voice = TRUE, stringsAsFactors = FALSE)
   required   <- c(1, voiced$end + 1)
+  required   <- c(1, voiced$end)
   voiced     <- rbind(voiced, 
                       data.frame(start     = required, 
                                  end       = rep(NA_integer_, length(required)), 
@@ -73,8 +74,10 @@ subset.wav <- function(x, offset, duration){
                                  has_voice = rep(FALSE, length(required)), stringsAsFactors = FALSE))
   voiced             <- voiced[order(voiced$start, decreasing = FALSE), ]
   voiced             <- voiced[!duplicated(voiced$start), ]
-  voiced$end         <- ifelse(is.na(voiced$end), c(voiced$start[-1] - 1, audio_duration * 1000L), voiced$end)
+  #voiced$end         <- ifelse(is.na(voiced$end), c(voiced$start[-1] - 1, audio_duration * 1000L), voiced$end)
+  voiced$end         <- ifelse(is.na(voiced$end), c(voiced$start[-1], audio_duration * 1000L), voiced$end)
   voiced$duration    <- voiced$end - voiced$start
+  #voiced$duration    <- voiced$end - voiced$start + 1
   skipped            <- voiced[voiced$has_voice == FALSE, ]
   skipped$taken_away <- cumsum(skipped$duration)
   skipped            <- data.frame(start = skipped$end, removed = skipped$taken_away)

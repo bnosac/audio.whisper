@@ -31,6 +31,9 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
     vad    <- VAD(audio_mono)
     voiced <- is.voiced(vad, units = "milliseconds", silence_min = 250)
     voiced <- subset(voiced, has_voice == TRUE)
+    voiced
+    p <- audio.whisper:::subset.wav(audio, offset = voiced$start, duration = voiced$duration)
+    p
     ## Transcription of voiced segments
     model <- whisper("tiny")
     trans <- predict(model, newdata = audio, language = "es", sections = voiced)
