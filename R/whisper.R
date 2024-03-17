@@ -124,8 +124,8 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 align_skipped <- function(sentences, skipped){
   requireNamespace("data.table")
   #sentences       <- out$data
-  sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), "%Y-%m-%d %H:%M:%S:OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
-  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to, sep = " "), "%Y-%m-%d %H:%M:%S:OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
+  sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), format = "%Y-%m-%d %H:%M:%S:OS3"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
+  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to,   sep = " "), format = "%Y-%m-%d %H:%M:%S:OS3"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
   sentences       <- data.table::rbindlist(list(skipped   = skipped, 
                                                 sentences = sentences), 
                                            idcol = "grp", fill = TRUE)
