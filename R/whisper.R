@@ -102,12 +102,12 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   if(nrow(sections) > 0){
     ## Align timestamps for out$data
     sentences <- align_skipped(sentences = out$data, skipped = skipped, from = "from", to = "to")
-    sentences <- subset(sentences, sentences$grp == "sentences", select = intersect(c("segment", "from", "to", "text", "speaker"), colnames(sentences)))
+    sentences <- subset(sentences, sentences$grp == "voiced", select = intersect(c("segment", "from", "to", "text", "speaker"), colnames(sentences)))
     out$data  <- sentences
     ## Align timestamps for out$tokens if they are requested
     if("token_from" %in% colnames(out$tokens)){
       tokens     <- align_skipped(sentences = out$tokens, skipped = skipped, from = "token_from", to = "token_to")
-      tokens     <- subset(tokens, tokens$grp == "sentences", select = intersect(c("segment", "token_id", "token", "token_prob", "token_from", "token_to"), colnames(tokens)))
+      tokens     <- subset(tokens, tokens$grp == "voiced", select = intersect(c("segment", "token_id", "token", "token_prob", "token_from", "token_to", "speaker"), colnames(tokens)))
       out$tokens <- tokens
     }
   }
@@ -133,8 +133,8 @@ align_skipped <- function(sentences, skipped, from = "from", to = "to"){
   today <- Sys.Date()
   sentences$start <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[from]], sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
   sentences$end   <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[to]],   sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
-  sentences       <- data.table::rbindlist(list(skipped   = skipped, 
-                                                sentences = sentences), 
+  sentences       <- data.table::rbindlist(list(skipped = skipped, 
+                                                voiced  = sentences), 
                                            idcol = "grp", fill = TRUE)
   sentences       <- sentences[order(sentences$start, decreasing = FALSE), ]
   sentences$add   <- data.table::nafill(sentences$removed, type = "locf")
