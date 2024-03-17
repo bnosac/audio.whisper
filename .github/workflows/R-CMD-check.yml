@@ -48,10 +48,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: |
-             any::rcmdcheck
-             audio
-             data.table
+          extra-packages: any::rcmdcheck, audio, data.table=?ignore-before-r=3.5.0
           needs: check
           
       - name: Installation and compilation configuration test
@@ -100,10 +97,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: |
-             any::rcmdcheck
-             audio
-             data.table
+          extra-packages: any::rcmdcheck, audio, data.table=?ignore-before-r=3.5.0
           needs: check
           
       - name: Installation and compilation configuration test
@@ -159,10 +153,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: |
-             any::rcmdcheck
-             audio
-             data.table
+          extra-packages: any::rcmdcheck, audio, data.table=?ignore-before-r=3.5.0
           needs: check
           
       - name: Install CUDA Toolkit - Windows
