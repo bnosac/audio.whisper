@@ -104,7 +104,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
     sentences       <- out$data
     sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), "%Y-%m-%d %H:%M:%S:OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
     sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to, sep = " "), "%Y-%m-%d %H:%M:%S:OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
-    sentences       <- data.table::rbindlist(list(sentences = sentences, skipped = skipped), idcol = "grp", fill = TRUE)
+    sentences       <- data.table::rbindlist(list(skipped = skipped, sentences = sentences), idcol = "grp", fill = TRUE)
     sentences       <- sentences[order(sentences$start, decreasing = FALSE), ]
     sentences$add   <- data.table::nafill(sentences$removed, type = "locf")
     sentences$add   <- ifelse(is.na(sentences$add), 0, sentences$add)

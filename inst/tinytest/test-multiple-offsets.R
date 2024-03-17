@@ -16,6 +16,12 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
                    offset = c(7*1000, 60*1000), duration = c(4*1500, 2*1000))
   expect_equal(trans$n_segments, 2)
   expect_equal(nrow(trans$data), 2)
+  
+  ## Multiple sections
+  sections <- data.frame(start = c(7*1000, 60*1000), duration = c(6*1000, 2*1000))
+  trans    <- predict(model, newdata = "example.wav", language = "en", sections = sections)
+  expect_equal(trans$n_segments, 2)
+  expect_equal(nrow(trans$data), 2)
   if(file.exists(model$file)) file.remove(model$file)
   if(file.exists(trans$params$audio)) file.remove(trans$params$audio)
   
@@ -43,7 +49,7 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
     audio <- "example.wav"
     download.file("https://github.com/jwijffels/example/raw/main/example.wav", audio)
     model <- whisper("tiny")
-    sections <- data.frame(start = c(7*1000, 60*1000), duration = c(4*1500, 2*1000))
+    sections <- data.frame(start = c(7*1000, 60*1000), duration = c(6*1000, 2*1000))
     trans <- predict(model, newdata = audio, language = "en", offset = sections$start, duration = sections$duration)
     trans <- predict(model, newdata = audio, language = "en", sections = sections)
     p <- audio.whisper:::subset.wav(audio, offset = sections$start, duration = sections$duration)

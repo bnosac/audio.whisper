@@ -24,7 +24,7 @@ if(FALSE){
 
 subset.wav <- function(x, offset, duration){
   # x: wav file
-  # offset: vector of integer offsets in milliseconds
+  # offset: vector of integer offsets in milliseconds, starting from 0
   # duration: vector of durations in milliseconds
   requireNamespace("audio")
   #download.file("https://github.com/jwijffels/example/raw/main/example.wav", "example.wav")
@@ -45,6 +45,13 @@ subset.wav <- function(x, offset, duration){
   regions <- lapply(seq_along(offset), FUN = function(i){
     seq.int(offset[i] * bits, by = 1L, length.out = duration[i] * bits)
   })
+  # lapply(regions, FUN = function(x){
+  #   out <- list(range = range(x), 
+  #               samples = length(x))
+  #   out$pct <- out$range / n_samples
+  #   out
+  # })
+  
   # offsets can not be outside the audio range
   datacheck <- lapply(regions, FUN = function(x) range(x) / n_samples)
   datacheck <- which(sapply(datacheck, FUN = function(x) any(x > 1 | x < 0)))
@@ -55,6 +62,7 @@ subset.wav <- function(x, offset, duration){
   }
   
   regions <- unlist(regions, use.names = FALSE)
+  regions <- regions[regions > 0]
   if(is.matrix(wave)){
     wave <- wave[, regions, drop = FALSE]
   }else{
@@ -65,7 +73,6 @@ subset.wav <- function(x, offset, duration){
   
   ## extract what was removed
   voiced     <- data.frame(start = offset, end = offset + duration, duration = duration, has_voice = TRUE, stringsAsFactors = FALSE)
-  required   <- c(1, voiced$end + 1)
   required   <- c(1, voiced$end)
   voiced     <- rbind(voiced, 
                       data.frame(start     = required, 
@@ -74,14 +81,14 @@ subset.wav <- function(x, offset, duration){
                                  has_voice = rep(FALSE, length(required)), stringsAsFactors = FALSE))
   voiced             <- voiced[order(voiced$start, decreasing = FALSE), ]
   voiced             <- voiced[!duplicated(voiced$start), ]
-  #voiced$end         <- ifelse(is.na(voiced$end), c(voiced$start[-1] - 1, audio_duration * 1000L), voiced$end)
   voiced$end         <- ifelse(is.na(voiced$end), c(voiced$start[-1], audio_duration * 1000L), voiced$end)
   voiced$duration    <- voiced$end - voiced$start
-  #voiced$duration    <- voiced$end - voiced$start + 1
-  skipped            <- voiced[voiced$has_voice == FALSE, ]
-  skipped$taken_away <- cumsum(skipped$duration)
-  skipped            <- data.frame(start = skipped$end, removed = skipped$taken_away)
-
+  skipped            <- voiced
+  skipped$taken_away <- cumsum(ifelse(skipped$has_voice, 0, skipped$duration))
+  skipped$start      <- skipped$start - skipped$taken_away
+  skipped$end        <- skipped$end   - skipped$taken_away
+  skipped            <- skipped[skipped$has_voice == TRUE, ]
+  skipped            <- data.frame(start = skipped$start - 1, removed = skipped$taken_away + 1)
   list(file = p, skipped = skipped, voiced = voiced)
 }
 
