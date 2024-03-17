@@ -35,14 +35,25 @@ subset.wav <- function(x, offset, duration){
   sample_rate <- attributes(wave)$rate
   bits        <- attributes(wave)$bits
   if(is.matrix(wave)){
-    audio_duration <- ncol(wave) / sample_rate
+    n_samples      <- ncol(wave)
+    audio_duration <- n_samples / sample_rate
   }else{
-    audio_duration <- length(wave) / sample_rate
+    n_samples      <- length(wave)
+    audio_duration <- n_samples / sample_rate
   }
   regions <- list()
   regions <- lapply(seq_along(offset), FUN = function(i){
     seq.int(offset[i] * bits, by = 1L, length.out = duration[i] * bits)
   })
+  # offsets can not be outside the audio range
+  datacheck <- lapply(regions, FUN = function(x) range(x) / n_samples)
+  datacheck <- which(sapply(datacheck, FUN = function(x) any(x > 1 | x < 0)))
+  if(length(datacheck) > 0){
+    datacheck <- list(offset = offset[tail(datacheck, n = 1)], 
+                      duration = duration[tail(datacheck, n = 1)])
+    stop(sprintf("Audio duration is: %s ms, provided offset/duration are outside of the audio range: %s ms / %s ms", audio_duration*1000, datacheck$offset, datacheck$duration))
+  }
+  
   regions <- unlist(regions, use.names = FALSE)
   if(is.matrix(wave)){
     wave <- wave[, regions, drop = FALSE]
