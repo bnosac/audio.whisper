@@ -101,12 +101,12 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   ## If specific audio sections are requested - make sure timestamps are correct 
   if(nrow(sections) > 0){
     ## Align timestamps for out$data
-    sentences <- align_skipped(sentences = out$data, skipped = skipped)
+    sentences <- align_skipped(sentences = out$data, skipped = skipped, from = "from", to = "to")
     sentences <- subset(sentences, sentences$grp == "sentences", select = intersect(c("segment", "from", "to", "text", "speaker"), colnames(sentences)))
     out$data  <- sentences
     ## Align timestamps for out$tokens if they are requested
     if("token_from" %in% colnames(out$tokens)){
-      tokens     <- align_skipped(sentences = out$tokens, skipped = skipped)
+      tokens     <- align_skipped(sentences = out$tokens, skipped = skipped, from = "token_from", to = "token_to")
       tokens     <- subset(tokens, tokens$grp == "sentences", select = intersect(c("segment", "token_id", "token", "token_prob", "token_from", "token_to"), colnames(tokens)))
       out$tokens <- tokens
     }
@@ -121,7 +121,7 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   out
 }
 
-align_skipped <- function(sentences, skipped){
+align_skipped <- function(sentences, skipped, from = "from", to = "to"){
   requireNamespace("data.table")
   #sentences       <- out$data
   
@@ -129,10 +129,10 @@ align_skipped <- function(sentences, skipped){
   options(digits.secs=3)
   on.exit({
     options(digits.secs = olddigits)
-    
   })
-  sentences$start <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$from, sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
-  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(Sys.Date(), sentences$to,   sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(Sys.Date()), units = "secs")) * 1000
+  today <- Sys.Date()
+  sentences$start <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[from]], sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
+  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[to]],   sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
   sentences       <- data.table::rbindlist(list(skipped   = skipped, 
                                                 sentences = sentences), 
                                            idcol = "grp", fill = TRUE)
@@ -141,8 +141,8 @@ align_skipped <- function(sentences, skipped){
   sentences$add   <- ifelse(is.na(sentences$add), 0, sentences$add)
   sentences$start <- sentences$start + sentences$add
   sentences$end   <- sentences$end   + sentences$add
-  sentences$from  <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$start / 1000, "%H:%M:%OS")
-  sentences$to    <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$end   / 1000, "%H:%M:%OS")
+  sentences[[from]]  <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$start / 1000, "%H:%M:%OS")
+  sentences[[to]]    <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$end   / 1000, "%H:%M:%OS")
   sentences       <- data.table::setDF(sentences)
   sentences
 }
