@@ -48,7 +48,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages:
+            - any::rcmdcheck
+            - audio
+            - data.table
           needs: check
           
       - name: Installation and compilation configuration test
@@ -97,7 +100,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages:
+            - any::rcmdcheck
+            - audio
+            - data.table
           needs: check
           
       - name: Installation and compilation configuration test
@@ -153,7 +159,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages:
+            - any::rcmdcheck
+            - audio
+            - data.table
           needs: check
           
       - name: Install CUDA Toolkit - Windows
