@@ -66,12 +66,21 @@ path
 model <- whisper(path)
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
                  language = "en")
+                 
+## Add diarization
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
                  language = "auto", diarize = TRUE)
+## Provide multiple offsets and durations to get the segments in there
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
+                 language = "auto", diarize = TRUE, 
+                 offset = c( 650, 6060, 10230), duration = c(4990, 3830, 11650))
+## Provide sections - this will make a new audio file and next do the transcription
+if(require(data.table) && require(audio)){
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
                  language = "auto", diarize = TRUE, 
                  sections = data.frame(start    = c( 650, 6060, 10230), 
                                        duration = c(4990, 3830, 11650)))
+}
 
 \dontshow{
 ## Or provide the path to the model

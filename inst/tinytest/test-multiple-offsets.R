@@ -18,12 +18,14 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   expect_equal(nrow(trans$data), 2)
   
   ## Multiple sections
+  if(require(data.table) && require(audio)){
   sections <- data.frame(start = c(7*1000, 60*1000), duration = c(6*1000, 2*1000))
   trans    <- predict(model, newdata = "example.wav", language = "en", sections = sections)
   expect_equal(trans$n_segments, 2)
   expect_equal(nrow(trans$data), 2)
   if(file.exists(model$file)) file.remove(model$file)
   if(file.exists(trans$params$audio)) file.remove(trans$params$audio)
+  }
   
   if(FALSE){
     library(audio.whisper)
