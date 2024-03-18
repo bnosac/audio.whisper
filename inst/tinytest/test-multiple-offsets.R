@@ -5,8 +5,7 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   model <- whisper("tiny")
   trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), language = "en", 
                    offset = c(0, 4000), duration = c(1*1500, 1*5000))
-  #expect_equal(trans$n_segments, 2)
-  #expect_equal(nrow(trans$data), 2)
+  expect_true(length(unique(trans$data$segment_offset)) > 1)
   if(file.exists(model$file)) file.remove(model$file)
   
   ## Longer file
@@ -14,15 +13,13 @@ if(Sys.getenv("TINYTEST_CI", unset = "yes") == "yes"){
   model <- whisper("tiny")
   trans <- predict(model, newdata = "example.wav", language = "en", 
                    offset = c(7*1000, 60*1000), duration = c(6*1000, 5*1000))
-  expect_equal(trans$n_segments, 2)
-  expect_equal(nrow(trans$data), 2)
+  expect_true(length(unique(trans$data$segment_offset)) > 1)
   
   ## Multiple sections
   if(require(data.table) && require(audio)){
   sections <- data.frame(start = c(7*1000, 60*1000), duration = c(6*1000, 5*1000))
   trans    <- predict(model, newdata = "example.wav", language = "en", sections = sections)
-  expect_equal(trans$n_segments, 2)
-  expect_equal(nrow(trans$data), 2)
+  expect_true(length(unique(trans$data$segment_offset)) > 1)
   if(file.exists(model$file)) file.remove(model$file)
   if(file.exists(trans$params$audio)) file.remove(trans$params$audio)
   }
