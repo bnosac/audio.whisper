@@ -292,6 +292,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     
     // Structures to get the data back in R
     std::vector<int> segment_nr;
+    std::vector<int> segment_offset;
     Rcpp::StringVector transcriptions(0);
     Rcpp::StringVector transcriptions_from(0);
     Rcpp::StringVector transcriptions_to(0);
@@ -357,7 +358,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 wparams.new_segment_callback_user_data = &user_data;
             }
             if(trace > 0 && offset.size() > 1){
-              Rcpp::Rcout << "Processing audio section " << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms\n";
+              Rcpp::Rcout << "Processing audio offset section " << f+1 << " (" << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms)\n";
             }
             
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
@@ -367,6 +368,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         n_segments = whisper_full_n_segments(ctx);
         for (int i = 0; i < n_segments; ++i) {
           segment_nr.push_back(segment_nr.size() + 1);
+          segment_offset.push_back(offset[f]);
           const char * text = whisper_full_get_segment_text(ctx, i);
           transcriptions.push_back(Rcpp::String(text));
           int64_t t0 = whisper_full_get_segment_t0(ctx, i);
@@ -432,6 +434,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("n_segments") = segment_nr.size(),
                                            Rcpp::Named("data") = Rcpp::DataFrame::create(
                                                Rcpp::Named("segment") = segment_nr, 
+                                               Rcpp::Named("segment_offset") = segment_offset, 
                                                Rcpp::Named("from") = transcriptions_from,
                                                Rcpp::Named("to") = transcriptions_to,
                                                Rcpp::Named("text") = transcriptions, 

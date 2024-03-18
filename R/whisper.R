@@ -6,13 +6,15 @@
 #' @param newdata the path to a 16-bit .wav file
 #' @param type character string with the type of prediction, can either be 'transcribe' or 'translate', where 'translate' will put the spoken text in English.
 #' @param language the language of the audio. Defaults to 'auto'. For a list of all languages the model can handle: see \code{\link{whisper_languages}}.
+#' @param sections a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. This will make a new audio file with 
+#' these sections, do the transcription and make sure the from/to timestamps are aligned to the original audio file. Defaults to transcribing the full audio file. 
+#' @param offset an integer vector of offsets in milliseconds to start the transcription. Defaults to 0 - indicating to transcribe the full audio file.
+#' @param duration an integer vector of durations in milliseconds indicating how many milliseconds need to be transcribed from the corresponding \code{offset} onwards. Defaults to 0 - indicating to transcribe the full audio file.
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param trace logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
 #' @details 
 #' \itemize{
-#' \item{offset: milliseconds indicating to start transcribing from that timepoint onwards. Defaults to 0.}
-#' \item{duration: how many milliseconds need to be transcribed. Defaults to the whole audio file.}
 #' \item{token_timestamps: logical indicating to get the timepoints of each token}
 #' \item{n_threads: how many threads to use to make the prediction. Defaults to 1}
 #' \item{prompt: the initial prompt to pass on the model. Defaults to ''}
@@ -23,10 +25,12 @@
 #' \item{max_context: maximum number of text context tokens to store. Defaults to -1}
 #' \item{diarize: logical indicating to perform speaker diarization for audio with more than 1 channel}
 #' }
+#' If sections are provided
+#' If multiple offsets/durations are provided 
 #' @return an object of class \code{whisper_transcription} which is a list with the following elements:
 #' \itemize{
 #' \item{n_segments: the number of audio segments}
-#' \item{data: a data.frame with the transcription with columns segment, text, from, to and optionally speaker if diarize=TRUE}
+#' \item{data: a data.frame with the transcription with columns segment, segment_offset, text, from, to and optionally speaker if diarize=TRUE}
 #' \item{tokens: a data.frame with the transcription tokens with columns segment, token_id, token, token_prob indicating the token probability given the context}
 #' \item{params: a list with parameters used for inference}
 #' \item{timing: a list with elements start, end and duration indicating how long it took to do the transcription}
@@ -65,15 +69,36 @@
 #' ## Example of providing further arguments to predict.whisper
 #' audio <- system.file(package = "audio.whisper", "samples", "stereo.wav")
 #' trans <- predict(model, newdata = audio, language = "auto", diarize = TRUE)
-predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", trim = FALSE, trace = TRUE, ...){
+predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", 
+                            sections = data.frame(start = integer(), duration = integer()), 
+                            offset = 0L, duration = 0L,
+                            trim = FALSE, trace = TRUE, ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))
+  stopifnot(is.data.frame(sections) && all(c("start", "duration") %in% colnames(sections)))
+  path <- newdata
+  ##
+  ## If specific audio sections are requested
+  ##
+  if(nrow(sections) > 0){
+    if(length(offset) > 1 || length(duration) > 1 || any(offset != 0) || any(duration != 0)){
+      stop("sections can not be combined with offset/duration")
+    }
+    voiced  <- subset.wav(newdata, offset = sections$start, duration = sections$duration)
+    path    <- voiced$file
+    on.exit({
+      if(file.exists(voiced$file)) file.remove(voiced$file)
+    })
+    skipped <- voiced$skipped
+  }else{
+    skipped <- data.frame(start = integer(), removed = integer())
+  }
   start <- Sys.time()
   if(type == "transcribe"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = FALSE, trace = as.integer(trace), ...)
+    out <- whisper_encode(model = object$model, path = path, language = language, translate = FALSE, trace = as.integer(trace), offset = offset, duration = duration, ...)
   }else if(type == "translate"){
-    out <- whisper_encode(model = object$model, path = newdata, language = language, translate = TRUE, trace = as.integer(trace), ...)
+    out <- whisper_encode(model = object$model, path = path, language = language, translate = TRUE, trace = as.integer(trace), offset = offset, duration = duration, ...)
   }
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
@@ -82,6 +107,22 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
     out$tokens$token           <- trimws(out$tokens$token)  
   }
   end <- Sys.time()
+  ##
+  ## If specific audio sections are requested - make sure timestamps are correct 
+  ##
+  if(nrow(sections) > 0){
+    out$params$audio <- newdata
+    ## Align timestamps for out$data
+    sentences <- align_skipped(sentences = out$data, skipped = skipped, from = "from", to = "to")
+    sentences <- subset(sentences, sentences$grp == "voiced", select = intersect(c("segment", "segment_offset", "from", "to", "text", "speaker"), colnames(sentences)))
+    out$data  <- sentences
+    ## Align timestamps for out$tokens if they are requested
+    if("token_from" %in% colnames(out$tokens)){
+      tokens     <- align_skipped(sentences = out$tokens, skipped = skipped, from = "token_from", to = "token_to")
+      tokens     <- subset(tokens, tokens$grp == "voiced", select = intersect(c("segment", "token_id", "token", "token_prob", "token_from", "token_to", "speaker"), colnames(tokens)))
+      out$tokens <- tokens
+    }
+  }
   if(!out$params$diarize){
     out$data$speaker <- NULL
   }
@@ -90,6 +131,34 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
                      transcription_duration = difftime(end, start, units = "mins"))
   class(out) <- "whisper_transcription"
   out
+}
+
+align_skipped <- function(sentences, skipped, from = "from", to = "to"){
+  requireNamespace("data.table")
+  #sentences       <- out$data
+  
+  olddigits <- getOption("digits.secs")
+  options(digits.secs=3)
+  on.exit({
+    options(digits.secs = olddigits)
+  })
+  today <- Sys.Date()
+  sentences$start <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[from]], sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
+  sentences$end   <- as.numeric(difftime(as.POSIXct(paste(today, sentences[[to]],   sep = " "), format = "%Y-%m-%d %H:%M:%OS"), as.POSIXct(paste(today, "00:00:00.000", sep = " "), format = "%Y-%m-%d %H:%M:%OS"), units = "secs")) * 1000
+  sentences       <- data.table::rbindlist(list(skipped = skipped, 
+                                                voiced  = sentences), 
+                                           idcol = "grp", fill = TRUE)
+  sentences       <- sentences[order(sentences$start, decreasing = FALSE), ]
+  sentences$add   <- data.table::nafill(sentences$removed, type = "locf")
+  sentences$add   <- ifelse(is.na(sentences$add), 0, sentences$add)
+  sentences$start <- sentences$start + sentences$add
+  sentences$end   <- sentences$end   + sentences$add
+  sentences[[from]]  <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$start / 1000, "%H:%M:%OS")
+  sentences[[to]]    <- format(as.POSIXct("1970-01-01 00:00:00", tz = "UTC") + sentences$end   / 1000, "%H:%M:%OS")
+  sentences$segment_offset <- data.table::nafill(ifelse(sentences$grp == "skipped", sentences$start, NA_integer_), type = "locf")
+  sentences$segment_offset <- ifelse(is.na(sentences$segment_offset), 0L, sentences$segment_offset)
+  sentences       <- data.table::setDF(sentences)
+  sentences
 }
 
 
@@ -140,8 +209,21 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
 #' model <- whisper(path)
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en")
+#'                  
+#' ## Add diarization
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
-#'                  language = "auto", diarize = TRUE)
+#'                  language = "es", diarize = TRUE)
+#' ## Provide multiple offsets and durations to get the segments in there
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
+#'                  language = "es", diarize = TRUE, 
+#'                  offset = c( 650, 6060, 10230), duration = c(4990, 3830, 11650))
+#' ## Provide sections - this will make a new audio file and next do the transcription
+#' if(require(data.table) && require(audio)){
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "stereo.wav"), 
+#'                  language = "es", diarize = TRUE, 
+#'                  sections = data.frame(start    = c( 650, 6060, 10230), 
+#'                                        duration = c(4990, 3830, 11650)))
+#' }
 #' 
 #' \dontshow{
 #' ## Or provide the path to the model

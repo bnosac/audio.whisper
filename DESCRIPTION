@@ -1,7 +1,7 @@
 Package: audio.whisper
 Type: Package
 Title: Transcribe Audio Files using the "Whisper" Automatic Speech Recognition Model
-Version: 0.3.4
+Version: 0.4
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
     person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
@@ -20,10 +20,12 @@ Encoding: UTF-8
 Depends:
     R (>= 2.10)
 Imports:
-    Rcpp (>= 0.11.5)
+    Rcpp (>= 0.11.5),
+    utils
 Suggests:
     tinytest,
-    audio
+    audio,
+    data.table (>= 1.12.4)
 LinkingTo: Rcpp
 SystemRequirements: GNU make
 RoxygenNote: 7.1.2
