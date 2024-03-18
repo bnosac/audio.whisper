@@ -302,6 +302,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     std::vector<float> token_segment_probability;
     std::vector<std::string> token_segment_from;
     std::vector<std::string> token_segment_to;
+    //Rcpp::StringVector token_speaker(0);
     int n_segments;
     
     for (int f = 0; f < (int) offset.size(); ++f) {
@@ -372,11 +373,13 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
           int64_t t1 = whisper_full_get_segment_t1(ctx, i);
           transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
           transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
+          Rcpp::String channel_speaker;
           if (params.diarize && pcmf32s.size() == 2) {
-            transcriptions_speaker.push_back(Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent)));
+            channel_speaker = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent));
           }else{
-            transcriptions_speaker.push_back(NA_STRING);  
-          }     
+            channel_speaker = NA_STRING;
+          }    
+          transcriptions_speaker.push_back(channel_speaker);
           
           for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
             if (params.print_special == false) {
@@ -400,6 +403,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
               token_segment_to.push_back(to_timestamp(token.t1));
             } 
+            //token_speaker.push_back(channel_speaker);
           }
         }
     }
@@ -412,6 +416,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             Rcpp::Named("token_prob") = token_segment_probability,
             Rcpp::Named("token_from") = token_segment_from,
             Rcpp::Named("token_to") = token_segment_to,
+            //Rcpp::Named("token_speaker") = token_speaker,
             Rcpp::Named("stringsAsFactors") = false);
     }else{
         tokens = Rcpp::DataFrame::create(
@@ -419,6 +424,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             Rcpp::Named("token_id") = token_segment_id, 
             Rcpp::Named("token") = token_segment_text, 
             Rcpp::Named("token_prob") = token_segment_probability,
+            //Rcpp::Named("token_speaker") = token_speaker,
             Rcpp::Named("stringsAsFactors") = false);
     }
     
