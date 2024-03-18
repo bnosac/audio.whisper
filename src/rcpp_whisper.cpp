@@ -292,6 +292,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     
     // Structures to get the data back in R
     std::vector<int> segment_nr;
+    std::vector<int> segment_offset;
     Rcpp::StringVector transcriptions(0);
     Rcpp::StringVector transcriptions_from(0);
     Rcpp::StringVector transcriptions_to(0);
@@ -367,6 +368,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         n_segments = whisper_full_n_segments(ctx);
         for (int i = 0; i < n_segments; ++i) {
           segment_nr.push_back(segment_nr.size() + 1);
+          segment_offset.push_back(offset[f]);
           const char * text = whisper_full_get_segment_text(ctx, i);
           transcriptions.push_back(Rcpp::String(text));
           int64_t t0 = whisper_full_get_segment_t0(ctx, i);
@@ -432,6 +434,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     Rcpp::List output = Rcpp::List::create(Rcpp::Named("n_segments") = segment_nr.size(),
                                            Rcpp::Named("data") = Rcpp::DataFrame::create(
                                                Rcpp::Named("segment") = segment_nr, 
+                                               Rcpp::Named("segment_offset") = segment_offset, 
                                                Rcpp::Named("from") = transcriptions_from,
                                                Rcpp::Named("to") = transcriptions_to,
                                                Rcpp::Named("text") = transcriptions, 
