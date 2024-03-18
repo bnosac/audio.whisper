@@ -446,10 +446,12 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("beam_size") = params.beam_size,
                                                Rcpp::Named("best_of") = params.best_of,
                                                Rcpp::Named("split_on_word") = params.split_on_word,
-                                               Rcpp::Named("diarize") = params.diarize));
-    
-
-    
+                                               Rcpp::Named("diarize") = params.diarize,
+                                               Rcpp::Named("system_info") = Rcpp::List::create(
+                                                 Rcpp::Named("n_threads") = params.n_threads,
+                                                 Rcpp::Named("n_processors") = params.n_processors,
+                                                 Rcpp::Named("available_concurrency") = std::thread::hardware_concurrency(),
+                                                 Rcpp::Named("optimisations") = whisper_print_system_info())));
     return output;
 }
 
