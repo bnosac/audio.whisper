@@ -358,7 +358,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                 wparams.new_segment_callback_user_data = &user_data;
             }
             if(trace > 0 && offset.size() > 1){
-              Rcpp::Rcout << "Processing audio section " << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms\n";
+              Rcpp::Rcout << "Processing audio offset section " << f+1 << " (" << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms)\n";
             }
             
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
