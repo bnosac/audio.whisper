@@ -10,6 +10,8 @@
   type = c("transcribe", "translate"),
   language = "auto",
   sections = data.frame(start = integer(), duration = integer()),
+  offset = 0L,
+  duration = 0L,
   trim = FALSE,
   trace = TRUE,
   ...
@@ -27,6 +29,10 @@
 \item{sections}{a data.frame with columns start and duration (measured in milliseconds) indicating voice segments to transcribe. This will make a new audio file with 
 these sections, do the transcription and make sure the from/to timestamps are aligned to the original audio file. Defaults to transcribing the full audio file.}
 
+\item{offset}{an integer vector of offsets in milliseconds to start the transcription. Defaults to 0 - indicating to transcribe the full audio file.}
+
+\item{duration}{an integer vector of durations in milliseconds indicating how many milliseconds need to be transcribed from the corresponding \code{offset} onwards. Defaults to 0 - indicating to transcribe the full audio file.}
+
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 
 \item{trace}{logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}}
@@ -37,7 +43,7 @@ these sections, do the transcription and make sure the from/to timestamps are al
 an object of class \code{whisper_transcription} which is a list with the following elements:
 \itemize{
 \item{n_segments: the number of audio segments}
-\item{data: a data.frame with the transcription with columns segment, text, from, to and optionally speaker if diarize=TRUE}
+\item{data: a data.frame with the transcription with columns segment, segment_offset, text, from, to and optionally speaker if diarize=TRUE}
 \item{tokens: a data.frame with the transcription tokens with columns segment, token_id, token, token_prob indicating the token probability given the context}
 \item{params: a list with parameters used for inference}
 \item{timing: a list with elements start, end and duration indicating how long it took to do the transcription}
@@ -48,8 +54,6 @@ Automatic Speech Recognition using Whisper on 16-bit WAV files
 }
 \details{
 \itemize{
-\item{offset: milliseconds indicating to start transcribing from that timepoint onwards. Defaults to 0.}
-\item{duration: how many milliseconds need to be transcribed. Defaults to the whole audio file.}
 \item{token_timestamps: logical indicating to get the timepoints of each token}
 \item{n_threads: how many threads to use to make the prediction. Defaults to 1}
 \item{prompt: the initial prompt to pass on the model. Defaults to ''}
@@ -60,6 +64,8 @@ Automatic Speech Recognition using Whisper on 16-bit WAV files
 \item{max_context: maximum number of text context tokens to store. Defaults to -1}
 \item{diarize: logical indicating to perform speaker diarization for audio with more than 1 channel}
 }
+If sections are provided
+If multiple offsets/durations are provided
 }
 \examples{
 \donttest{ 

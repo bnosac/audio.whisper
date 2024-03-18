@@ -1,7 +1,8 @@
 ## CHANGES IN audio.whisper VERSION 0.4
 
 - Allow to pass on multiple offset/durations
-- Allow to give sections in the audio (e.g. detected with a voice acitivy detector) to filter out these (voiced) data, make the transcription and make sure to add the amount of time which was cut out such that the resulting timepoints in from/to are aligned to the original audio file
+- Allow to give sections in the audio (e.g. detected with a voice activity detector) to filter out these (voiced) data, make the transcription and make sure to add the amount of time which was cut out to the from/to timestamps such that the resulting timepoints in from/to are aligned to the original audio file
+- The data element of the predict.whisper now includes a column called segment_offset indicating the offset of the provided sections or offsets
 
 ## CHANGES IN audio.whisper VERSION 0.3.3
 
