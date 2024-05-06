@@ -1,3 +1,7 @@
+## CHANGES IN audio.whisper VERSION 0.4.1
+
+- Added function predict.whisper_transcription which allows to assign a transcription segment to either a left/right channel based on a Voice Activity Detection
+
 ## CHANGES IN audio.whisper VERSION 0.4
 
 - Allow to pass on multiple offset/durations
