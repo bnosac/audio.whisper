@@ -29,6 +29,5 @@ Suggests:
     audio.vadwebrtc (>= 0.2.0)
 LinkingTo: Rcpp
 SystemRequirements: GNU make
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.2
 Remotes: bnosac/audio.vadwebrtc
-
