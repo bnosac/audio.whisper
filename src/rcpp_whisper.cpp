@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "common.h"
 
 #include "whisper.h"
