@@ -260,7 +260,7 @@ struct whisper_print_user_data {
   int progress_prev;
 };
 
-static std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s, int64_t t0, int64_t t1, bool id_only = false) {
+std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s, int64_t t0, int64_t t1, bool id_only = false, float energy_higher_percent = 1.1) {
   std::string speaker = "";
   const int64_t n_samples = pcmf32s[0].size();
   
@@ -275,9 +275,9 @@ static std::string estimate_diarization_speaker(std::vector<std::vector<float>> 
     energy1 += fabs(pcmf32s[1][j]);
   }
   
-  if (energy0 > 1.1*energy1) {
+  if (energy0 > energy_higher_percent*energy1) {
     speaker = "0";
-  } else if (energy1 > 1.1*energy0) {
+  } else if (energy1 > energy_higher_percent*energy0) {
     speaker = "1";
   } else {
     speaker = "?";
@@ -292,6 +292,7 @@ static std::string estimate_diarization_speaker(std::vector<std::vector<float>> 
   
   return speaker;
 }
+
 
 void whisper_print_progress_callback(struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, int progress, void * user_data) {
   int progress_step = ((whisper_print_user_data *) user_data)->params->progress_step;
@@ -337,292 +338,30 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
 
 static void cb_log_disable(enum ggml_log_level , const char * , void * ) { }
 
-/*
-int main(int argc, char ** argv) {
-  whisper_params params;
-  
-  // If the only argument starts with "@", read arguments line-by-line
-  // from the given file.
-  std::vector<std::string> vec_args;
-  if (argc == 2 && argv != nullptr && argv[1] != nullptr && argv[1][0] == '@') {
-    // Save the name of the executable.
-    vec_args.push_back(argv[0]);
-    
-    // Open the response file.
-    char const * rspfile = argv[1] + sizeof(char);
-    std::ifstream fin(rspfile);
-    if (fin.is_open() == false) {
-      fprintf(stderr, "error: response file '%s' not found\n", rspfile);
-      return 1;
-    }
-    
-    // Read the entire response file.
-    std::string line;
-    while (std::getline(fin, line)) {
-      vec_args.push_back(line);
-    }
-    
-    // Use the contents of the response file as the command-line arguments.
-    argc = static_cast<int>(vec_args.size());
-    argv = static_cast<char **>(alloca(argc * sizeof (char *)));
-    for (int i = 0; i < argc; ++i) {
-      argv[i] = const_cast<char *>(vec_args[i].c_str());
-    }
+
+// Functionality to free the Rcpp::XPtr
+class WhisperModel {
+public: 
+  struct whisper_context * ctx;
+  WhisperModel(std::string model, bool use_gpu = false){
+    struct whisper_context_params cparams;
+    cparams.use_gpu = use_gpu;
+    ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
   }
-  
-  if (whisper_params_parse(argc, argv, params) == false) {
-    whisper_print_usage(argc, argv, params);
-    return 1;
+  ~WhisperModel(){
+    whisper_free(ctx);
   }
-  // remove non-existent files
-  for (auto it = params.fname_inp.begin(); it != params.fname_inp.end();) {
-    const auto fname_inp = it->c_str();
-    
-    if (*it != "-" && !is_file_exist(fname_inp)) {
-      fprintf(stderr, "error: input file not found '%s'\n", fname_inp);
-      it = params.fname_inp.erase(it);
-      continue;
-    }
-    
-    it++;
-  }
-  
-  if (params.fname_inp.empty()) {
-    fprintf(stderr, "error: no input files specified\n");
-    whisper_print_usage(argc, argv, params);
-    return 2;
-  }
-  
-  if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
-    fprintf(stderr, "error: unknown language '%s'\n", params.language.c_str());
-    whisper_print_usage(argc, argv, params);
-    exit(0);
-  }
-  
-  if (params.diarize && params.tinydiarize) {
-    fprintf(stderr, "error: cannot use both --diarize and --tinydiarize\n");
-    whisper_print_usage(argc, argv, params);
-    exit(0);
-  }
-  
-  if (params.no_prints) {
-    whisper_log_set(cb_log_disable, NULL);
-  }
-  
-  // whisper init
-  
-  struct whisper_context_params cparams = whisper_context_default_params();
-  
-  cparams.use_gpu    = params.use_gpu;
-  cparams.flash_attn = params.flash_attn;
-  
-  if (!params.dtw.empty()) {
-    cparams.dtw_token_timestamps = true;
-    cparams.dtw_aheads_preset = WHISPER_AHEADS_NONE;
-    
-    if (params.dtw == "tiny")      cparams.dtw_aheads_preset = WHISPER_AHEADS_TINY;
-    if (params.dtw == "tiny.en")   cparams.dtw_aheads_preset = WHISPER_AHEADS_TINY_EN;
-    if (params.dtw == "base")      cparams.dtw_aheads_preset = WHISPER_AHEADS_BASE;
-    if (params.dtw == "base.en")   cparams.dtw_aheads_preset = WHISPER_AHEADS_BASE_EN;
-    if (params.dtw == "small")     cparams.dtw_aheads_preset = WHISPER_AHEADS_SMALL;
-    if (params.dtw == "small.en")  cparams.dtw_aheads_preset = WHISPER_AHEADS_SMALL_EN;
-    if (params.dtw == "medium")    cparams.dtw_aheads_preset = WHISPER_AHEADS_MEDIUM;
-    if (params.dtw == "medium.en") cparams.dtw_aheads_preset = WHISPER_AHEADS_MEDIUM_EN;
-    if (params.dtw == "large.v1")  cparams.dtw_aheads_preset = WHISPER_AHEADS_LARGE_V1;
-    if (params.dtw == "large.v2")  cparams.dtw_aheads_preset = WHISPER_AHEADS_LARGE_V2;
-    if (params.dtw == "large.v3")  cparams.dtw_aheads_preset = WHISPER_AHEADS_LARGE_V3;
-    
-    if (cparams.dtw_aheads_preset == WHISPER_AHEADS_NONE) {
-      fprintf(stderr, "error: unknown DTW preset '%s'\n", params.dtw.c_str());
-      return 3;
-    }
-  }
-  
-  struct whisper_context * ctx = whisper_init_from_file_with_params(params.model.c_str(), cparams);
-  
-  if (ctx == nullptr) {
-    fprintf(stderr, "error: failed to initialize whisper context\n");
-    return 3;
-  }
-  
-  // initialize openvino encoder. this has no effect on whisper.cpp builds that don't have OpenVINO configured
-  whisper_ctx_init_openvino_encoder(ctx, nullptr, params.openvino_encode_device.c_str(), nullptr);
-  if (!params.grammar.empty()) {
-    auto & grammar = params.grammar_parsed;
-    if (is_file_exist(params.grammar.c_str())) {
-      // read grammar from file
-      std::ifstream ifs(params.grammar.c_str());
-      const std::string txt = std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-      grammar = grammar_parser::parse(txt.c_str());
-    } else {
-      // read grammar from string
-      grammar = grammar_parser::parse(params.grammar.c_str());
-    }
-    
-    // will be empty (default) if there are parse errors
-    if (grammar.rules.empty()) {
-      fprintf(stderr, "error: failed to parse grammar \"%s\"\n", params.grammar.c_str());
-      return 4;
-    } else {
-      fprintf(stderr, "%s: grammar:\n", __func__);
-      grammar_parser::print_grammar(stderr, grammar);
-      fprintf(stderr, "\n");
-    }
-  }
-  
-  for (int f = 0; f < (int) params.fname_inp.size(); ++f) {
-    const auto fname_inp = params.fname_inp[f];
-    const auto fname_out = f < (int) params.fname_out.size() && !params.fname_out[f].empty() ? params.fname_out[f] : params.fname_inp[f];
-    
-    std::vector<float> pcmf32;               // mono-channel F32 PCM
-    std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
-    
-    if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
-      fprintf(stderr, "error: failed to read WAV file '%s'\n", fname_inp.c_str());
-      continue;
-    }
-    
-    if (!whisper_is_multilingual(ctx)) {
-      if (params.language != "en" || params.translate) {
-        params.language = "en";
-        params.translate = false;
-        fprintf(stderr, "%s: WARNING: model is not multilingual, ignoring language and translation options\n", __func__);
-      }
-    }
-    if (params.detect_language) {
-      params.language = "auto";
-    }
-    
-    if (!params.no_prints) {
-      // print system information
-      fprintf(stderr, "\n");
-      fprintf(stderr, "system_info: n_threads = %d / %d | %s\n",
-              params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());
-      
-      // print some info about the processing
-      fprintf(stderr, "\n");
-      fprintf(stderr, "%s: processing '%s' (%d samples, %.1f sec), %d threads, %d processors, %d beams + best of %d, lang = %s, task = %s, %stimestamps = %d ...\n",
-              __func__, fname_inp.c_str(), int(pcmf32.size()), float(pcmf32.size())/WHISPER_SAMPLE_RATE,
-              params.n_threads, params.n_processors, params.beam_size, params.best_of,
-              params.language.c_str(),
-              params.translate ? "translate" : "transcribe",
-              params.tinydiarize ? "tdrz = 1, " : "",
-              params.no_timestamps ? 0 : 1);
-      
-      fprintf(stderr, "\n");
-    }
-    
-    // run the inference
-    {
-      whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-      
-      const bool use_grammar = (!params.grammar_parsed.rules.empty() && !params.grammar_rule.empty());
-      wparams.strategy = (params.beam_size > 1 || use_grammar) ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
-      
-      wparams.print_realtime   = false;
-      wparams.print_progress   = params.print_progress;
-      wparams.print_timestamps = !params.no_timestamps;
-      wparams.print_special    = params.print_special;
-      wparams.translate        = params.translate;
-      wparams.language         = params.language.c_str();
-      wparams.detect_language  = params.detect_language;
-      wparams.n_threads        = params.n_threads;
-      wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
-      wparams.offset_ms        = params.offset_t_ms;
-      wparams.duration_ms      = params.duration_ms;
-      
-      wparams.token_timestamps = params.output_wts || params.output_jsn_full || params.max_len > 0;
-      wparams.thold_pt         = params.word_thold;
-      wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
-      wparams.split_on_word    = params.split_on_word;
-      wparams.audio_ctx        = params.audio_ctx;
-      
-      wparams.debug_mode       = params.debug_mode;
-      
-      wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
-      
-      wparams.suppress_regex   = params.suppress_regex.empty() ? nullptr : params.suppress_regex.c_str();
-      
-      wparams.initial_prompt   = params.prompt.c_str();
-      
-      wparams.greedy.best_of        = params.best_of;
-      wparams.beam_search.beam_size = params.beam_size;
-      
-      wparams.temperature_inc  = params.no_fallback ? 0.0f : params.temperature_inc;
-      wparams.temperature      = params.temperature;
-      
-      wparams.entropy_thold    = params.entropy_thold;
-      wparams.logprob_thold    = params.logprob_thold;
-      
-      wparams.no_timestamps    = params.no_timestamps;
-      
-      whisper_print_user_data user_data = { &params, &pcmf32s, 0 };
-      
-      const auto & grammar_parsed = params.grammar_parsed;
-      auto grammar_rules = grammar_parsed.c_rules();
-      
-      if (use_grammar) {
-        if (grammar_parsed.symbol_ids.find(params.grammar_rule) == grammar_parsed.symbol_ids.end()) {
-          fprintf(stderr, "%s: warning: grammar rule '%s' not found - skipping grammar sampling\n", __func__, params.grammar_rule.c_str());
-        } else {
-          wparams.grammar_rules = grammar_rules.data();
-          wparams.n_grammar_rules = grammar_rules.size();
-          wparams.i_start_rule = grammar_parsed.symbol_ids.at(params.grammar_rule);
-          wparams.grammar_penalty = params.grammar_penalty;
-        }
-      }
-      
-      // this callback is called on each new segment
-      if (!wparams.print_realtime) {
-        wparams.new_segment_callback           = whisper_print_segment_callback;
-        wparams.new_segment_callback_user_data = &user_data;
-      }
-      
-      if (wparams.print_progress) {
-        wparams.progress_callback           = whisper_print_progress_callback;
-        wparams.progress_callback_user_data = &user_data;
-      }
-      
-      // examples for abort mechanism
-      // in examples below, we do not abort the processing, but we could if the flag is set to true
-      
-      // the callback is called before every encoder run - if it returns false, the processing is aborted
-      {
-        static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-        
-        wparams.encoder_begin_callback = [](struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, void * user_data) {
-          bool is_aborted = *(bool*)user_data;
-          return !is_aborted;
-        };
-        wparams.encoder_begin_callback_user_data = &is_aborted;
-      }
-      
-      // the callback is called before every computation - if it returns true, the computation is aborted
-      {
-        static bool is_aborted = false; // NOTE: this should be atomic to avoid data race
-        
-        wparams.abort_callback = [](void * user_data) {
-          bool is_aborted = *(bool*)user_data;
-          return is_aborted;
-        };
-        wparams.abort_callback_user_data = &is_aborted;
-      }
-      
-      if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
-        fprintf(stderr, "%s: failed to process audio\n", argv[0]);
-        return 10;
-      }
-    }
-  }
-  
-  if (!params.no_prints) {
-    whisper_print_timings(ctx);
-  }
-  whisper_free(ctx);
-  
-  return 0;
+};
+
+// [[Rcpp::export]]
+SEXP whisper_load_model(std::string model, bool use_gpu = false) {
+  // Load language model and return the pointer to be used by whisper_encode
+  //struct whisper_context * ctx = whisper_init(model.c_str());
+  //Rcpp::XPtr<whisper_context> ptr(ctx, false);
+  WhisperModel * wp = new WhisperModel(model, use_gpu);
+  Rcpp::XPtr<WhisperModel> ptr(wp, false);
+  return ptr;
 }
-*/
 
 // [[Rcpp::export]]
 Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, 
@@ -743,7 +482,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
       wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
       wparams.split_on_word    = params.split_on_word;
       
-      wparams.speed_up         = params.speed_up;
+      //wparams.speed_up         = params.speed_up;
       wparams.debug_mode       = params.debug_mode;
       
       wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
@@ -871,33 +610,6 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                                                Rcpp::Named("available_concurrency") = std::thread::hardware_concurrency(),
                                                Rcpp::Named("optimisations") = whisper_print_system_info())));
   return output;
-}
-
-
-
-
-// Functionality to free the Rcpp::XPtr
-class WhisperModel {
-public: 
-  struct whisper_context * ctx;
-  WhisperModel(std::string model, bool use_gpu = false){
-    struct whisper_context_params cparams;
-    cparams.use_gpu = use_gpu;
-    ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
-  }
-  ~WhisperModel(){
-    whisper_free(ctx);
-  }
-};
-
-// [[Rcpp::export]]
-SEXP whisper_load_model(std::string model, bool use_gpu = false) {
-  // Load language model and return the pointer to be used by whisper_encode
-  //struct whisper_context * ctx = whisper_init(model.c_str());
-  //Rcpp::XPtr<whisper_context> ptr(ctx, false);
-  WhisperModel * wp = new WhisperModel(model, use_gpu);
-  Rcpp::XPtr<WhisperModel> ptr(wp, false);
-  return ptr;
 }
 
 

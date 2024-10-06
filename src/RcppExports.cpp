@@ -10,6 +10,18 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// whisper_load_model
+SEXP whisper_load_model(std::string model, bool use_gpu);
+RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_gpu(use_gpuSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu));
+    return rcpp_result_gen;
+END_RCPP
+}
 // whisper_encode
 Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent);
 RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP) {
@@ -40,18 +52,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// whisper_load_model
-SEXP whisper_load_model(std::string model, bool use_gpu);
-RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< bool >::type use_gpu(use_gpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu));
-    return rcpp_result_gen;
-END_RCPP
-}
 // whisper_print_benchmark
 void whisper_print_benchmark(SEXP model, int n_threads);
 RcppExport SEXP _audio_whisper_whisper_print_benchmark(SEXP modelSEXP, SEXP n_threadsSEXP) {
@@ -75,8 +75,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 20},
     {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 2},
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 20},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
     {NULL, NULL, 0}
