@@ -10,6 +10,36 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// whisper_encode
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
+    Rcpp::traits::input_parameter< std::string >::type language(languageSEXP);
+    Rcpp::traits::input_parameter< bool >::type token_timestamps(token_timestampsSEXP);
+    Rcpp::traits::input_parameter< bool >::type translate(translateSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type duration(durationSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< int >::type trace(traceSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_processors(n_processorsSEXP);
+    Rcpp::traits::input_parameter< float >::type entropy_thold(entropy_tholdSEXP);
+    Rcpp::traits::input_parameter< float >::type logprob_thold(logprob_tholdSEXP);
+    Rcpp::traits::input_parameter< int >::type beam_size(beam_sizeSEXP);
+    Rcpp::traits::input_parameter< int >::type best_of(best_ofSEXP);
+    Rcpp::traits::input_parameter< bool >::type split_on_word(split_on_wordSEXP);
+    Rcpp::traits::input_parameter< int >::type max_context(max_contextSEXP);
+    Rcpp::traits::input_parameter< std::string >::type prompt(promptSEXP);
+    Rcpp::traits::input_parameter< bool >::type print_special(print_specialSEXP);
+    Rcpp::traits::input_parameter< bool >::type diarize(diarizeSEXP);
+    Rcpp::traits::input_parameter< float >::type diarize_percent(diarize_percentSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent));
+    return rcpp_result_gen;
+END_RCPP
+}
 // whisper_load_model
 SEXP whisper_load_model(std::string model, bool use_gpu);
 RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP) {
@@ -45,6 +75,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 20},
     {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 2},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
