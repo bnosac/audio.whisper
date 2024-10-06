@@ -45,22 +45,3 @@ SEXP whisper_load_model(std::string model, bool use_gpu = false) {
 }
 
 
-
-// [[Rcpp::export]]
-void whisper_print_benchmark(SEXP model, int n_threads = 1) {
-  whisper_params params;
-  params.n_threads = n_threads;
-  // whisper init
-  Rcpp::XPtr<WhisperModel> whispermodel(model);
-  struct whisper_context * ctx = whispermodel->ctx;
-  Rprintf("\n");
-  Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads, std::thread::hardware_concurrency(), whisper_print_system_info());
-  const int n_mels = whisper_model_n_mels(ctx);
-  if (int ret = whisper_set_mel(ctx, nullptr, 0, n_mels)) {
-    Rprintf("error: failed to set mel: %d\n", ret);
-  }
-  if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
-    Rprintf("error: failed to encode model: %d\n", ret);
-  }
-  whisper_print_timings(ctx);
-}
