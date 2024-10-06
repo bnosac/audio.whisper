@@ -12,7 +12,7 @@ Rcpp::DataFrame whisper_language_info() {
   for (int i = 0; i <= max_id; ++i) {
     id.push_back(i);
     language.push_back(whisper_lang_str(i));
-    //label.push_back(whisper_lang_str_full(i));
+    label.push_back(whisper_lang_str_full(i));
   }
   return Rcpp::DataFrame::create(
     Rcpp::Named("id") = id, 
