@@ -6,8 +6,8 @@ PKG_CPPFLAGS += -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp/ggml/include -I./
 SOURCES = whisper_cpp/ggml/src/ggml-quants.c whisper_cpp/ggml/src/ggml-backend.c whisper_cpp/ggml/src/ggml-alloc.c whisper_cpp/ggml/src/ggml-aarch64.c whisper_cpp/ggml/src/ggml.c 
 OBJECTS = whisper_cpp/ggml/src/ggml-quants.o whisper_cpp/ggml/src/ggml-backend.o whisper_cpp/ggml/src/ggml-alloc.o whisper_cpp/ggml/src/ggml-aarch64.o whisper_cpp/ggml/src/ggml.o 
 	
-SOURCES += whisper_cpp/src/whisper.cpp rcpp_whisper.cpp RcppExports.cpp
-OBJECTS += whisper_cpp/src/whisper.o   rcpp_whisper.o   RcppExports.o
+SOURCES += whisper_cpp/src/whisper.cpp rcpp_whisper_utils.cpp RcppExports.cpp
+OBJECTS += whisper_cpp/src/whisper.o   rcpp_whisper_utils.o   RcppExports.o
 
 all: $(SHLIB)
 
