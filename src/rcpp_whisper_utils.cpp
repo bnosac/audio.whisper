@@ -1,6 +1,4 @@
 #include <Rcpp.h>
-
-
 #include "whisper.h"
 
 // [[Rcpp::export]]
