@@ -8,8 +8,8 @@ SOURCES = whisper_cpp/ggml/src/ggml-quants.c whisper_cpp/ggml/src/ggml-backend.c
 OBJECTS = whisper_cpp/ggml/src/ggml-quants.o whisper_cpp/ggml/src/ggml-backend.o whisper_cpp/ggml/src/ggml-alloc.o whisper_cpp/ggml/src/ggml-aarch64.o whisper_cpp/ggml/src/ggml.o 
 
 ## utils from examples
-SOURCES += whisper_cpp/examples/grammar-parser.cpp whisper_cpp/examples/common.cpp
-OBJECTS += whisper_cpp/examples/grammar-parser.o   whisper_cpp/examples/common.o
+SOURCES += whisper_cpp/examples/grammar-parser.cpp
+OBJECTS += whisper_cpp/examples/grammar-parser.o  
 
 ## whisper source code + R wrapper
 SOURCES += whisper_cpp/src/whisper.cpp rcpp_whisper_utils.cpp rcpp_whisper.cpp RcppExports.cpp
