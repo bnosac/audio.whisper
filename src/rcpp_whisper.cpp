@@ -271,18 +271,17 @@ static std::string estimate_diarization_speaker(std::vector<std::vector<float>> 
   return speaker;
 }
 
-static void whisper_print_progress_callback(struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, int progress, void * user_data) {
+void whisper_print_progress_callback(struct whisper_context * /*ctx*/, struct whisper_state * /*state*/, int progress, void * user_data) {
   int progress_step = ((whisper_print_user_data *) user_data)->params->progress_step;
   int * progress_prev  = &(((whisper_print_user_data *) user_data)->progress_prev);
   if (progress >= *progress_prev + progress_step) {
     *progress_prev += progress_step;
-    fprintf(stderr, "%s: progress = %3d%%\n", __func__, progress);
+    Rprintf("%s: progress = %3d%%\n", __func__, progress);
   }
 }
 
-static void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper_state * /*state*/, int n_new, void * user_data) {
+void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper_state * /*state*/, int n_new, void * user_data) {
   const auto & params  = *((whisper_print_user_data *) user_data)->params;
-  const auto & pcmf32s = *((whisper_print_user_data *) user_data)->pcmf32s;
   
   const int n_segments = whisper_full_n_segments(ctx);
   
@@ -295,7 +294,9 @@ static void whisper_print_segment_callback(struct whisper_context * ctx, struct 
   const int s0 = n_segments - n_new;
   
   if (s0 == 0) {
-    printf("\n");
+    if(params.print_progress){
+      Rprintf("\n");
+    }
   }
   
   for (int i = s0; i < n_segments; i++) {
@@ -303,49 +304,11 @@ static void whisper_print_segment_callback(struct whisper_context * ctx, struct 
       t0 = whisper_full_get_segment_t0(ctx, i);
       t1 = whisper_full_get_segment_t1(ctx, i);
     }
-    
-    if (!params.no_timestamps) {
-      printf("[%s --> %s]  ", to_timestamp(t0).c_str(), to_timestamp(t1).c_str());
+    const char * text = whisper_full_get_segment_text(ctx, i);
+    if(params.print_progress){
+      Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);  
     }
-    
-    if (params.diarize && pcmf32s.size() == 2) {
-      speaker = estimate_diarization_speaker(pcmf32s, t0, t1);
-    }
-    
-    if (params.print_colors) {
-      for (int j = 0; j < whisper_full_n_tokens(ctx, i); ++j) {
-        if (params.print_special == false) {
-          const whisper_token id = whisper_full_get_token_id(ctx, i, j);
-          if (id >= whisper_token_eot(ctx)) {
-            continue;
-          }
-        }
-        
-        const char * text = whisper_full_get_token_text(ctx, i, j);
-        const float  p    = whisper_full_get_token_p   (ctx, i, j);
-        
-        const int col = std::max(0, std::min((int) k_colors.size() - 1, (int) (std::pow(p, 3)*float(k_colors.size()))));
-        
-        printf("%s%s%s%s", speaker.c_str(), k_colors[col].c_str(), text, "\033[0m");
-      }
-    } else {
-      const char * text = whisper_full_get_segment_text(ctx, i);
-      
-      printf("%s%s", speaker.c_str(), text);
-    }
-    
-    if (params.tinydiarize) {
-      if (whisper_full_get_segment_speaker_turn_next(ctx, i)) {
-        printf("%s", params.tdrz_speaker_turn.c_str());
-      }
-    }
-    
-    // with timestamps or speakers: each segment on new line
-    if (!params.no_timestamps || params.diarize) {
-      printf("\n");
-    }
-    
-    fflush(stdout);
+    Rcpp::checkUserInterrupt();
   }
 }
 
