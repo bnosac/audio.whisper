@@ -1,6 +1,6 @@
 ## CHANGES IN audio.whisper VERSION 0.5.0
 
-- Upgrade to whisper.cpp version v1.6.2 up to commit sha ede1718f6d45aa3f7ad4a1e169dfbc9d51570c4e
+- Upgrade to whisper.cpp version v1.7.0
 
 ## CHANGES IN audio.whisper VERSION 0.4.1
 
