@@ -180,6 +180,8 @@ public:
     struct whisper_context_params cparams;
     cparams.use_gpu = use_gpu;
     cparams.flash_attn = flash_attn;
+    cparams.dtw_aheads_preset = WHISPER_AHEADS_NONE;
+    cparams.dtw_token_timestamps = false;
     ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
   }
   ~WhisperModel(){
