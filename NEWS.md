@@ -1,6 +1,7 @@
 ## CHANGES IN audio.whisper VERSION 0.5.0
 
 - Upgrade to whisper.cpp version v1.7.0
+- Enable flash attention
 
 ## CHANGES IN audio.whisper VERSION 0.4.1
 
