@@ -167,6 +167,7 @@ align_skipped <- function(sentences, skipped, from = "from", to = "to"){
 #' @param x the path to a model, an object returned by \code{\link{whisper_download_model}} or a character string with 
 #' the name of the model which can be passed on to \code{\link{whisper_download_model}}
 #' @param use_gpu logical indicating to use the GPU in case you have Metal or an NVIDIA GPU. Defaults to \code{FALSE}.
+#' @param flash_attn logical indicating to use flash attention. Defaults to \code{FALSE}.
 #' @param overwrite logical indicating to overwrite the model file if the model file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.
 #' @param model_dir a path where the model will be downloaded to, passed on to \code{\link{whisper_download_model}}. 
 #' Defaults to the environment variable \code{WHISPER_MODEL_DIR} and if this is not set, the current working directory
@@ -236,7 +237,7 @@ align_skipped <- function(sentences, skipped, from = "from", to = "to"){
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
 #'                  language = "en", duration = 1000)
 #' }
-whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()), ...){
+whisper <- function(x, use_gpu = FALSE, flash_attn = FALSE, overwrite = FALSE, model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()), ...){
   if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large",
               "tiny-q5_1", "tiny.en-q5_1", 
               "base-q5_1", "base.en-q5_1", 
@@ -251,7 +252,7 @@ whisper <- function(x, use_gpu = FALSE, overwrite = FALSE, model_dir = Sys.geten
     out        <- list(file = x)  
   }
   Sys.setenv("GGML_METAL_PATH_RESOURCES" = Sys.getenv("GGML_METAL_PATH_RESOURCES", unset = system.file(package = "audio.whisper", "metal")))
-  out$model <- whisper_load_model(out$file, use_gpu = use_gpu, ...)
+  out$model <- whisper_load_model(out$file, use_gpu = use_gpu, flash_attn = flash_attn, ...)
   class(out) <- "whisper"
   out
 }
