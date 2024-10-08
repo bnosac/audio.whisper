@@ -3,6 +3,94 @@ CXX_STD = CXX11
 
 PKG_CPPFLAGS += -DSTRICT_R_HEADERS -I./dr_libs -I./whisper_cpp/ggml/include -I./whisper_cpp/src -I./whisper_cpp/include -I./whisper_cpp/examples
 
+# Deprecation aliases
+ifdef WHISPER_CUBLAS
+$(error WHISPER_CUBLAS is removed. Use GGML_CUDA instead.)
+endif
+
+ifdef WHISPER_CUDA
+GGML_CUDA := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_KOMPUTE
+GGML_KOMPUTE := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_METAL
+GGML_METAL := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_OPENMP
+GGML_OPENMP := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_RPC
+GGML_RPC := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_SYCL
+GGML_SYCL := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_SYCL_F16
+GGML_SYCL_F16 := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_OPENBLAS
+GGML_OPENBLAS := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_OPENBLAS64
+GGML_OPENBLAS64 := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_BLIS
+GGML_BLIS := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_NO_WHISPERFILE
+GGML_NO_WHISPERFILE := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_NO_ACCELERATE
+GGML_NO_ACCELERATE := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_NO_OPENMP
+GGML_NO_OPENMP := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifdef WHISPER_NO_METAL
+GGML_NO_METAL := 1
+DEPRECATE_WARNING := 1
+endif
+
+ifndef UNAME_S
+UNAME_S := $(shell uname -s)
+endif
+
+ifndef UNAME_P
+UNAME_P := $(shell uname -p)
+endif
+
+ifndef UNAME_M
+UNAME_M := $(shell uname -m)
+endif
+
+
 ## ggml source code
 SOURCES = whisper_cpp/ggml/src/ggml-quants.c whisper_cpp/ggml/src/ggml-backend.c whisper_cpp/ggml/src/ggml-alloc.c whisper_cpp/ggml/src/ggml-aarch64.c whisper_cpp/ggml/src/ggml.c 
 OBJECTS = whisper_cpp/ggml/src/ggml-quants.o whisper_cpp/ggml/src/ggml-backend.o whisper_cpp/ggml/src/ggml-alloc.o whisper_cpp/ggml/src/ggml-aarch64.o whisper_cpp/ggml/src/ggml.o 
