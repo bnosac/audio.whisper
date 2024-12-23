@@ -228,7 +228,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           std::string prompt = "",
                           bool print_special = false,
                           bool diarize = false,
-                          float diarize_percent = 1.1) {
+                          float diarize_percent = 1.1,
+                          bool no_timestamps = false) {
     float audio_duration=0;
   
     whisper_params params;
@@ -249,6 +250,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     params.max_context = max_context;
     params.prompt = prompt;
     params.diarize = diarize;
+    params.no_timestamps = no_timestamps;
     if (params.fname_inp.empty()) {
         Rcpp::stop("error: no input files specified");
     }
