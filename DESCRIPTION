@@ -28,6 +28,6 @@ Suggests:
     data.table (>= 1.12.4),
     audio.vadwebrtc (>= 0.2.0)
 LinkingTo: Rcpp
-SystemRequirements: GNU make
+SystemRequirements: GNU make, CMake (>= 3.5)
 RoxygenNote: 7.3.3
 Remotes: bnosac/audio.vadwebrtc

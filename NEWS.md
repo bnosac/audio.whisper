@@ -1,3 +1,10 @@
+## CHANGES IN audio.whisper VERSION 0.5.0
+
+- Upgrade to whisper.cpp version v1.8.2
+- Move build system to cmake
+- Add option to use flash-attention
+- Add option to use integrated Voice Activity Detection using Silero VAD model v5.1.2
+
 ## CHANGES IN audio.whisper VERSION 0.4.2
 
 - Allow to pass no_timestamps to predict.whisper
