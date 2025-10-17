@@ -23,6 +23,9 @@ CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EX
 
 
 cd src
+if [ -d build ]; then
+  rm -r build
+fi
 mkdir build
 cmake -G "Unix Makefiles" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
 cmake --build build --config Release --target whisper
