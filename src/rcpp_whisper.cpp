@@ -247,7 +247,13 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           bool print_special = false,
                           bool diarize = false,
                           float diarize_percent = 1.1,
-                          bool no_timestamps = false) {
+                          bool no_timestamps = false,
+                          bool vad = false,
+                          std::string vad_model = "",
+                          float vad_threshold = 0.5,
+                          int vad_min_speech_duration_ms = 250,
+                          int vad_min_silence_duration_ms = 100) {
+  
     float audio_duration=0;
   
     whisper_params params;
@@ -276,7 +282,12 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
         Rcpp::stop("Unknown language");
     }
-    
+    params.vad = vad;
+    params.vad_model = vad_model;
+    params.vad_threshold = vad_threshold;
+    params.vad_min_speech_duration_ms = vad_min_speech_duration_ms;
+    params.vad_min_silence_duration_ms = vad_min_silence_duration_ms;
+
     // whisper init
     Rcpp::XPtr<WhisperModel> whispermodel(model);
     struct whisper_context * ctx = whispermodel->ctx;

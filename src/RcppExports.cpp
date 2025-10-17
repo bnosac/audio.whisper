@@ -24,8 +24,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // whisper_encode
-Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent, bool no_timestamps);
-RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP, SEXP no_timestampsSEXP) {
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent, bool no_timestamps, bool vad, std::string vad_model, float vad_threshold, int vad_min_speech_duration_ms, int vad_min_silence_duration_ms);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP, SEXP no_timestampsSEXP, SEXP vadSEXP, SEXP vad_modelSEXP, SEXP vad_thresholdSEXP, SEXP vad_min_speech_duration_msSEXP, SEXP vad_min_silence_duration_msSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -50,7 +50,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type diarize(diarizeSEXP);
     Rcpp::traits::input_parameter< float >::type diarize_percent(diarize_percentSEXP);
     Rcpp::traits::input_parameter< bool >::type no_timestamps(no_timestampsSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent, no_timestamps));
+    Rcpp::traits::input_parameter< bool >::type vad(vadSEXP);
+    Rcpp::traits::input_parameter< std::string >::type vad_model(vad_modelSEXP);
+    Rcpp::traits::input_parameter< float >::type vad_threshold(vad_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_speech_duration_ms(vad_min_speech_duration_msSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_silence_duration_ms(vad_min_silence_duration_msSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent, no_timestamps, vad, vad_model, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -78,7 +83,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 3},
-    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 21},
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 26},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
     {NULL, NULL, 0}
