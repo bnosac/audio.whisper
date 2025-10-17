@@ -12,6 +12,8 @@
 #' @param duration an integer vector of durations in milliseconds indicating how many milliseconds need to be transcribed from the corresponding \code{offset} onwards. Defaults to 0 - indicating to transcribe the full audio file.
 #' @param trim logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.
 #' @param trace logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}
+#' @param vad logical indicating to perform Voice Activity Detection using a Silero model
+#' @param vad_model string with the path to a .bin file containing the Silero model. Defaults to the Silero v5.1.2 shipped in this package.
 #' @param ... further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.
 #' @details 
 #' \itemize{
@@ -72,7 +74,10 @@
 predict.whisper <- function(object, newdata, type = c("transcribe", "translate"), language = "auto", 
                             sections = data.frame(start = integer(), duration = integer()), 
                             offset = 0L, duration = 0L,
-                            trim = FALSE, trace = TRUE, ...){
+                            trim = FALSE, trace = TRUE, 
+                            vad = FALSE, 
+                            vad_model = system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin"), 
+                            ...){
   type <- match.arg(type)
   stopifnot(length(newdata) == 1)
   stopifnot(file.exists(newdata))

@@ -14,6 +14,8 @@
   duration = 0L,
   trim = FALSE,
   trace = TRUE,
+  vad = FALSE,
+  vad_model = system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin"),
   ...
 )
 }
@@ -36,6 +38,10 @@ these sections, do the transcription and make sure the from/to timestamps are al
 \item{trim}{logical indicating to trim leading/trailing white space from the transcription using \code{\link{trimws}}. Defaults to \code{FALSE}.}
 
 \item{trace}{logical indicating to print the trace of the evolution of the transcription. Defaults to \code{TRUE}}
+
+\item{vad}{logical indicating to perform Voice Activity Detection using a Silero model}
+
+\item{vad_model}{string with the path to a .bin file containing the Silero model. Defaults to the Silero v5.1.2 shipped in this package.}
 
 \item{...}{further arguments, directly passed on to the C++ function, for expert usage only and subject to naming changes. See the details.}
 }
