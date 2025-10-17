@@ -400,11 +400,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               Rcpp::Rcout << "Processing audio offset section " << f+1 << " (" << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms)\n";
             }
             
-            Rprintf("whisper_full_parallel"); 
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
                 Rcpp::stop("failed to process audio");
             }
-            Rprintf("whisper_full_parallel done"); 
         }
         n_segments = whisper_full_n_segments(ctx);
         for (int i = 0; i < n_segments; ++i) {
