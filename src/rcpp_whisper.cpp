@@ -226,7 +226,7 @@ SEXP whisper_load_model(std::string model, bool use_gpu = false, bool flash_attn
     // Load language model and return the pointer to be used by whisper_encode
     //struct whisper_context * ctx = whisper_init(model.c_str());
     //Rcpp::XPtr<whisper_context> ptr(ctx, false);
-    Rprintf("system_info: n_threads = %d / %d | %s\n", 1, std::thread::hardware_concurrency(), whisper_print_system_info());  
+    Rprintf("system_info: hardware_concurrency = %d | %s\n", std::thread::hardware_concurrency(), whisper_print_system_info());  
     WhisperModel * wp = new WhisperModel(model, use_gpu, flash_attn);
     Rcpp::XPtr<WhisperModel> ptr(wp, false);
     return ptr;
