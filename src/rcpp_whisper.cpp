@@ -1,7 +1,11 @@
 #include <Rcpp.h>
 #include "common.h"
+#include "common-whisper.h"
 
 #include "whisper.h"
+#include "grammar-parser.h"
+#include "ggml.h"
+#include "ggml-backend.h"
 
 #include <cmath>
 #include <fstream>
@@ -10,21 +14,15 @@
 #include <thread>
 #include <vector>
 #include <cstring>
+#include <cfloat>
 
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
 
-// Terminal color map. 10 colors grouped in ranges [0.0, 0.1, ..., 0.9]
-// Lowest is red, middle is yellow, highest is green.
-const std::vector<std::string> k_colors = {
-    "\033[38;5;196m", "\033[38;5;202m", "\033[38;5;208m", "\033[38;5;214m", "\033[38;5;220m",
-    "\033[38;5;226m", "\033[38;5;190m", "\033[38;5;154m", "\033[38;5;118m", "\033[38;5;82m",
-};
-
 //  500 -> 00:05.000
 // 6000 -> 01:00.000
-std::string to_timestamp(int64_t t, bool comma = false) {
+std::string rcpp_to_timestamp(int64_t t, bool comma = false) {
     int64_t msec = t * 10;
     int64_t hr = msec / (1000 * 60 * 60);
     msec = msec - hr * (1000 * 60 * 60);
@@ -39,38 +37,32 @@ std::string to_timestamp(int64_t t, bool comma = false) {
     return std::string(buf);
 }
 
-int timestamp_to_sample(int64_t t, int n_samples) {
+int rcpp_timestamp_to_sample(int64_t t, int n_samples) {
     return std::max(0, std::min((int) n_samples - 1, (int) ((t*WHISPER_SAMPLE_RATE)/100)));
-}
-
-// helper function to replace substrings
-void replace_all(std::string & s, const std::string & search, const std::string & replace) {
-    for (size_t pos = 0; ; pos += replace.length()) {
-        pos = s.find(search, pos);
-        if (pos == std::string::npos) break;
-        s.erase(pos, search.length());
-        s.insert(pos, replace);
-    }
 }
 
 // command-line parameters
 struct whisper_params {
-    int32_t n_threads    = std::min(4, (int32_t) std::thread::hardware_concurrency());
-    int32_t n_processors =  1;
-    int32_t offset_t_ms  =  0;
-    int32_t offset_n     =  0;
-    int32_t duration_ms  =  0;
-    int32_t progress_step =  5;
-    int32_t max_context  = -1;
-    int32_t max_len      =  0;
-    int32_t best_of      = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
-    int32_t beam_size    = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
+    int32_t n_threads     = std::min(4, (int32_t) std::thread::hardware_concurrency());
+    int32_t n_processors  = 1;
+    int32_t offset_t_ms   = 0;
+    int32_t offset_n      = 0;
+    int32_t duration_ms   = 0;
+    int32_t progress_step = 5;
+    int32_t max_context   = -1;
+    int32_t max_len       = 0;
+    int32_t best_of       = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
+    int32_t beam_size     = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
+    int32_t audio_ctx     = 0;
 
-    float word_thold    =  0.01f;
-    float entropy_thold =  2.40f;
-    float logprob_thold = -1.00f;
+    float word_thold      =  0.01f;
+    float entropy_thold   =  2.40f;
+    float logprob_thold   = -1.00f;
+    float no_speech_thold =  0.6f;
+    float grammar_penalty = 100.0f;
+    float temperature     = 0.0f;
+    float temperature_inc = 0.2f;
 
-    bool speed_up        = false;
     bool debug_mode      = false;
     bool translate       = false;
     bool detect_language = false;
@@ -86,25 +78,48 @@ struct whisper_params {
     bool output_jsn      = false;
     bool output_jsn_full = false;
     bool output_lrc      = false;
+    bool no_prints       = false;
     bool print_special   = false;
     bool print_colors    = false;
+    bool print_confidence= false;
     bool print_progress  = false;
     bool no_timestamps   = false;
     bool log_score       = false;
     bool use_gpu         = true;
+    bool flash_attn      = true;
+    bool suppress_nst    = false;
 
     std::string language  = "en";
     std::string prompt;
     std::string font_path = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf";
     std::string model     = "models/ggml-base.en.bin";
+    std::string grammar;
+    std::string grammar_rule;
 
     // [TDRZ] speaker turn string
     std::string tdrz_speaker_turn = " [SPEAKER_TURN]"; // TODO: set from command line
 
+    // A regular expression that matches tokens to suppress
+    std::string suppress_regex;
+
     std::string openvino_encode_device = "CPU";
+
+    std::string dtw = "";
 
     std::vector<std::string> fname_inp = {};
     std::vector<std::string> fname_out = {};
+
+    grammar_parser::parse_state grammar_parsed;
+
+    // Voice Activity Detection (VAD) parameters
+    bool        vad           = false;
+    std::string vad_model     = "";
+    float       vad_threshold = 0.5f;
+    int         vad_min_speech_duration_ms = 250;
+    int         vad_min_silence_duration_ms = 100;
+    float       vad_max_speech_duration_s = FLT_MAX;
+    int         vad_speech_pad_ms = 30;
+    float       vad_samples_overlap = 0.1f;
 };
 
 
@@ -119,8 +134,8 @@ std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s
     std::string speaker = "";
     const int64_t n_samples = pcmf32s[0].size();
 
-    const int64_t is0 = timestamp_to_sample(t0, n_samples);
-    const int64_t is1 = timestamp_to_sample(t1, n_samples);
+    const int64_t is0 = rcpp_timestamp_to_sample(t0, n_samples);
+    const int64_t is1 = rcpp_timestamp_to_sample(t1, n_samples);
 
     double energy0 = 0.0f;
     double energy1 = 0.0f;
@@ -182,7 +197,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
         }
         const char * text = whisper_full_get_segment_text(ctx, i);
         if(params.print_progress){
-          Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);  
+          Rprintf("[%s --> %s]  %s%s\n", rcpp_to_timestamp(t0).c_str(), rcpp_to_timestamp(t1).c_str(), speaker.c_str(), text);  
         }
         Rcpp::checkUserInterrupt();
     }
@@ -194,9 +209,11 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
-        WhisperModel(std::string model, bool use_gpu = false){
-          struct whisper_context_params cparams;
+        WhisperModel(std::string model, bool use_gpu = false, bool flash_attn = true){
+          ggml_backend_load_all();
+          struct whisper_context_params cparams = whisper_context_default_params();
           cparams.use_gpu = use_gpu;
+          cparams.flash_attn = flash_attn;
           ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
         }
         ~WhisperModel(){
@@ -205,11 +222,12 @@ class WhisperModel {
 };
 
 // [[Rcpp::export]]
-SEXP whisper_load_model(std::string model, bool use_gpu = false) {
+SEXP whisper_load_model(std::string model, bool use_gpu = false, bool flash_attn = true) {
     // Load language model and return the pointer to be used by whisper_encode
     //struct whisper_context * ctx = whisper_init(model.c_str());
     //Rcpp::XPtr<whisper_context> ptr(ctx, false);
-    WhisperModel * wp = new WhisperModel(model, use_gpu);
+    Rprintf("system_info: n_threads = %d / %d | %s\n", 1, std::thread::hardware_concurrency(), whisper_print_system_info());  
+    WhisperModel * wp = new WhisperModel(model, use_gpu, flash_attn);
     Rcpp::XPtr<WhisperModel> ptr(wp, false);
     return ptr;
 }
@@ -269,7 +287,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     std::vector<float> pcmf32;               // mono-channel F32 PCM
     std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
     
-    if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
+    if (!::read_audio_data(fname_inp, pcmf32, pcmf32s, params.diarize)) {
       Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
       Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
     }
@@ -277,6 +295,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if(trace > 0){
       Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
     }
+    
     
     {
       if (!whisper_is_multilingual(ctx)) {
@@ -287,7 +306,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         }
       }
       if(trace > 0){
-        Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
+        Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", n_threads = " << params.n_threads << ", n_processors = " << params.n_processors << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
       }
     }
     audio_duration = float(pcmf32.size())/WHISPER_SAMPLE_RATE;
@@ -312,8 +331,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         // run the inference
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-            
-            wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
+
+            const bool use_grammar = (!params.grammar_parsed.rules.empty() && !params.grammar_rule.empty());
+            wparams.strategy = (params.beam_size > 1 || use_grammar) ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
 
             wparams.print_realtime   = false;
             wparams.print_progress   = false;
@@ -329,29 +349,46 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.n_threads        = params.n_threads;
             wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
             wparams.offset_ms        = (int) offset[f];
-            wparams.duration_ms      = (int) duration[f];
-
+            wparams.duration_ms      = (int) duration[f];     
+            
             wparams.token_timestamps = token_timestamps;
             wparams.thold_pt         = params.word_thold;
             wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
             wparams.split_on_word    = params.split_on_word;
+            wparams.audio_ctx        = params.audio_ctx;
 
-            wparams.speed_up         = params.speed_up;
             wparams.debug_mode       = params.debug_mode;
 
             wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
 
+            wparams.suppress_regex   = params.suppress_regex.empty() ? nullptr : params.suppress_regex.c_str();
+
             wparams.initial_prompt   = params.prompt.c_str();
-            
-            
 
             wparams.greedy.best_of        = params.best_of;
             wparams.beam_search.beam_size = params.beam_size;
 
-            wparams.temperature_inc  = params.no_fallback ? 0.0f : wparams.temperature_inc;
+            wparams.temperature_inc  = params.no_fallback ? 0.0f : params.temperature_inc;
+            wparams.temperature      = params.temperature;
+
             wparams.entropy_thold    = params.entropy_thold;
             wparams.logprob_thold    = params.logprob_thold;
-            
+            wparams.no_speech_thold  = params.no_speech_thold;
+
+            wparams.no_timestamps    = params.no_timestamps;
+
+            wparams.suppress_nst     = params.suppress_nst;
+
+            wparams.vad            = params.vad;
+            wparams.vad_model_path = params.vad_model.c_str();
+
+            wparams.vad_params.threshold               = params.vad_threshold;
+            wparams.vad_params.min_speech_duration_ms  = params.vad_min_speech_duration_ms;
+            wparams.vad_params.min_silence_duration_ms = params.vad_min_silence_duration_ms;
+            wparams.vad_params.max_speech_duration_s   = params.vad_max_speech_duration_s;
+            wparams.vad_params.speech_pad_ms           = params.vad_speech_pad_ms;
+            wparams.vad_params.samples_overlap         = params.vad_samples_overlap;
+
             whisper_print_user_data user_data = { &params, &pcmf32s, 0 };
             
             // this callback is called on each new segment
@@ -363,9 +400,11 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               Rcpp::Rcout << "Processing audio offset section " << f+1 << " (" << wparams.offset_ms << " ms - " << wparams.offset_ms+wparams.duration_ms << " ms)\n";
             }
             
+            Rprintf("whisper_full_parallel"); 
             if (whisper_full_parallel(ctx, wparams, pcmf32.data(), pcmf32.size(), params.n_processors) != 0) {
                 Rcpp::stop("failed to process audio");
             }
+            Rprintf("whisper_full_parallel done"); 
         }
         n_segments = whisper_full_n_segments(ctx);
         for (int i = 0; i < n_segments; ++i) {
@@ -375,8 +414,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
           transcriptions.push_back(Rcpp::String(text));
           int64_t t0 = whisper_full_get_segment_t0(ctx, i);
           int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-          transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
-          transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
+          transcriptions_from.push_back(Rcpp::String(rcpp_to_timestamp(t0).c_str()));
+          transcriptions_to.push_back(Rcpp::String(rcpp_to_timestamp(t1).c_str()));
           Rcpp::String channel_speaker;
           if (params.diarize && pcmf32s.size() == 2) {
             channel_speaker = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent));
@@ -404,8 +443,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               whisper_token_data token = whisper_full_get_token_data(ctx, i, j);
               t0 = token.t0;
               t1 = token.t1;
-              token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
-              token_segment_to.push_back(to_timestamp(token.t1));
+              token_segment_from.push_back(Rcpp::String(rcpp_to_timestamp(t0).c_str()));
+              token_segment_to.push_back(rcpp_to_timestamp(token.t1));
             } 
             //token_speaker.push_back(channel_speaker);
           }

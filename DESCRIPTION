@@ -1,7 +1,7 @@
 Package: audio.whisper
 Type: Package
 Title: Transcribe Audio Files using the "Whisper" Automatic Speech Recognition Model
-Version: 0.4.2
+Version: 0.5.0
 Maintainer: Jan Wijffels <jwijffels@bnosac.be>
 Authors@R: c(
     person('Jan', 'Wijffels', role = c('aut', 'cre', 'cph'), email = 'jwijffels@bnosac.be', comment = "R wrapper"), 
@@ -29,5 +29,5 @@ Suggests:
     audio.vadwebrtc (>= 0.2.0)
 LinkingTo: Rcpp
 SystemRequirements: GNU make
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.3
 Remotes: bnosac/audio.vadwebrtc
