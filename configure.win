@@ -1,0 +1,70 @@
+if ! test -z $DEVTOOLS_LOAD; then
+  # with DEVTOOLS load we don't try to find cmake from the path because
+  # configure uses the shell path which is often not the same as the terminal
+  # path.
+  CMAKE=cmake
+elif [ `uname` = "Darwin" ]; then
+  if test -z "$CMAKE"; then CMAKE="`which cmake`"; fi
+  if test -z "$CMAKE"; then CMAKE=/Applications/CMake.app/Contents/bin/cmake; fi
+else
+  # in other OS's cmake is expected to be on the PATH
+  CMAKE=cmake
+fi
+RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
+
+CC=`"${R_HOME}/bin/R" CMD config CC`
+CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
+LDFLAGS=`"${R_HOME}/bin/R" CMD config LDFLAGS`
+#CXX11 = `"${R_HOME}/bin/R" CMD config CXX11`
+#CXX11STD = `"${R_HOME}/bin/R" CMD config CXX11STD`
+#CXX = ${CXX11} ${CXX11STD}
+#CXXFLAGS = `"${R_HOME}/bin/R" CMD config CXX11FLAGS`
+#CXXPICFLAGS = `"${R_HOME}/bin/R" CMD config CXX11PICFLAGS`
+
+CMAKE_FLAGS="-DGGML_BLAS=1 -DGGML_CUDA=0 -DGGML_METAL=0 -DGGML_OPENCL=0 -DGGML_OPENMP=1 -DGGML_QNNPACK=0 -DGGML_USE_ACCELERATE=0 -DGGML_USE_CUDA_NVCC=0 -DGGML_USE_LIBBACKTRACE=0 -DGGML_USE_MKL=0 -DGGML_USE_OPENBLAS=1 -DGGML_USE_VECLIB=0 -DWHISPER_BUILD_TESTS=0 -DCMAKE_BUILD_TYPE=Release"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=OFF"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DMSVC=1"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=0 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_AVX=0 -DGGML_AVX2=1"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON"
+#CMAKE_CXX_FLAGS "-Wall -Wextra"
+#CMAKE_CXX_FLAGS_DEBUG "-g"
+#CMAKE_CXX_FLAGS_RELEASE "-O3"
+
+#COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | OPENMP = 1 | REPACK = 1 |
+
+#-mavx -mavx2 -mfma -mf16c and extra possible flags -msse3 and mssse3
+#CMAKE_CXX_COMPILER = `"${R_HOME}/bin/R" CMD config CXX11`
+#CMAKE_CXX_FLAGS = `"${R_HOME}/bin/R" CMD config CXX11FLAGS`
+#CMAKE_INCLUDE_PATH
+#CMAKE_LIBRARY_PATH
+
+
+
+#Rscript -e "cat(list.files('inst'), sep = ' ')"
+cd src
+#mkdir build
+cmake -G "Unix Makefiles" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
+cmake --build build --config Release
+
+#cmake -S ../inst/whisper.cpp -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON  $CMAKE_FLAGS
+#cmake --build build --verbose --config Release
+#cmake -S ../inst/whisper.cpp -B build $CMAKE_FLAGS -DCMAKE_CXX_COMPILER=`"${R_HOME}/bin/R" CMD config CXX11`
+#cmake -G "Visual Studio 17 2022" -DCMAKE_C_COMPILER="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe" -DCMAKE_CXX_COMPILER="C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
+#cmake --build build --config Release --target whisper
+
+#cat(file.path(".build", list.files('build', recursive = T, pattern = ".a$")), sep = " ")
+WHISPER_STATIC_LIBS=$(Rscript -e "cat(file.path('.', list.files(recursive = T, pattern = '[.]a$')), sep = ' ')")
+#echo $WHISPER_STATIC_LIBS
+sed -e "s|@CMAKE@|$CMAKE|" -e "s|@CMAKE_FLAGS@|$CMAKE_FLAGS|" -e "s|@WHISPER_STATIC_LIBS@|$WHISPER_STATIC_LIBS|" -e "s|@RCPP_HOME_DIR@|$RCPP_HOME_DIR|" Makevars.win.in > Makevars
+${MAKE}
+
+
+
+
+
+
+
+
