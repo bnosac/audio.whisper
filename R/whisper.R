@@ -101,9 +101,9 @@ predict.whisper <- function(object, newdata, type = c("transcribe", "translate")
   }
   start <- Sys.time()
   if(type == "transcribe"){
-    out <- whisper_encode(model = object$model, path = path, language = language, translate = FALSE, trace = as.integer(trace), offset = offset, duration = duration, ...)
+    out <- whisper_encode(model = object$model, path = path, language = language, translate = FALSE, trace = as.integer(trace), offset = offset, duration = duration, vad = vad, vad_model = vad_model, ...)
   }else if(type == "translate"){
-    out <- whisper_encode(model = object$model, path = path, language = language, translate = TRUE, trace = as.integer(trace), offset = offset, duration = duration, ...)
+    out <- whisper_encode(model = object$model, path = path, language = language, translate = TRUE, trace = as.integer(trace), offset = offset, duration = duration, vad = vad, vad_model = vad_model, ...)
   }
   Encoding(out$data$text)    <- "UTF-8"
   Encoding(out$tokens$token) <- "UTF-8"
