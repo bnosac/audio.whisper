@@ -56,6 +56,6 @@ cmake --build build --config Release --target whisper
 WHISPER_STATIC_LIBS=$(Rscript -e "cat(file.path('.', list.files(recursive = T, pattern = '[.]a$')), sep = ' ')")
 WHISPER_STATIC_LIBS=$(Rscript -e "base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));all = list.files(recursive = T, pattern = '[.]a$');cat(file.path('.', c(base, setdiff(all, base))), sep = ' ')")
 echo "Static libs generated using cmake: $WHISPER_STATIC_LIBS"
-WHISPER_STATIC_LIBS="$WHISPER_STATIC_LIBS $EXT_PKG_LIBS"
+#WHISPER_STATIC_LIBS="$WHISPER_STATIC_LIBS $EXT_PKG_LIBS"
 sed -e "s|@CMAKE@|$CMAKE|" -e "s|@CMAKE_FLAGS@|$CMAKE_FLAGS|" -e "s|@WHISPER_STATIC_LIBS@|$WHISPER_STATIC_LIBS|" -e "s|@RCPP_HOME_DIR@|$RCPP_HOME_DIR|" Makevars.in > Makevars
 cat Makevars
