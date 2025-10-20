@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include "common.h"
 #include "read_wav.h"
 
 #include "whisper.h"
