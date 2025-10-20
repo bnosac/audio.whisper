@@ -1,10 +1,10 @@
 CXX_STD = CXX11
-PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -D_XOPEN_SOURCE=600 -I./dr_libs -I./include -I./include/ggml/include -I./common $(SHLIB_OPENMP_CXXFLAGS)
+PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -D_XOPEN_SOURCE=600 -I./dr_libs -I./read_wav -I./include -I./include/ggml/include -I./common $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS = ./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a  $(SHLIB_OPENMP_CFLAGS)
 #PKG_LIBS = @WHISPER_STATIC_LIBS@ $(SHLIB_OPENMP_CFLAGS)
 
-SOURCES = common/grammar-parser.cpp common/common.cpp common/common-whisper.cpp rcpp_whisper.cpp RcppExports.cpp
-OBJECTS = common/grammar-parser.o   common/common.o   common/common-whisper.o   rcpp_whisper.o   RcppExports.o
+SOURCES = common/grammar-parser.cpp common/common.cpp read_wav/read_wav.cpp rcpp_whisper.cpp RcppExports.cpp
+OBJECTS = common/grammar-parser.o   common/common.o   read_wav/read_wav.o   rcpp_whisper.o   RcppExports.o
 
 .PHONY: all
 all: $(SHLIB); rm -f $(OBJECTS)

@@ -1,6 +1,6 @@
 #include <Rcpp.h>
 #include "common.h"
-#include "common-whisper.h"
+#include "read_wav.h"
 
 #include "whisper.h"
 #include "grammar-parser.h"
@@ -22,7 +22,7 @@
 
 //  500 -> 00:05.000
 // 6000 -> 01:00.000
-std::string rcpp_to_timestamp(int64_t t, bool comma = false) {
+std::string to_timestamp(int64_t t, bool comma = false) {
     int64_t msec = t * 10;
     int64_t hr = msec / (1000 * 60 * 60);
     msec = msec - hr * (1000 * 60 * 60);
@@ -37,7 +37,7 @@ std::string rcpp_to_timestamp(int64_t t, bool comma = false) {
     return std::string(buf);
 }
 
-int rcpp_timestamp_to_sample(int64_t t, int n_samples) {
+int timestamp_to_sample(int64_t t, int n_samples) {
     return std::max(0, std::min((int) n_samples - 1, (int) ((t*WHISPER_SAMPLE_RATE)/100)));
 }
 
@@ -134,8 +134,8 @@ std::string estimate_diarization_speaker(std::vector<std::vector<float>> pcmf32s
     std::string speaker = "";
     const int64_t n_samples = pcmf32s[0].size();
 
-    const int64_t is0 = rcpp_timestamp_to_sample(t0, n_samples);
-    const int64_t is1 = rcpp_timestamp_to_sample(t1, n_samples);
+    const int64_t is0 = timestamp_to_sample(t0, n_samples);
+    const int64_t is1 = timestamp_to_sample(t1, n_samples);
 
     double energy0 = 0.0f;
     double energy1 = 0.0f;
@@ -197,7 +197,7 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
         }
         const char * text = whisper_full_get_segment_text(ctx, i);
         if(params.print_progress){
-          Rprintf("[%s --> %s]  %s%s\n", rcpp_to_timestamp(t0).c_str(), rcpp_to_timestamp(t1).c_str(), speaker.c_str(), text);  
+          Rprintf("[%s --> %s]  %s%s\n", to_timestamp(t0).c_str(), to_timestamp(t1).c_str(), speaker.c_str(), text);  
         }
         Rcpp::checkUserInterrupt();
     }
@@ -298,7 +298,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     std::vector<float> pcmf32;               // mono-channel F32 PCM
     std::vector<std::vector<float>> pcmf32s; // stereo-channel F32 PCM
     
-    if (!::read_audio_data(fname_inp, pcmf32, pcmf32s, params.diarize)) {
+    if (!::read_wav(fname_inp, pcmf32, pcmf32s, params.diarize)) {
       Rprintf("error: failed to read WAV file '%s'\n", fname_inp.c_str());
       Rcpp::stop("The input audio needs to be a 16-bit .wav file.");
     }
@@ -423,8 +423,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
           transcriptions.push_back(Rcpp::String(text));
           int64_t t0 = whisper_full_get_segment_t0(ctx, i);
           int64_t t1 = whisper_full_get_segment_t1(ctx, i);
-          transcriptions_from.push_back(Rcpp::String(rcpp_to_timestamp(t0).c_str()));
-          transcriptions_to.push_back(Rcpp::String(rcpp_to_timestamp(t1).c_str()));
+          transcriptions_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+          transcriptions_to.push_back(Rcpp::String(to_timestamp(t1).c_str()));
           Rcpp::String channel_speaker;
           if (params.diarize && pcmf32s.size() == 2) {
             channel_speaker = Rcpp::String(estimate_diarization_speaker(pcmf32s, t0, t1, true, diarize_percent));
@@ -452,8 +452,8 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
               whisper_token_data token = whisper_full_get_token_data(ctx, i, j);
               t0 = token.t0;
               t1 = token.t1;
-              token_segment_from.push_back(Rcpp::String(rcpp_to_timestamp(t0).c_str()));
-              token_segment_to.push_back(rcpp_to_timestamp(token.t1));
+              token_segment_from.push_back(Rcpp::String(to_timestamp(t0).c_str()));
+              token_segment_to.push_back(to_timestamp(token.t1));
             } 
             //token_speaker.push_back(channel_speaker);
           }
