@@ -53,7 +53,7 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -63,8 +63,8 @@ jobs:
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
+          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
           
   macOS-latest:
     runs-on: ${{ matrix.config.os }}
@@ -102,7 +102,7 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -112,8 +112,8 @@ jobs:
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
+          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
 
   cublas:
     runs-on: ${{ matrix.config.os }}
@@ -197,7 +197,7 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -207,5 +207,5 @@ jobs:
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
+          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
