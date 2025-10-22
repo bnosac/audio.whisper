@@ -26,6 +26,8 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 For the *stable* version of this package: 
 
+- `remotes::install_github("bnosac/audio.whisper@v1.8.2")` (uses whisper.cpp version 1.8.2)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (uses whisper.cpp version 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (uses whisper.cpp version 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (uses whisper.cpp version 1.2.1)
 
@@ -54,6 +56,7 @@ model <- whisper(path)
 ```
 
   - If you have a GPU (e.g. Mac with Metal or Linux with CUDA and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying: `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
+  - If you want to use flash attention alongside your GPU `model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)`
 
 **Transcribe a `.wav` audio file** 
   - using `predict(model, "path/to/audio/file.wav")` and 
@@ -237,7 +240,17 @@ $tokens
 
 ### Notes on silences
 
-If you want remove silences from your audio files. You could use R packages
+If you want remove silences from your audio files, it's now possible since audio.whisper 0.5.0 to use the integrated Voice Activity Detection which uses the Silero v5.1.2
+
+```{bash}
+library(audio.whisper)
+model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)
+audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
+trans <- predict(model, newdata = audio, language = "en", n_threads = 2, vad = TRUE)
+```
+
+
+Alternatively, you could use R packages and pass on the selected voiced segments to the predict function
 
 - [audio.vadwebrtc](https://github.com/bnosac/audio.vadwebrtc)
 - [audio.vadsilero](https://github.com/bnosac/audio.vadsilero)
