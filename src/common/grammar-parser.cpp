@@ -1,3 +1,4 @@
+#include <Rcpp.h>
 #include "grammar-parser.h"
 #include <cstdint>
 #include <cwchar>
@@ -280,7 +281,7 @@ namespace grammar_parser {
             }
             return state;
         } catch (const std::exception & err) {
-            fprintf(stderr, "%s: error parsing grammar: %s\n", __func__, err.what());
+            Rprintf("%s: error parsing grammar: %s\n", __func__, err.what());
             return parse_state();
         }
     }
@@ -409,7 +410,7 @@ namespace grammar_parser {
                 // fprintf(file, "\n");
             }
         } catch (const std::exception & err) {
-            fprintf(stderr, "\n%s: error printing grammar: %s\n", __func__, err.what());
+            Rprintf("\n%s: error printing grammar: %s\n", __func__, err.what());
         }
     }
 
