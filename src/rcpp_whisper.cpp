@@ -525,12 +525,63 @@ void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   struct whisper_context * ctx = whispermodel->ctx;
   Rprintf("\n");
   Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads, std::thread::hardware_concurrency(), whisper_print_system_info());
+  
   const int n_mels = whisper_model_n_mels(ctx);
+  
   if (int ret = whisper_set_mel(ctx, nullptr, 0, n_mels)) {
     Rprintf("error: failed to set mel: %d\n", ret);
   }
+  // heat encoder
   if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
     Rprintf("error: failed to encode model: %d\n", ret);
+  }
+  
+  whisper_token tokens[512];
+  memset(tokens, 0, sizeof(tokens));
+  
+  // prompt heat
+  if (int ret = whisper_decode(ctx, tokens, 256, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to decode: %d\n", ret);
+  }
+  
+  // text-generation heat
+  for (int i = 0; i < 256; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 1, i, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // batched heat
+  if (int ret = whisper_decode(ctx, tokens, 5, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to decode: %d\n", ret);
+  }
+  
+  whisper_reset_timings(ctx);
+  
+  // actual run
+  if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to encode: %d\n", ret);
+  }
+  
+  // text-generation
+  for (int i = 0; i < 256; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 1, i, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // batched decoding
+  for (int i = 0; i < 64; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 5, 0, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // prompt processing
+  for (int i = 0; i < 16; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 256, 0, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
   }
   whisper_print_timings(ctx);
 }
