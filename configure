@@ -53,6 +53,7 @@ mkdir build
 cmake -G "Unix Makefiles" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
 cmake --build build --config Release --target whisper
 
+WHISPER_STATIC_LIBS="./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a"
 WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
   cat(file.path('.', all), sep = ' ')" \
  | "${R_HOME}/bin/R" --vanilla --no-echo`
@@ -60,10 +61,6 @@ WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
   base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));
   cat(file.path('.', c(base, setdiff(all, base))), sep = ' ')" \
  | "${R_HOME}/bin/R" --vanilla --no-echo`
-#echo $WHISPER_STATIC_LIBS
-#WHISPER_STATIC_LIBS=$(Rscript -e "cat(file.path('.', list.files(recursive = T, pattern = '[.]a$')), sep = ' ')")
-#WHISPER_STATIC_LIBS=$(Rscript -e "base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));all = list.files(recursive = T, pattern = '[.]a$');cat(file.path('.', c(base, setdiff(all, base))), sep = ' ')")
-#WHISPER_STATIC_LIBS="./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a"
 echo "Static libs generated using cmake: $WHISPER_STATIC_LIBS"
 WHISPER_STATIC_LIBS="$WHISPER_STATIC_LIBS $EXT_PKG_LIBS"
 sed -e "s|@CMAKE@|$CMAKE|" -e "s|@CMAKE_FLAGS@|$CMAKE_FLAGS|" -e "s|@WHISPER_STATIC_LIBS@|$WHISPER_STATIC_LIBS|" -e "s|@RCPP_HOME_DIR@|$RCPP_HOME_DIR|" Makevars.in > Makevars
