@@ -111,7 +111,7 @@ jobs:
       - name: Speed
         run: |
           Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
-          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
+          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
 
   cublas:
     runs-on: ${{ matrix.config.os }}
@@ -206,4 +206,4 @@ jobs:
       - name: Speed
         run: |
           Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
-          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
+          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
