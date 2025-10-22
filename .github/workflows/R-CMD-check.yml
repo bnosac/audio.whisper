@@ -57,7 +57,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
-          upload-results: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
@@ -107,7 +107,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
-          upload-results: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
@@ -203,7 +203,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
-          upload-results: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
