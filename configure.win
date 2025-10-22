@@ -56,7 +56,7 @@ if [ -d build ]; then
 fi
 mkdir build
 cmake -G "Unix Makefiles" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
-cmake --build build --config Release
+cmake --build build --config Release --target whisper
 
 WHISPER_STATIC_LIBS="./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a"
 WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
