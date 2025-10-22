@@ -57,6 +57,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: true
           error-on: '"error"' 
           
       - name: Speed
@@ -106,6 +107,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: true
           error-on: '"error"' 
           
       - name: Speed
@@ -126,7 +128,7 @@ jobs:
         build: [Release]
         arch: [x64]
         cublas: [ON]
-        cuda-toolkit: [12.5.0, 11.8.0]
+        cuda-toolkit: [13.0.1, 12.5.0, 11.8.0]
         include:
           - arch: x64
             s2arc: x64
@@ -201,6 +203,7 @@ jobs:
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: true
           error-on: '"error"' 
           
       - name: Speed
