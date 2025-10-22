@@ -3,8 +3,8 @@
 ##
 CXX_STD = CXX11
 PKG_CPPFLAGS = -pthread -DSTRICT_R_HEADERS -D_XOPEN_SOURCE=600 -I./dr_libs -I./read_wav -I./include -I./include/ggml/include -I./common $(SHLIB_OPENMP_CXXFLAGS)
-PKG_LIBS = ./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a  $(SHLIB_OPENMP_CFLAGS)
-PKG_LIBS = @WHISPER_STATIC_LIBS@ $(SHLIB_OPENMP_CFLAGS)
+PKG_LIBS = ./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a  $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = @WHISPER_STATIC_LIBS@ $(SHLIB_OPENMP_CXXFLAGS)
 ifdef WHISPER_LIBS
   PKG_LIBS = $(WHISPER_LIBS) 
 endif
