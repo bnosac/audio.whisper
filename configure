@@ -42,7 +42,7 @@ CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EX
 CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DMSVC=1"
 CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=0 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_AVX=0 -DGGML_AVX2=1"
 CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA"
+CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DGGML_CPU -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA"
 #CMAKE_CXX_FLAGS "-Wall -Wextra"
 #CMAKE_CXX_FLAGS_DEBUG "-g"
 #CMAKE_CXX_FLAGS_RELEASE "-O3"
@@ -63,7 +63,7 @@ WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
   cat(file.path('.', all), sep = ' ')" \
  | "${R_HOME}/bin/R" --vanilla --no-echo`
 WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
-  base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));
+  base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$|ggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));
   cat(file.path('.', c(base, setdiff(all, base))), sep = ' ')" \
  | "${R_HOME}/bin/R" --vanilla --no-echo`
 echo "Static libs generated using cmake: $WHISPER_STATIC_LIBS"
