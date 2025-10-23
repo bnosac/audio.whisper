@@ -22,7 +22,7 @@ if(FALSE){
   play(audio::load.wave(p$file))
 }
 
-subset.wav <- function(x, offset, duration){
+subset.wav <- function(x, offset, duration, ...){
   # x: wav file
   # offset: vector of integer offsets in milliseconds, starting from 0
   # duration: vector of durations in milliseconds
