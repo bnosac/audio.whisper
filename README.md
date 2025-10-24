@@ -26,12 +26,12 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 For the *stable* version of this package: 
 
-> From version 0.5.0 of audio.whisper, you need to have cmake installed to be able to install the package (e.g. apt-get install cmake / brew install cmake / https://cmake.org/download for Windows)
-
 - `remotes::install_github("bnosac/audio.whisper@v1.8.2")`         (audio.whisper 0.5.0, uses whisper.cpp 1.8.2)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (audio.whisper 0.4.1, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (audio.whisper 0.3.3, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (audio.whisper 0.2.2, uses whisper.cpp 1.2.1)
+
+> From version 0.5.0 of audio.whisper, you need to have cmake installed to be able to install the package (e.g. apt-get install cmake / brew install cmake / for Windows go to cmake.org).
 
 Look to the documentation of the functions: `help(package = "audio.whisper")`
 
