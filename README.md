@@ -313,7 +313,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
 <details>
-  <summary>#### For older versions of audio.whisper (< 0.5.0)</summary>
+  <summary>For older versions of audio.whisper (< 0.5.0)</summary>
   
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
