@@ -34,7 +34,7 @@ else
       UNAME_M=$(uname -m)
       EXT_PKG_LIBS="-lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L/usr/local/cuda/lib64/lib64 -L/usr/local/cuda/lib64/lib64/stubs -L/opt/cuda/lib64 -L$/usr/local/cuda/targets/x86_64-linux/lib -L$/usr/local/cuda/targets/x86_64-linux/lib/stubs -L/usr/lib/wsl/lib"
       EXT_PKG_LIBS='-lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L"$(CUDA_PATH)/lib64" -L"$(CUDA_PATH)/lib64/stubs" -L/opt/cuda/lib64 -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib" -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib/stubs" -L/usr/lib/wsl/lib'
-      echo "CUDA libs: $EXT_PKG_LIBS"
+      #echo "CUDA libs: $EXT_PKG_LIBS"
     fi
   else
     echo "No WHISPER_CMAKE_FLAGS provided, using the default setup"
