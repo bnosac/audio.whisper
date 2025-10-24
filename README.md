@@ -283,6 +283,10 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 - If you have a Linux machine with CUDA enabled GPU
 
+    - Make sure the nvcc compiler is in your PATH
+    - Make sure that the LD_LIBRARY_PATH is set such that the package can link to the cuda libraries
+    - Example at https://github.com/bnosac/images/blob/main/whisper/Dockerfile.cuda
+
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
 remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
