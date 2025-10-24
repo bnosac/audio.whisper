@@ -263,20 +263,16 @@ Alternatively, you could use R packages and pass on the selected voiced segments
 
 ### Speed of transcribing
 
-Next to using the arguments ´n_threads´ and use a quantised model the main way to improve the transcription speed is either to have a GPU or use another matrix library like OpenBlas or to compile the package with SIMD instructions enabled. 
+Next to using the arguments `n_threads` and doing the transcription with a quantised model, 
+the main way to improve the transcription speed is either to have a GPU or use another matrix library like OpenBlas or to compile the package with SIMD instructions enabled. 
 For this to work you need to set some compilation instructions when installing the package.
 
 #### For the latest version of audio.whisper (>= 0.5.0)
 
-The default cmake setup from whisper.cpp is used to compile the package. To speed up transcriptions you set cmake compilation instructions by setting the environment variable ´WHISPER_CMAKE_FLAGS´ before installing the package.
+The default cmake setup from whisper.cpp is used to compile the package. 
+To speed up transcriptions you set cmake compilation instructions by setting the environment variable 
+´WHISPER_CMAKE_FLAGS´ before installing the package.
 
-- If you have a Mac with Accelerate or GPU with the METAL framework
-
-```
-Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=1 -DGGML_METAL=1")
-remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
-Sys.unsetenv("WHISPER_CMAKE_FLAGS")
-```
 
 - If you have a Linux machine with OpenBlas installed on a CPU machine
 
@@ -299,13 +295,23 @@ remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- If you are on Windows and your hardware allows specific SIMD instructions
+- If you are on Windows and your hardware allows specific compilation with specific SIMD instructions sets
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
 remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
+
+- If you have a Mac with Accelerate or GPU with the METAL framework, both are enabled by default. So normally you don't need to do anything.
+You can disable e.g. Accelerate if you prefer that for some reason by setting ´-DGGML_ACCELERATE=0´.
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=0 -DGGML_METAL=1")
+remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
 
 #### For older versions of audio.whisper (< 0.5.0)
 
