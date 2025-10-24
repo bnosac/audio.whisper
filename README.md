@@ -258,6 +258,9 @@ Alternatively, you could use R packages and pass on the selected voiced segments
 - [audio.vadwebrtc](https://github.com/bnosac/audio.vadwebrtc)
 - [audio.vadsilero](https://github.com/bnosac/audio.vadsilero)
 
+
+-----
+
 ### Speed of transcribing
 
 
