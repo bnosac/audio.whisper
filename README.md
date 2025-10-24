@@ -26,10 +26,12 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 
 For the *stable* version of this package: 
 
-- `remotes::install_github("bnosac/audio.whisper@v1.8.2")` (uses whisper.cpp version 1.8.2)
-- `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (uses whisper.cpp version 1.5.4)
-- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (uses whisper.cpp version 1.5.4)
-- `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (uses whisper.cpp version 1.2.1)
+> From version 0.5.0 of audio.whisper, you need to have cmake installed to be able to install the package (e.g. apt-get install cmake / brew install cmake / https://cmake.org/download for Windows)
+
+- `remotes::install_github("bnosac/audio.whisper@v1.8.2")`         (audio.whisper 0.5.0, which uses whisper.cpp version 1.8.2)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (audio.whisper 0.4.1, which uses whisper.cpp version 1.5.4)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (audio.whisper 0.3.3, which uses whisper.cpp version 1.5.4)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (audio.whisper 0.2.2, which uses whisper.cpp version 1.2.1)
 
 Look to the documentation of the functions: `help(package = "audio.whisper")`
 
@@ -55,12 +57,14 @@ path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 ```
 
-  - If you have a GPU (e.g. Mac with Metal or Linux with CUDA and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying: `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
-  - If you want to use flash attention alongside your GPU `model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)`
+  - If you have a GPU (e.g. Mac with Metal or Linux with CUDA and [installed audio.whisper as indicated below](#speed-of-transcribing)), you can use it by specifying
+      - `model <- whisper("medium", use_gpu = TRUE)`, otherwise you will use your CPU.
+  - If you want to use Flash Attention
+     - `model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)`
 
 **Transcribe a `.wav` audio file** 
   - using `predict(model, "path/to/audio/file.wav")` and 
-  - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp)
+  - provide a language which the audio file is in (e.g. en, nl, fr, de, es, zh, ru, jp or others listed up in ´whisper_languages()´)
   - the result contains the segments and the tokens
 
 ```{r}
@@ -106,7 +110,7 @@ $tokens
 
 Note about that the audio file needs to be a **`16000Hz 16-bit .wav` file**. 
 
-  - you can use R package [`av`](https://cran.r-project.org/package=av) which provides bindings to ffmpeg to convert to that format 
+  - you can use R package [`av`](https://cran.r-project.org/package=av) which provides bindings to ffmpeg to convert to that format as shown below
   - or alternatively, use ffmpeg as follows: `ffmpeg -i input.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav`
 
 ```{r}
@@ -249,13 +253,51 @@ audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 trans <- predict(model, newdata = audio, language = "en", n_threads = 2, vad = TRUE)
 ```
 
-
 Alternatively, you could use R packages and pass on the selected voiced segments to the predict function
 
 - [audio.vadwebrtc](https://github.com/bnosac/audio.vadwebrtc)
 - [audio.vadsilero](https://github.com/bnosac/audio.vadsilero)
 
 ### Speed of transcribing
+
+
+#### For the latest version of audio.whisper (>= 0.5.0)
+
+The default cmake setup from whisper.cpp is used to compile the package. To speed up transcriptions you set cmake compilation instructions by setting the environment variable ´WHISPER_CMAKE_FLAGS´ before installing the package.
+
+- If you have a Mac with Accelerate or GPU with the METAL framework
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=1 -DGGML_METAL=1")
+remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+- If you have a Linux machine with OpenBlas installed on a CPU machine
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
+remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+- If you have a Linux machine with CUDA enabled GPU
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
+remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+- If you are on Windows and your hardware allows specific SIMD instructions
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
+remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+#### For older versions of audio.whisper (< 0.5.0)
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 
