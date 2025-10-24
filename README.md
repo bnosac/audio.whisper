@@ -263,6 +263,8 @@ Alternatively, you could use R packages and pass on the selected voiced segments
 
 ### Speed of transcribing
 
+Next to using the arguments ´n_threads´ and use a quantised model the main way to improve the transcription speed is either to have a GPU or use another matrix library like OpenBlas or compile with SIMD instructions enabled. 
+For this to work you need to set some compilation instructions when installing the package.
 
 #### For the latest version of audio.whisper (>= 0.5.0)
 
