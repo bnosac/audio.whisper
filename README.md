@@ -312,8 +312,9 @@ remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-
-#### For older versions of audio.whisper (< 0.5.0)
+<details>
+  <summary>#### For older versions of audio.whisper (< 0.5.0)</summary>
+  
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 
@@ -346,6 +347,7 @@ To find out which hardware acceleration options your hardware supports, you can 
 
 Note that *if your hardware does not support these compilation flags, you'll get a crash* when transcribing audio.
 
+</details>
 
 -----
 
