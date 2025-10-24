@@ -290,6 +290,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
     - Make sure the nvcc compiler is in your PATH
     - Make sure that the LD_LIBRARY_PATH is set such that the package can link to the cuda libraries
+    - Make sure CUDA_PATH is set to the path where CUDA is installed
     - Example at https://github.com/bnosac/images/blob/main/whisper/Dockerfile.cuda
 
 ```
