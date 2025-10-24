@@ -269,9 +269,9 @@ For this to work you need to set some compilation instructions when installing t
 
 #### For the latest version of audio.whisper (>= 0.5.0)
 
-The default cmake setup from whisper.cpp is used to compile the package. 
+The default cmake setup from `whisper.cpp` is used to compile the package. 
 To speed up transcriptions you set cmake compilation instructions by setting the environment variable 
-´WHISPER_CMAKE_FLAGS´ before installing the package.
+`WHISPER_CMAKE_FLAGS` before installing the package.
 
 
 - If you have a Linux machine with OpenBlas installed on a CPU machine
