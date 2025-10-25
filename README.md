@@ -274,10 +274,10 @@ To speed up transcriptions you set cmake compilation instructions by setting the
 `WHISPER_CMAKE_FLAGS` before installing the package.
 
 
-- If you have a Linux machine with OpenBlas installed on a CPU machine
+- If you have a Linux machine with OpenBlas installed on a CPU machine (e.g. ´apt-get install -y libopenblas-dev´)
 
 ```
-Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
+Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1")
 remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
