@@ -1,3 +1,8 @@
+###############################################################################################
+## Package builds whisper.cpp using cmake
+##  - https://cran.r-project.org/doc/manuals/R-exts.html#Using-cmake
+##
+###############################################################################################
 if ! test -z $DEVTOOLS_LOAD; then
   # with DEVTOOLS load we don't try to find cmake from the path because
   # configure uses the shell path which is often not the same as the terminal path.
