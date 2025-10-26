@@ -256,7 +256,7 @@ whisper <- function(x, use_gpu = FALSE, flash_attn = TRUE, overwrite = FALSE, mo
   }else{
     out        <- list(file = x)  
   }
-  Sys.setenv("GGML_METAL_PATH_RESOURCES" = Sys.getenv("GGML_METAL_PATH_RESOURCES", unset = system.file(package = "audio.whisper", "metal")))
+  Sys.setenv("GGML_METAL_PATH_RESOURCES" = Sys.getenv("GGML_METAL_PATH_RESOURCES", unset = system.file(package = "audio.whisper", "whisper.cpp", "ggml", "src", "ggml-metal")))
   out$model <- whisper_load_model(out$file, use_gpu = use_gpu, flash_attn = flash_attn, ...)
   class(out) <- "whisper"
   out
