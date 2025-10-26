@@ -42,10 +42,11 @@ fi
 ## cmake compilation flags for whisper.cpp provided by the end user in WHISPER_CMAKE_FLAGS
 ## build whisper.cpp in the src/build folder
 ##
+## TODO: link to R headers to make the printing R-native
+##   RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
+##   CC=`"${R_HOME}/bin/R" CMD config CC`
+##   CXX=`"${R_HOME}/bin/R" CMD config CXX11`
 ###############################################################################################
-#RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
-#CC=`"${R_HOME}/bin/R" CMD config CC`
-#CXX=`"${R_HOME}/bin/R" CMD config CXX11`
 CMAKE_FLAGS_EXTRA="${WHISPER_CMAKE_FLAGS:-}"
 CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA"
 echo "Using cmake to compile whisper.cpp"
