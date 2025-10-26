@@ -10,12 +10,16 @@ else
   CMAKE=cmake
 fi
 
-
-##################################################################################
+###############################################################################################
 ## Link to extra libs on the machine
 ##  - Mac: Metal/Accelerate
 ##  - NVIDIA CUDA libs
 ##
+###############################################################################################
+#WHISPER_CMAKE_FLAGS="-DGGML_BLAS=1 -DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native"
+#WHISPER_CMAKE_FLAGS=" -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_CUDA=0 -DGGML_METAL=0 -DGGML_OPENCL=0 -DGGML_OPENMP=1 -DGGML_QNNPACK=0 -DGGML_USE_ACCELERATE=0 -DGGML_USE_CUDA_NVCC=0 -DGGML_USE_LIBBACKTRACE=0 -DGGML_USE_MKL=0 -DGGML_USE_OPENBLAS=1 -DGGML_USE_VECLIB=0 -DWHISPER_BUILD_TESTS=0 -DCMAKE_BUILD_TYPE=Release"
+#WHISPER_CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DMSVC=1"
+#WHISPER_CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC"
 if [ `uname` = "Darwin" ]; then
   ## Computer has a GPU based on Metal
   EXT_PKG_LIBS = -framework Foundation -framework Metal -framework MetalKit
@@ -23,29 +27,28 @@ if [ `uname` = "Darwin" ]; then
   EXT_PKG_LIBS += -framework Accelerate
 else
   EXT_PKG_LIBS="${WHISPER_EXTRA_PKG_LIBS:-}"
-fi
-if [ -z "$WHISPER_EXTRA_PKG_LIBS" ] && [ -n "$WHISPER_EXTRA_PKG_LIBS" ]; then
-  EXT_PKG_LIBS="${WHISPER_EXTRA_PKG_LIBS:-}"
+  if [ -n "$WHISPER_CMAKE_FLAGS" ]; then
+    if echo "$WHISPER_CMAKE_FLAGS" | grep -q 'GGML_CUDA=1\|GGML_CUDA=ON'; then
+      ## Link to CUDA GPU
+      UNAME_M=$(uname -m)
+      EXT_PKG_LIBS='-lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L"$(CUDA_PATH)/lib64" -L"$(CUDA_PATH)/lib64/stubs" -L/opt/cuda/lib64 -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib" -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib/stubs" -L/usr/lib/wsl/lib'
+    fi
+  else
+    echo "No WHISPER_CMAKE_FLAGS provided, using the default setup"
+  fi
 fi
 
-##################################################################################
-## cmake settings for whisper.cpp
+###############################################################################################
+## cmake compilation flags for whisper.cpp provided by the end user in WHISPER_CMAKE_FLAGS
+## build whisper.cpp in the src/build folder
 ##
-#RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
-CC=`"${R_HOME}/bin/R" CMD config CC`
-CXX=`"${R_HOME}/bin/R" CMD config CXX11`
+## TODO: link to R headers to make the printing R-native
+##   RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
+##   CC=`"${R_HOME}/bin/R" CMD config CC`
+##   CXX=`"${R_HOME}/bin/R" CMD config CXX11`
+###############################################################################################
 CMAKE_FLAGS_EXTRA="${WHISPER_CMAKE_FLAGS:-}"
-CMAKE_FLAGS="-DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_CUDA=0 -DGGML_METAL=0 -DGGML_OPENCL=0 -DGGML_OPENMP=1 -DGGML_QNNPACK=0 -DGGML_USE_ACCELERATE=0 -DGGML_USE_CUDA_NVCC=0 -DGGML_USE_LIBBACKTRACE=0 -DGGML_USE_MKL=0 -DGGML_USE_OPENBLAS=1 -DGGML_USE_VECLIB=0 -DWHISPER_BUILD_TESTS=0 -DCMAKE_BUILD_TYPE=Release"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=OFF"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DMSVC=1"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=0 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_AVX=0 -DGGML_AVX2=1"
-CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC"
 CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA"
-#CMAKE_CXX_FLAGS "-Wall -Wextra"
-#CMAKE_CXX_FLAGS_DEBUG "-g"
-#CMAKE_CXX_FLAGS_RELEASE "-O3"
 echo "Using cmake to compile whisper.cpp"
 echo "  - You provided the following extra flags in WHISPER_CMAKE_FLAGS: $WHISPER_CMAKE_FLAGS"
 echo "  - Compiling with the following combined CMAKE_FLAGS: $CMAKE_FLAGS"
@@ -56,17 +59,23 @@ if [ -d build ]; then
 fi
 mkdir build
 cmake -G "Unix Makefiles" -S ../inst/whisper.cpp -B build $CMAKE_FLAGS
-cmake --build build --config Release --target whisper
+cmake --build build --config Release --parallel 4 --target whisper
 
-WHISPER_STATIC_LIBS="./build/src/libwhisper.a ./build/ggml/src/libggml.a ./build/ggml/src/libggml-base.a ./build/ggml/src/libggml-cpu.a"
-WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
-  cat(file.path('.', all), sep = ' ')" \
- | "${R_HOME}/bin/R" --vanilla --no-echo`
-WHISPER_STATIC_LIBS=`echo "all = list.files(recursive = T, pattern = '[.]a$');
-  base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), list.files(recursive = T, pattern = 'libggml.a$|ggml.a$'), list.files(recursive = T, pattern = 'libggml-base.a$'), list.files(recursive = T, pattern = 'libggml-metal.a$'), list.files(recursive = T, pattern = 'libggml-blas.a$'), list.files(recursive = T, pattern = 'libggml-cpu.a$'));
+###############################################################################################
+## List all static libraries generated with cmake - note: order is important
+##
+###############################################################################################
+WHISPER_STATIC_LIBS=`echo "
+  all = list.files(recursive = T, pattern = '[.]a$');
+  base = c(list.files(recursive = T, pattern = 'libwhisper.a$'), 
+           list.files(recursive = T, pattern = 'libggml.a$|ggml.a$'), 
+           list.files(recursive = T, pattern = 'libggml-base.a$'), 
+           list.files(recursive = T, pattern = 'libggml-metal.a$'), 
+           list.files(recursive = T, pattern = 'libggml-blas.a$'), 
+           list.files(recursive = T, pattern = 'libggml-cpu.a$'));
   cat(file.path('.', c(base, setdiff(all, base))), sep = ' ')" \
  | "${R_HOME}/bin/R" --vanilla --no-echo`
 echo "Static libs generated using cmake: $WHISPER_STATIC_LIBS"
 WHISPER_STATIC_LIBS="$WHISPER_STATIC_LIBS $EXT_PKG_LIBS"
-sed -e "s|@CMAKE@|$CMAKE|" -e "s|@CMAKE_FLAGS@|$CMAKE_FLAGS|" -e "s|@WHISPER_STATIC_LIBS@|$WHISPER_STATIC_LIBS|" -e "s|@RCPP_HOME_DIR@|$RCPP_HOME_DIR|" Makevars.in > Makevars
+sed -e "s|@CMAKE@|$CMAKE|" -e "s|@CMAKE_FLAGS@|$CMAKE_FLAGS|" -e "s|@WHISPER_STATIC_LIBS@|$WHISPER_STATIC_LIBS|" Makevars.in > Makevars
 cat Makevars
