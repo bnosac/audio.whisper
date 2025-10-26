@@ -25,24 +25,13 @@ rem Count number of arguments passed to script
 set argc=0
 for %%x in (%*) do set /A argc+=1
 
-set models=tiny tiny-q5_1 tiny-q8_0 ^
-tiny.en tiny.en-q5_1 tiny.en-q8_0 ^
-base base-q5_1 base-q8_0 ^
-base.en base.en-q5_1 base.en-q8_0 ^
-small small-q5_1 small-q8_0 ^
-small.en small.en-q5_1 small.en-q8_0 small.en-tdrz ^
-medium medium-q5_0 medium-q8_0 ^
-medium.en medium.en-q5_0 medium.en-q8_0 ^
-large-v1 ^
-large-v2 large-v2-q5_0 large-v2-q8_0 ^
-large-v3 large-v3-q5_0 ^
-large-v3-turbo large-v3-turbo-q5_0 large-v3-turbo-q8_0
+set models=silero-v5.1.2
 
 rem If argc is not equal to 1 or 2, print usage information and exit
 if %argc% NEQ 1 (
   if %argc% NEQ 2 (
     echo.
-    echo Usage: download-ggml-model.cmd model [models_path]
+    echo Usage: download-vad-model.cmd model [models_path]
     CALL :list_models
     goto :eof
   )
@@ -68,19 +57,15 @@ CALL :list_models
 goto :eof
 
 :download_model
-echo Downloading ggml model %model%...
+echo Downloading vad model %model%...
 
 if exist "%models_path%\\ggml-%model%.bin" (
   echo Model %model% already exists. Skipping download.
   goto :eof
 )
-echo %model% | findstr tdrz
-if %ERRORLEVEL% neq 0 (
- PowerShell -NoProfile -ExecutionPolicy Bypass -Command "Start-BitsTransfer -Source https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-%model%.bin -Destination \"%models_path%\\ggml-%model%.bin\""
-) else (
-  PowerShell -NoProfile -ExecutionPolicy Bypass -Command "Start-BitsTransfer -Source https://huggingface.co/akashmjn/tinydiarize-whisper.cpp/resolve/main/ggml-%model%.bin -Destination \"%models_path%\\ggml-%model%.bin\""
 
-)
+
+PowerShell -NoProfile -ExecutionPolicy Bypass -Command "Start-BitsTransfer -Source https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-%model%.bin -Destination \"%models_path%\\ggml-%model%.bin\""
 
 if %ERRORLEVEL% neq 0 (
   echo Failed to download ggml model %model%
@@ -100,7 +85,7 @@ if %ERRORLEVEL%==0 (
 
 echo Done! Model %model% saved in %models_path%\ggml-%model%.bin
 echo You can now use it like this:
-echo %whisper_cmd% -m %models_path%\ggml-%model%.bin -f samples\jfk.wav
+echo %whisper_cmd% -vm %models_path%\ggml-%model%.bin --vad -m models/ggml-base.en.bin -f samples\jfk.wav
 
 goto :eof
 
