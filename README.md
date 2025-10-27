@@ -292,7 +292,7 @@ To speed up transcriptions you set cmake compilation instructions by setting the
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1")
-remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -305,7 +305,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
-remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -313,7 +313,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
-remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -322,7 +322,7 @@ You can disable e.g. Accelerate if you prefer that for some reason by setting ´
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=0 -DGGML_METAL=1")
-remotes::install_github("bnosac/audio.whisper", ref = "0.5.0", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
