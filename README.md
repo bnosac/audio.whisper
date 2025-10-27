@@ -264,7 +264,8 @@ If you want remove silences from your audio files, it's now possible since audio
 library(audio.whisper)
 model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
-trans <- predict(model, newdata = audio, language = "en", n_threads = 2, vad = TRUE)
+trans <- predict(model, newdata = audio, language = "en", n_threads = 2, 
+                 vad = TRUE, vad_min_speech_duration_ms = 250, vad_min_silence_duration_ms = 100)
 ```
 
 Alternatively, you could use R packages and pass on the selected voiced segments to the predict function
