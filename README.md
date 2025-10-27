@@ -122,7 +122,7 @@ $tokens
 
 ### Format of the audio
 
-Note about that the audio file needs to be a **`16000Hz 16-bit .wav` file**. 
+Note that the audio file needs to be a **`16000Hz 16-bit .wav` file**. 
 
   - you can use R package [`av`](https://cran.r-project.org/package=av) which provides bindings to ffmpeg to convert to that format as shown below
   - or alternatively, use ffmpeg as follows: `ffmpeg -i input.wmv -ar 16000 -ac 1 -c:a pcm_s16le output.wav`
