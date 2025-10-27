@@ -258,7 +258,7 @@ $tokens
 
 ### Notes on silences
 
-If you want remove silences from your audio files, it's now possible since audio.whisper 0.5.0 to use the integrated Voice Activity Detection which uses the Silero v5.1.2 LSTM model.
+If you want remove silences from your audio files, it's now possible since audio.whisper 0.5.0 to use the integrated Voice Activity Detection which uses the [Silero](https://github.com/snakers4/silero-vad/) v5.1.2 LSTM model.
 
 ```{bash}
 library(audio.whisper)
