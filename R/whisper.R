@@ -202,6 +202,9 @@ align_skipped <- function(sentences, skipped, from = "from", to = "to"){
 #' model <- whisper("large-v1")
 #' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 #' trans
+#' model <- whisper("large-v3-turbo-q8_0")
+#' trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+#' trans
 #' 
 #' ## Or download the model explicitely
 #' path  <- whisper_download_model("tiny")
@@ -243,12 +246,13 @@ align_skipped <- function(sentences, skipped, from = "from", to = "to"){
 #'                  language = "en", duration = 1000)
 #' }
 whisper <- function(x, use_gpu = FALSE, flash_attn = TRUE, overwrite = FALSE, model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()), ...){
-  if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large",
-              "tiny-q5_1", "tiny.en-q5_1", 
-              "base-q5_1", "base.en-q5_1", 
-              "small-q5_1", "small.en-q5_1", 
-              "medium-q5_0", "medium.en-q5_0", 
-              "large-v2-q5_0", "large-v3-q5_0")){
+  if(x %in% c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large-v3-turbo", "large",
+              "tiny-q5_1", "tiny-q8_0", "tiny.en-q5_1", "tiny.en-q8_0",
+              "base-q5_1", "base-q8_0", "base.en-q5_1", "base.en-q8_0",
+              "small-q5_1", "small-q8_0", "small.en-q5_1", "small.en-q8_0",
+              "medium-q5_0", "medium-q8_0", "medium.en-q5_0", "medium.en-q8_0", 
+              "large-v2-q5_0", "large-v2-q8_0", "large-v3-q5_0",
+              "large-v3-turbo-q5_0", "large-v3-turbo-q8_0")){
     x <- whisper_download_model(x, overwrite = overwrite, model_dir = model_dir)
   }
   if(inherits(x, "whisper_download")){
@@ -281,7 +285,7 @@ whisper <- function(x, use_gpu = FALSE, flash_attn = TRUE, overwrite = FALSE, mo
 #' \item{'huggingface': https://huggingface.co/ggerganov/whisper.cpp - the default}
 #' \item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 #' }
-#' @param version character string with the version of the model. Defaults to "1.5.4".
+#' @param version character string with the version of the model. Defaults to "1.8.2".
 #' @param overwrite logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
 #' it will download the model and overwrite the file if the file already existed. If set to \code{FALSE},
 #' the model will only be downloaded if it does not exist on disk yet in the \code{model_dir} folder.
@@ -310,25 +314,34 @@ whisper <- function(x, use_gpu = FALSE, flash_attn = TRUE, overwrite = FALSE, mo
 #' whisper_download_model("large-v1")
 #' whisper_download_model("large-v2")
 #' whisper_download_model("large-v3")
+#' whisper_download_model("large-v3-turbo")
 #' whisper_download_model("tiny-q5_1")
+#' whisper_download_model("tiny-q8_0")
 #' whisper_download_model("base-q5_1")
+#' whisper_download_model("base-q8_0")
 #' whisper_download_model("small-q5_1")
+#' whisper_download_model("small-q8_0")
 #' whisper_download_model("medium-q5_0")
+#' whisper_download_model("medium-q8_0")
 #' whisper_download_model("large-v2-q5_0")
+#' whisper_download_model("large-v2-q8_0")
 #' whisper_download_model("large-v3-q5_0")
+#' whisper_download_model("large-v3-turbo-q5_0")
+#' whisper_download_model("large-v3-turbo-q8_0")
 #' }
 #' \dontshow{
 #' if(file.exists(path$file_model)) file.remove(path$file_model)
 #' }
-whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large",
-                                         "tiny-q5_1", "tiny.en-q5_1", 
-                                         "base-q5_1", "base.en-q5_1", 
-                                         "small-q5_1", "small.en-q5_1", 
-                                         "medium-q5_0", "medium.en-q5_0", 
-                                         "large-v2-q5_0", "large-v3-q5_0"),
+whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large-v3-turbo", "large",
+                                         "tiny-q5_1", "tiny-q8_0", "tiny.en-q5_1", "tiny.en-q8_0",
+                                         "base-q5_1", "base-q8_0", "base.en-q5_1", "base.en-q8_0",
+                                         "small-q5_1", "small-q8_0", "small.en-q5_1", "small.en-q8_0",
+                                         "medium-q5_0", "medium-q8_0", "medium.en-q5_0", "medium.en-q8_0", 
+                                         "large-v2-q5_0", "large-v2-q8_0", "large-v3-q5_0",
+                                         "large-v3-turbo-q5_0", "large-v3-turbo-q8_0"),
                                    model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
                                    repos = c("huggingface", "ggerganov"),
-                                   version = c("1.5.4", "1.2.1"),
+                                   version = c("1.8.2", "1.5.4", "1.2.1"),
                                    overwrite = TRUE, 
                                    ...){
   version <- match.arg(version)
@@ -344,6 +357,8 @@ whisper_download_model <- function(x = c("tiny", "tiny.en", "base", "base.en", "
       url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/%s", f)
     }else if(version == "1.5.4"){
       url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/d15393806e24a74f60827e23e986f0c10750b358/%s", f)
+    }else if(version == "1.8.2"){
+      url <- sprintf("https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/%s", f)
     }
   }else if(repos == "ggerganov"){
     .Deprecated(msg = "whisper_download_model with argument repos = 'ggerganov' is deprecated as that resource might become unavailable for certain models, please use repos = 'huggingface'")

@@ -56,6 +56,9 @@ trans
 model <- whisper("large-v1")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
+model <- whisper("large-v3-turbo-q8_0")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
 
 ## Or download the model explicitely
 path  <- whisper_download_model("tiny")

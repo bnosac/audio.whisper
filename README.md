@@ -21,6 +21,18 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 | `large-v1`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3 & 0.2.2  |
 | `large-v2`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3          |
 | `large-v3`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3          |
+| `large-v3-turbo`       | Multilingual                | 1.5 GB | 2.6 GB     | audio.whisper >=0.5.0        |
+
+Available quantised models are:
+
+- tiny-q5_1, tiny-q8_0, tiny.en-q5_1, tiny.en-q8_0
+- base-q5_1, base-q8_0, base.en-q5_1, base.en-q8_0
+- small-q5_1, small-q8_0, small.en-q5_1, small.en-q8_0
+- medium-q5_0, medium-q8_0, medium.en-q5_0, medium.en-q8_0
+- large-v2-q5_0, large-v2-q8_0, large-v3-q5_0
+- large-v3-turbo-q5_0, large-v3-turbo-q8_0
+
+You can download other models from Huggingface - e.g. distilled models at https://huggingface.co/distil-whisper
 
 ### Installation
 
@@ -53,6 +65,8 @@ model <- whisper("medium")
 model <- whisper("large-v1")
 model <- whisper("large-v2")
 model <- whisper("large-v3")
+model <- whisper("large-v3-turbo")
+model <- whisper("large-v3-turbo-q8_0")
 path  <- system.file(package = "audio.whisper", "repo", "ggml-tiny.en-q5_1.bin")
 model <- whisper(path)
 ```

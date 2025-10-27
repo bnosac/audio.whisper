@@ -6,12 +6,15 @@
 \usage{
 whisper_download_model(
   x = c("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en",
-    "large-v1", "large-v2", "large-v3", "large", "tiny-q5_1", "tiny.en-q5_1",
-    "base-q5_1", "base.en-q5_1", "small-q5_1", "small.en-q5_1", "medium-q5_0",
-    "medium.en-q5_0", "large-v2-q5_0", "large-v3-q5_0"),
+    "large-v1", "large-v2", "large-v3", "large-v3-turbo", "large", "tiny-q5_1",
+    "tiny-q8_0", "tiny.en-q5_1", "tiny.en-q8_0", "base-q5_1", "base-q8_0",
+    "base.en-q5_1", "base.en-q8_0", "small-q5_1", "small-q8_0", "small.en-q5_1",
+    "small.en-q8_0", "medium-q5_0", "medium-q8_0", "medium.en-q5_0", "medium.en-q8_0",
+    "large-v2-q5_0", "large-v2-q8_0", "large-v3-q5_0", "large-v3-turbo-q5_0",
+    "large-v3-turbo-q8_0"),
   model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
   repos = c("huggingface", "ggerganov"),
-  version = c("1.5.4", "1.2.1"),
+  version = c("1.8.2", "1.5.4", "1.2.1"),
   overwrite = TRUE,
   ...
 )
@@ -27,7 +30,7 @@ whisper_download_model(
 \item{'ggerganov': https://ggml.ggerganov.com/ - no longer supported as the resource by ggerganov can become unavailable}
 }}
 
-\item{version}{character string with the version of the model. Defaults to "1.5.4".}
+\item{version}{character string with the version of the model. Defaults to "1.8.2".}
 
 \item{overwrite}{logical indicating to overwrite the file if the file was already downloaded. Defaults to \code{TRUE} indicating 
 it will download the model and overwrite the file if the file already existed. If set to \code{FALSE},
@@ -72,12 +75,20 @@ whisper_download_model("medium.en")
 whisper_download_model("large-v1")
 whisper_download_model("large-v2")
 whisper_download_model("large-v3")
+whisper_download_model("large-v3-turbo")
 whisper_download_model("tiny-q5_1")
+whisper_download_model("tiny-q8_0")
 whisper_download_model("base-q5_1")
+whisper_download_model("base-q8_0")
 whisper_download_model("small-q5_1")
+whisper_download_model("small-q8_0")
 whisper_download_model("medium-q5_0")
+whisper_download_model("medium-q8_0")
 whisper_download_model("large-v2-q5_0")
+whisper_download_model("large-v2-q8_0")
 whisper_download_model("large-v3-q5_0")
+whisper_download_model("large-v3-turbo-q5_0")
+whisper_download_model("large-v3-turbo-q8_0")
 }
 \dontshow{
 if(file.exists(path$file_model)) file.remove(path$file_model)
