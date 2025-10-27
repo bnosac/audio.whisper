@@ -23,7 +23,7 @@ This repository contains an R package which is an Rcpp wrapper around the [whisp
 | `large-v3`             | Multilingual                | 2.9 GB | 4.7 GB     | audio.whisper >=0.3          |
 | `large-v3-turbo`       | Multilingual                | 1.5 GB | 2.6 GB     | audio.whisper >=0.5.0        |
 
-Available quantised models are:
+Available quantized models are:
 
 - tiny-q5_1, tiny-q8_0, tiny.en-q5_1, tiny.en-q8_0
 - base-q5_1, base-q8_0, base.en-q5_1, base.en-q8_0
@@ -32,7 +32,7 @@ Available quantised models are:
 - large-v2-q5_0, large-v2-q8_0, large-v3-q5_0
 - large-v3-turbo-q5_0, large-v3-turbo-q8_0
 
-You can download other models from Huggingface - e.g. distilled models at https://huggingface.co/distil-whisper
+If you need specialised models, you can download other gguf whisper.cpp-compatible models from Huggingface - e.g. [distilled models](https://huggingface.co/distil-whisper)
 
 ### Installation
 
