@@ -11,6 +11,7 @@
 #' @examples
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 #' voice <- vad(audio)
+#' voice <- vad(audio, use_gpu = TRUE)
 vad <- function(path = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
                 vad_model = system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin"), ...){
   out <- silero_vad(path, vad_model, ...)
