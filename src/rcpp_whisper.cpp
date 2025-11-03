@@ -40,6 +40,8 @@ int timestamp_to_sample(int64_t t, int n_samples) {
     return std::max(0, std::min((int) n_samples - 1, (int) ((t*WHISPER_SAMPLE_RATE)/100)));
 }
 
+static void cb_log_disable(enum ggml_log_level , const char * , void * ) { }
+
 // command-line parameters
 struct whisper_params {
     int32_t n_threads     = std::min(4, (int32_t) std::thread::hardware_concurrency());
@@ -202,14 +204,17 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
     }
 }
 
-
+// [[Rcpp::export]]
+void whisper_load_backend() {
+  ggml_backend_load_all();
+}
 
 // Functionality to free the Rcpp::XPtr
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
         WhisperModel(std::string model, bool use_gpu = false, bool flash_attn = true){
-          ggml_backend_load_all();
+          
           struct whisper_context_params cparams = whisper_context_default_params();
           cparams.use_gpu = use_gpu;
           cparams.flash_attn = flash_attn;
@@ -305,7 +310,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if(trace > 0){
       Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
     }
-    
+    if(trace <= 1) {
+      whisper_log_set(cb_log_disable, NULL);
+    }
     
     {
       if (!whisper_is_multilingual(ctx)) {
