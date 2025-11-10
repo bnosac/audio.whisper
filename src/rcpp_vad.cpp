@@ -29,13 +29,19 @@ Rcpp::List silero_vad(
     float       vad_max_speech_duration_s = -1,
     int         vad_speech_pad_ms = 30,
     float       vad_samples_overlap = 0.1,
-    bool        use_gpu = true,
+    bool        use_gpu = false,
     int         n_threads = 1,
     bool        probabilities = false) {
   //ggml_backend_load_all();
   float audio_duration=0;
   cli_params cli_params;
   cli_params.vad_model  = vad_model;
+  cli_params.vad_threshold = vad_threshold;
+  cli_params.vad_min_speech_duration_ms = vad_min_speech_duration_ms;
+  cli_params.vad_min_silence_duration_ms = vad_min_silence_duration_ms;
+  cli_params.vad_max_speech_duration_s = vad_max_speech_duration_s;
+  cli_params.vad_speech_pad_ms = vad_speech_pad_ms;
+  cli_params.vad_samples_overlap = vad_samples_overlap;
   
   whisper_log_set(cb_log_disable, NULL);
   
@@ -67,6 +73,9 @@ Rcpp::List silero_vad(
   params.threshold = cli_params.vad_threshold;
   params.min_speech_duration_ms = cli_params.vad_min_speech_duration_ms;
   params.min_silence_duration_ms = cli_params.vad_min_silence_duration_ms;
+  if (!whisper_vad_detect_speech(vctx, pcmf32.data(), pcmf32.size())) {
+    Rprintf("error: failed to detect speech\n");
+  }
   params.max_speech_duration_s = cli_params.vad_max_speech_duration_s;
   params.speech_pad_ms = cli_params.vad_speech_pad_ms;
   params.samples_overlap = cli_params.vad_samples_overlap;
@@ -115,8 +124,8 @@ Rcpp::List silero_vad(
       Rcpp::Named("min_speech_duration") = vad_min_speech_duration_ms,   // VAD min speech duration (0.0-1.0)
       Rcpp::Named("max_speech_duration") = vad_max_speech_duration_s,    // VAD max speech duration (auto-split longer)
       Rcpp::Named("min_silence_duration") = vad_min_silence_duration_ms, // VAD min silence duration (to split segments)
-      Rcpp::Named("speech_pad") = vad_speech_pad_ms,                     // VAD speech padding (extend segments)
-      Rcpp::Named("samples_overlap") = vad_samples_overlap,              // VAD samples overlap (seconds between segments)
+      Rcpp::Named("pad") = vad_speech_pad_ms,                     // VAD speech padding (extend segments)
+      Rcpp::Named("overlap") = vad_samples_overlap,              // VAD samples overlap (seconds between segments)
       Rcpp::Named("use_gpu") = use_gpu,
       Rcpp::Named("n_threads") = n_threads
     )
