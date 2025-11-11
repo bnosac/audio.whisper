@@ -7,18 +7,49 @@
 vad(
   path = system.file(package = "audio.whisper", "samples", "jfk.wav"),
   vad_model = system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin"),
+  threshold = 0.5,
+  min_speech_duration = 250,
+  min_silence_duration = 100,
+  max_speech_duration = -1,
+  pad = 30,
+  overlap = 0.1,
+  n_threads = 1,
+  probabilities = FALSE,
+  use_gpu = FALSE,
   ...
 )
 }
 \arguments{
-\item{path}{TODO}
+\item{path}{the path to the wav file}
 
-\item{vad_model}{TODO}
+\item{vad_model}{the path to the VAD model. Defaults to the ggml-silero-v5.1.2.bin in the silero folder shipped with this package}
+
+\item{threshold}{VAD threshold for speech recognition. Defaults to 0.5.}
+
+\item{min_speech_duration}{VAD minimum speech duration of voiced speech in milliseconds. Defaults to 250 milliseconds}
+
+\item{min_silence_duration}{VAD minimum silence duration in milliseconds in order to split segments. Defaults to 100 milliseconds.}
+
+\item{max_speech_duration}{VAD maximum speech duration - auto-split longer speech segments. Defaults to -1.}
+
+\item{pad}{VAD speech padding in milliseconds to extend segments. Defaults to 30.}
+
+\item{overlap}{VAD samples overlap - seconds between segments - to allow a bit more context. Defaults to 0.1.}
+
+\item{n_threads}{multithreading - number of threads to use. Defaults to 1.}
+
+\item{probabilities}{logical indicating to return probabilities. Defaulst to FALSE.}
 
 \item{...}{passed on to the C++ silero_vad function}
 }
 \value{
-TODO
+an object of class \code{silero_vad} which is list with the following elements: 
+\itemize{
+\item{n_segments: the number of voiced segments}
+\item{probabilities: the probabilities of voice in the audio}
+\item{data: a data.frame with columns: segment, from, to, has_voice where from/to are in seconds. The data contains only voices segments.}
+\item{params: a list of hyperparameters passed on to the model scoring function}
+}
 }
 \description{
 Voice Activity Detection using Silero
@@ -26,6 +57,8 @@ Voice Activity Detection using Silero
 \examples{
 audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 voice <- vad(audio)
+voice <- vad(audio, min_speech_duration = 1000)
+voice <- vad(audio, probabilities = TRUE)
 }
 \seealso{
 \code{\link{predict.whisper}}
