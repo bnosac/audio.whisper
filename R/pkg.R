@@ -7,6 +7,5 @@ NULL
 
 .onLoad <- function(libname, pkgname) {
   whisper_load_backend()
-  
   invisible()
 }

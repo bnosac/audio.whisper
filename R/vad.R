@@ -26,7 +26,7 @@
 #' @examples
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
 #' voice <- vad(audio)
-#' voice <- vad(audio, min_speech_duration = 1000)
+#' voice <- vad(audio, threshold = 0.5, min_speech_duration = 1000, min_silence_duration = 100)
 #' voice <- vad(audio, probabilities = TRUE)
 vad <- function(path = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
                 vad_model = system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin"), 
@@ -38,7 +38,6 @@ vad <- function(path = system.file(package = "audio.whisper", "samples", "jfk.wa
                 overlap = 0.1,
                 n_threads = 1,
                 probabilities = FALSE,
-                use_gpu = FALSE,
                 ...){
   out <- silero_vad(path, vad_model, 
                     vad_threshold = threshold, 
