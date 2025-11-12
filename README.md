@@ -304,8 +304,8 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
     - Make sure CUDA_PATH is set to the path where CUDA is installed
     - Example at https://github.com/bnosac/images/blob/main/whisper/Dockerfile.cuda#L7-L13
     - Change -DCMAKE_CUDA_ARCHITECTURES according to your specs. For example if you run on 
-        - NVIDIA T4 GPU's (e.g. g4dn.xlarge), CMAKE_CUDA_ARCHITECTURES='75' (compute capability 7.5 (Turing architecture))
-        - NVIDIA L4 GPU's (e.g. g6.xlarge),   CMAKE_CUDA_ARCHITECTURES='89' (compute capability 8.9 (Ada Lovelace architecture))
+        - NVIDIA T4 GPU's, ´-DCMAKE_CUDA_ARCHITECTURES='75'´ (Turing architecture with compute capability 7.5)
+        - NVIDIA L4 GPU's, ´-DCMAKE_CUDA_ARCHITECTURES='89'´ (Ada Lovelace architecture with compute capability 8.9)
     
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
