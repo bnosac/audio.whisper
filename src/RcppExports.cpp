@@ -41,16 +41,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // whisper_load_model
-SEXP whisper_load_model(std::string model, bool use_gpu, bool flash_attn, bool trace);
-RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP, SEXP flash_attnSEXP, SEXP traceSEXP) {
+SEXP whisper_load_model(std::string model, bool use_gpu, bool flash_attn, int gpu_device, bool trace);
+RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP, SEXP flash_attnSEXP, SEXP gpu_deviceSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
     Rcpp::traits::input_parameter< bool >::type use_gpu(use_gpuSEXP);
     Rcpp::traits::input_parameter< bool >::type flash_attn(flash_attnSEXP);
+    Rcpp::traits::input_parameter< int >::type gpu_device(gpu_deviceSEXP);
     Rcpp::traits::input_parameter< bool >::type trace(traceSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu, flash_attn, trace));
+    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu, flash_attn, gpu_device, trace));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -115,7 +116,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_silero_vad", (DL_FUNC) &_audio_whisper_silero_vad, 11},
     {"_audio_whisper_whisper_load_backend", (DL_FUNC) &_audio_whisper_whisper_load_backend, 0},
-    {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 4},
+    {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 5},
     {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 26},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},

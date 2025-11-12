@@ -213,10 +213,11 @@ void whisper_load_backend() {
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
-        WhisperModel(std::string model, bool use_gpu = false, bool flash_attn = true){
+        WhisperModel(std::string model, bool use_gpu = false, int gpu_device = 0, bool flash_attn = true){
           
           struct whisper_context_params cparams = whisper_context_default_params();
           cparams.use_gpu = use_gpu;
+          cparams.gpu_device = gpu_device;
           cparams.flash_attn = flash_attn;
           ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
         }
@@ -226,14 +227,14 @@ class WhisperModel {
 };
 
 // [[Rcpp::export]]
-SEXP whisper_load_model(std::string model, bool use_gpu = false, bool flash_attn = true, bool trace = true) {
+SEXP whisper_load_model(std::string model, bool use_gpu = false, bool flash_attn = true, int gpu_device = 0, bool trace = true) {
     // Load language model and return the pointer to be used by whisper_encode
     //struct whisper_context * ctx = whisper_init(model.c_str());
     //Rcpp::XPtr<whisper_context> ptr(ctx, false);
     if(trace > 0){
       Rprintf("system_info: hardware_concurrency = %d | %s\n", std::thread::hardware_concurrency(), whisper_print_system_info());  
     }
-    WhisperModel * wp = new WhisperModel(model, use_gpu, flash_attn);
+    WhisperModel * wp = new WhisperModel(model, use_gpu, gpu_device, flash_attn);
     Rcpp::XPtr<WhisperModel> ptr(wp, false);
     return ptr;
 }
