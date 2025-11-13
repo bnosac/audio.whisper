@@ -24,8 +24,10 @@
 #' @export
 #' @seealso \code{\link{predict.whisper}}
 #' @examples
+#' model <- system.file(package = "audio.whisper", "silero", "ggml-silero-v6.2.0.bin")
+#' model <- system.file(package = "audio.whisper", "silero", "ggml-silero-v5.1.2.bin")
 #' audio <- system.file(package = "audio.whisper", "samples", "jfk.wav")
-#' voice <- vad(audio)
+#' voice <- vad(audio, vad_model = model)
 #' voice <- vad(audio, threshold = 0.5, min_speech_duration = 1000, min_silence_duration = 100)
 #' voice <- vad(audio, probabilities = TRUE)
 vad <- function(path = system.file(package = "audio.whisper", "samples", "jfk.wav"), 
