@@ -615,3 +615,68 @@ Rcpp::DataFrame whisper_language_info() {
     Rcpp::Named("language_label") = label, 
     Rcpp::Named("stringsAsFactors") = false);
 }
+
+
+
+// [[Rcpp::export]]
+Rcpp::List ggml_devices() {
+  std::vector<std::string> dev_id;
+  std::vector<std::string> dev_name;
+  std::vector<std::string> dev_description;
+  std::vector<std::string> dev_type;
+  std::vector<std::string> dev_features;
+  std::string s;
+  for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+    ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+    s = ggml_backend_dev_name(dev);
+    dev_name.push_back(s);
+    s = ggml_backend_dev_description(dev);
+    dev_description.push_back(s);
+    s = "unknown";
+    if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_GPU) {
+      s = "GGML_BACKEND_DEVICE_TYPE_GPU";   // GPU device using dedicated memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU){
+      s = "GGML_BACKEND_DEVICE_TYPE_CPU";   // CPU device using system memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_IGPU){
+      s = "GGML_BACKEND_DEVICE_TYPE_IGPU";  // integrated GPU device using host memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_ACCEL){
+      s = "GGML_BACKEND_DEVICE_TYPE_ACCEL"; // accelerator devices intended to be used together with the CPU backend (e.g. BLAS or AMX)
+    }
+    dev_type.push_back(s);
+    ggml_backend_dev_props props;
+    ggml_backend_dev_get_props(dev, &props);
+    s = props.device_id ? props.device_id : "unknown id";
+    dev_id.push_back(s);
+  }
+  for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+    s.clear();
+    auto * reg = ggml_backend_reg_get(i);
+    auto * get_features_fn = (ggml_backend_get_features_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_get_features");
+    s += ggml_backend_reg_name(reg);
+    if (get_features_fn) {
+      ggml_backend_feature * features = get_features_fn(reg);
+      s += " : ";
+      for (; features->name; features++) {
+        s += features->name;
+        s += " = ";
+        s += features->value;
+        s += " | ";
+      }
+    }
+    dev_features.push_back(s);
+  }
+  Rcpp::List output = Rcpp::List::create(
+    Rcpp::Named("n") = ggml_backend_dev_count(),
+    Rcpp::Named("devices") = Rcpp::DataFrame::create(
+      Rcpp::Named("id") = dev_id, 
+      Rcpp::Named("name") = dev_name, 
+      Rcpp::Named("description") = dev_description, 
+      Rcpp::Named("type") = dev_type, 
+      Rcpp::Named("stringsAsFactors") = false),
+    Rcpp::Named("backends_registered") = dev_features
+  );
+  return output;
+}

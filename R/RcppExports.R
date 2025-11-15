@@ -25,3 +25,7 @@ whisper_language_info <- function() {
     .Call('_audio_whisper_whisper_language_info', PACKAGE = 'audio.whisper')
 }
 
+ggml_devices <- function() {
+    .Call('_audio_whisper_ggml_devices', PACKAGE = 'audio.whisper')
+}
+

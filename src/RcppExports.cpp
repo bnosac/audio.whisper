@@ -112,6 +112,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ggml_devices
+Rcpp::List ggml_devices();
+RcppExport SEXP _audio_whisper_ggml_devices() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(ggml_devices());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_silero_vad", (DL_FUNC) &_audio_whisper_silero_vad, 11},
@@ -120,6 +130,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 26},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
+    {"_audio_whisper_ggml_devices", (DL_FUNC) &_audio_whisper_ggml_devices, 0},
     {NULL, NULL, 0}
 };
 
