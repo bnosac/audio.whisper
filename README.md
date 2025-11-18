@@ -318,7 +318,6 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ##### MacOS
 
 > If you have a Mac with Accelerate or GPU with the METAL framework, both are enabled by default. So normally you don't need to do anything.
-You can disable e.g. Accelerate if you prefer that for some reason by setting `-DGGML_ACCELERATE=0`.
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=1 -DGGML_METAL=1")
