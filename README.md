@@ -359,7 +359,7 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the environment variable
+- Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the GGML_VK_VISIBLE_DEVICES environment variable
     
 <details>
   <summary>Uncollapse to show details</summary>
