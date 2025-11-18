@@ -330,9 +330,9 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- If you are on Windows and your hardware you have a NVIDIA GPU. 
+- If you are on Windows and you have a NVIDIA GPU. 
 
-    - The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
+  - The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
 
 ```
 pacman -S git \
@@ -342,9 +342,11 @@ pacman -S git \
     mingw-w64-ucrt-x86_64-shaderc
 ```
 
-    - Make sure you set an environment variable VULKAN_SDK to 'C:\rtools45\ucrt64' 
-    - Add 'C:\rtools45\ucrt64\bin' to your PATH and restart R
-    - Make sure you use the C and C++ compilers from Rtools ucrt64 by setting the environment variables and install the package as follows by using the `-DGGML_VULKAN=1` flag
+Make sure the compilation can find Vulkan by doing the following steps:
+
+  - Create an environment variable VULKAN_SDK and set it to the path of Rtools ucrt64 'C:\rtools45\ucrt64' 
+  - Add 'C:\rtools45\ucrt64\bin' to your PATH and restart R
+  - Make sure you use the C and C++ compilers from Rtools ucrt64 by setting the environment variables and install the package as follows by using the `-DGGML_VULKAN=1` flag
 
 ```
 Sys.setenv(CC = "C:/rtools45/ucrt64/bin/gcc.exe", CXX = "C:/rtools45/ucrt64/bin/g++.exe")
