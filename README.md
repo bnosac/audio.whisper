@@ -335,9 +335,9 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-> If you are on Windows and you have a NVIDIA GPU. 
+> If you are on Windows and you have an NVIDIA GPU. 
 
-- The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
+- The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools MSYS shell which is e.g. ´C:\rtools45\ucrt64.exe´ if you are running R 4.5. Similarly as indicated [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
 
 ```
 pacman -S git \
