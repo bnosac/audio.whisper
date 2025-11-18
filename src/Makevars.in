@@ -10,8 +10,8 @@ ifdef WHISPER_LIBS
   PKG_LIBS = $(WHISPER_LIBS) 
 endif
 
-SOURCES = common/grammar-parser.cpp read_wav/read_wav.cpp rcpp_whisper.cpp rcpp_vad.cpp RcppExports.cpp
-OBJECTS = common/grammar-parser.o   read_wav/read_wav.o   rcpp_whisper.o   rcpp_vad.o   RcppExports.o
+SOURCES = common/grammar-parser.cpp read_wav/read_wav.cpp dllmain.cpp rcpp_whisper.cpp rcpp_vad.cpp RcppExports.cpp
+OBJECTS = common/grammar-parser.o   read_wav/read_wav.o   dllmain.o   rcpp_whisper.o   rcpp_vad.o   RcppExports.o
 
 .PHONY: all
 all: $(SHLIB); rm -f $(OBJECTS)

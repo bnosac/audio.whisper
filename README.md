@@ -313,14 +313,6 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- If you are on Windows and your hardware allows specific compilation with specific SIMD instructions sets
-
-```
-Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
-Sys.unsetenv("WHISPER_CMAKE_FLAGS")
-```
-
 - If you have a Mac with Accelerate or GPU with the METAL framework, both are enabled by default. So normally you don't need to do anything.
 You can disable e.g. Accelerate if you prefer that for some reason by setting `-DGGML_ACCELERATE=0`.
 
@@ -330,11 +322,118 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
+- If you are on Windows and your hardware allows specific compilation with specific SIMD instructions sets
+
+```
+Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
+remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+- If you are on Windows and your hardware you have a NVIDIA GPU. 
+
+    - The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
+
+```
+pacman -S git \
+    mingw-w64-ucrt-x86_64-gcc \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-vulkan-devel \
+    mingw-w64-ucrt-x86_64-shaderc
+```
+
+    - Make sure you set an environment variable VULKAN_SDK to 'C:\rtools45\ucrt64' 
+    - Add 'C:\rtools45\ucrt64\bin' to your PATH and restart R
+    - Make sure you use the C and C++ compilers from Rtools ucrt64 by setting the environment variables and install the package as follows by using the `-DGGML_VULKAN=1` flag
+
+```
+Sys.setenv(CC = "C:/rtools45/ucrt64/bin/gcc.exe", CXX = "C:/rtools45/ucrt64/bin/g++.exe")
+Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_VULKAN=1 -DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_OPENMP=0")
+remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+Sys.unsetenv("WHISPER_CMAKE_FLAGS")
+```
+
+    - Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the environment variable
+    
+<details>
+  <summary>Uncollapse to show details</summary>
+
+```
+## Reorder the devices before loading the package to put Vulkan GPU on first place
+Sys.setenv(GGML_VK_VISIBLE_DEVICES = "1,0") 
+library(audio.whisper)
+## Show the devices 
+audio.whisper:::ggml_devices()
+model <- whisper("medium", use_gpu = TRUE, gpu_device = 0, flash_attn = TRUE)
+
+> Sys.setenv(GGML_VK_VISIBLE_DEVICES = "1,0")
+> library(audio.whisper)
+> audio.whisper:::ggml_devices()
+ggml_vulkan: Found 2 Vulkan devices:
+ggml_vulkan: 0 = NVIDIA GeForce RTX 4090 Laptop GPU (NVIDIA) | uma: 0 | fp16: 1 | bf16: 0 | warp size: 32 | shared memory: 49152 | int dot: 1 | matrix cores: NV_coopmat2
+ggml_vulkan: 1 = Intel(R) RaptorLake-S Mobile Graphics Controller (Intel Corporation) | uma: 1 | fp16: 1 | bf16: 0 | warp size: 32 | shared memory: 32768 | int dot: 1 | matrix cores: none
+$n
+[1] 3
+
+$devices
+            id    name                                      description                          type
+1 0000:01:00.0 Vulkan0               NVIDIA GeForce RTX 4090 Laptop GPU  GGML_BACKEND_DEVICE_TYPE_GPU
+2   unknown id Vulkan1 Intel(R) RaptorLake-S Mobile Graphics Controller GGML_BACKEND_DEVICE_TYPE_IGPU
+3   unknown id     CPU            13th Gen Intel(R) Core(TM) i9-13900HX  GGML_BACKEND_DEVICE_TYPE_CPU
+
+$backends_registered
+[1] "Vulkan"                                                                                                        
+[2] "CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | REPACK = 1 | "
+
+> model <- whisper("medium", use_gpu = TRUE, flash_attn = TRUE)
+system_info: hardware_concurrency = 32 | WHISPER : COREML = 0 | OPENVINO = 0 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | REPACK = 1 | 
+whisper_init_from_file_with_params_no_state: loading model from 'C:/Users/jwijf/Desktop/audio.whisper/ggml-medium.bin'
+whisper_init_with_params_no_state: use gpu    = 1
+whisper_init_with_params_no_state: flash attn = 1
+whisper_init_with_params_no_state: gpu_device = 0
+whisper_init_with_params_no_state: dtw        = 0
+whisper_init_with_params_no_state: devices    = 3
+whisper_init_with_params_no_state: backends   = 2
+whisper_model_load: loading model
+whisper_model_load: n_vocab       = 51865
+whisper_model_load: n_audio_ctx   = 1500
+whisper_model_load: n_audio_state = 1024
+whisper_model_load: n_audio_head  = 16
+whisper_model_load: n_audio_layer = 24
+whisper_model_load: n_text_ctx    = 448
+whisper_model_load: n_text_state  = 1024
+whisper_model_load: n_text_head   = 16
+whisper_model_load: n_text_layer  = 24
+whisper_model_load: n_mels        = 80
+whisper_model_load: ftype         = 1
+whisper_model_load: qntvr         = 0
+whisper_model_load: type          = 4 (medium)
+whisper_model_load: adding 1608 extra tokens
+whisper_model_load: n_langs       = 99
+whisper_model_load:      Vulkan0 total size =  1533.14 MB
+whisper_model_load: model size    = 1533.14 MB
+whisper_backend_init_gpu: device 0: Vulkan0 (type: 1)
+whisper_backend_init_gpu: found GPU device 0: Vulkan0 (type: 1, cnt: 0)
+whisper_backend_init_gpu: using Vulkan0 backend
+whisper_init_state: kv self size  =   50.33 MB
+whisper_init_state: kv cross size =  150.99 MB
+whisper_init_state: kv pad  size  =    6.29 MB
+whisper_init_state: compute buffer (conv)   =   29.53 MB
+whisper_init_state: compute buffer (encode) =   44.60 MB
+whisper_init_state: compute buffer (cross)  =    7.73 MB
+whisper_init_state: compute buffer (decode) =   99.12 MB
+```
+
+</details> 
+
+
+
+
 #### For older versions of audio.whisper (< 0.5.0)
 
 <details>
   <summary>Uncollapse to show details</summary>
-  
+ 
 
 The tensor operations contained in [ggml.h](src/whisper_cpp/ggml.h) / [ggml.c](src/whisper_cpp/ggml.c) are *highly optimised* depending on the hardware of your CPU
 

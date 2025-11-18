@@ -25,6 +25,14 @@ fi
 #WHISPER_CMAKE_FLAGS=" -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBLAS -DGGML_CUDA=0 -DGGML_METAL=0 -DGGML_OPENCL=0 -DGGML_OPENMP=1 -DGGML_QNNPACK=0 -DGGML_USE_ACCELERATE=0 -DGGML_USE_CUDA_NVCC=0 -DGGML_USE_LIBBACKTRACE=0 -DGGML_USE_MKL=0 -DGGML_USE_OPENBLAS=1 -DGGML_USE_VECLIB=0 -DWHISPER_BUILD_TESTS=0 -DCMAKE_BUILD_TYPE=Release"
 #WHISPER_CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=ON -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DGGML_NATIVE=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON -DMSVC=1"
 #WHISPER_CMAKE_FLAGS=" -DBUILD_SHARED_LIBS=OFF -DWHISPER_STANDALONE=OFF -DWHISPER_BUILD_EXAMPLES=OFF -DWHISPER_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE:bool=ON $CMAKE_FLAGS_EXTRA -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC"
+#WHISPER_CMAKE_FLAGS="-DGGML_VULKAN=1 -DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_OPENMP=0"
+#WHISPER_CMAKE_FLAGS="-DGGML_NATIVE=OFF -DGGML_USE_CPU=OFF -DGGML_BLAS=OFF -DGGML_VULKAN=ON -DGGML_AVX512=OFF -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF -DGGML_AVX2=ON -DGGML_AVX=OFF -DCMAKE_VERBOSE_MAKEFILE=OFF -DGGML_VULKAN_RUN_TESTS=ON"
+#WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_ARCHITECTURES='89' -DCMAKE_CXX_COMPILER=g++  -DCMAKE_CUDA_COMPILER=$(which nvcc)"
+#WHISPER_CMAKE_FLAGS=""
+#WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES='89'"
+#WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_ARCHITECTURES='89'"
+#-DCMAKE_CUDA_HOST_COMPILER="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8/bin/nvcc.exe"
+
 if [ `uname` = "Darwin" ]; then
   ## Computer has a GPU based on Metal
   EXT_PKG_LIBS = -framework Foundation -framework Metal -framework MetalKit
@@ -35,8 +43,13 @@ else
   if [ -n "$WHISPER_CMAKE_FLAGS" ]; then
     if echo "$WHISPER_CMAKE_FLAGS" | grep -q 'GGML_CUDA=1\|GGML_CUDA=ON'; then
       ## Link to CUDA GPU
+      ##   - TODO for Windows export CUDA_PATH="C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.8" EXT_PKG_LIBS='-lcuda -lcublas -lcudart -lcublasLt -lpthread -ldl  -L"$(CUDA_PATH)/lib/x64"'
       UNAME_M=$(uname -m)
       EXT_PKG_LIBS='-lcuda -lcublas -lculibos -lcudart -lcublasLt -lpthread -ldl -lrt -L"$(CUDA_PATH)/lib64" -L"$(CUDA_PATH)/lib64/stubs" -L/opt/cuda/lib64 -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib" -L"$(CUDA_PATH)/targets/$(UNAME_M)-linux/lib/stubs" -L/usr/lib/wsl/lib'
+    fi
+    if echo "$WHISPER_CMAKE_FLAGS" | grep -q 'GGML_VULKAN=1\|GGML_VULKAN=ON'; then
+      ## Link to Vulkan GPU
+      EXT_PKG_LIBS='-lvulkan-1 -L"$(VULKAN_SDK)/lib"'
     fi
   else
     echo "No WHISPER_CMAKE_FLAGS provided, using the default setup"
@@ -46,6 +59,9 @@ fi
 ###############################################################################################
 ## cmake compilation flags for whisper.cpp provided by the end user in WHISPER_CMAKE_FLAGS
 ## build whisper.cpp in the src/build folder
+## Set C and CXX compiler to the one from ucrt64 from Rtools
+## export CC="C:/rtools45/ucrt64/bin/gcc.exe"
+## export CXX="C:/rtools45/ucrt64/bin/g++.exe"
 ##
 ## TODO: link to R headers to make the printing R-native
 ##   RCPP_HOME_DIR=$(Rscript -e "cat(system.file(package = 'Rcpp'))")
