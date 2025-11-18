@@ -122,6 +122,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ggml_unload
+void ggml_unload(const char * name);
+RcppExport SEXP _audio_whisper_ggml_unload(SEXP nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const char * >::type name(nameSEXP);
+    ggml_unload(name);
+    return R_NilValue;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_silero_vad", (DL_FUNC) &_audio_whisper_silero_vad, 11},
@@ -131,6 +141,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
     {"_audio_whisper_ggml_devices", (DL_FUNC) &_audio_whisper_ggml_devices, 0},
+    {"_audio_whisper_ggml_unload", (DL_FUNC) &_audio_whisper_ggml_unload, 1},
     {NULL, NULL, 0}
 };
 

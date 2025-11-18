@@ -29,3 +29,7 @@ ggml_devices <- function() {
     .Call('_audio_whisper_ggml_devices', PACKAGE = 'audio.whisper')
 }
 
+ggml_unload <- function(name) {
+    invisible(.Call('_audio_whisper_ggml_unload', PACKAGE = 'audio.whisper', name))
+}
+

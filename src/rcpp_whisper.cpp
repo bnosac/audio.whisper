@@ -680,3 +680,24 @@ Rcpp::List ggml_devices() {
   );
   return output;
 }
+
+
+static bool striequals(const char * a, const char * b) {
+  for (; *a && *b; a++, b++) {
+    if (std::tolower(*a) != std::tolower(*b)) {
+      return false;
+    }
+  }
+  return *a == *b;
+}
+
+// [[Rcpp::export]]
+void ggml_unload(const char * name) {
+  for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+    ggml_backend_reg_t reg = ggml_backend_reg_get(i);
+    if (striequals(ggml_backend_reg_name(reg), name)) {
+      Rprintf("Unloading backend");
+      ggml_backend_unload(reg);
+    }
+  }
+}
