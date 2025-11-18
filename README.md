@@ -360,6 +360,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
 - Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the GGML_VK_VISIBLE_DEVICES environment variable
+- Note that using Vulkan on Windows has not been tested thoroughly
     
 <details>
   <summary>Uncollapse to show details</summary>
