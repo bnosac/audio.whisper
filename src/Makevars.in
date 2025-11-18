@@ -9,9 +9,10 @@ PKG_LIBS = @WHISPER_STATIC_LIBS@ $(SHLIB_OPENMP_CXXFLAGS)
 ifdef WHISPER_LIBS
   PKG_LIBS = $(WHISPER_LIBS) 
 endif
-
 SOURCES = common/grammar-parser.cpp read_wav/read_wav.cpp dllmain.cpp rcpp_whisper.cpp rcpp_vad.cpp RcppExports.cpp
 OBJECTS = common/grammar-parser.o   read_wav/read_wav.o   dllmain.o   rcpp_whisper.o   rcpp_vad.o   RcppExports.o
+SOURCES = $(WHISPER_SOURCES)
+OBJECTS = $(SOURCES:.cpp=.o)
 
 .PHONY: all
 all: $(SHLIB); rm -f $(OBJECTS)
