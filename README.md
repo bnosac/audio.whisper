@@ -291,7 +291,7 @@ To speed up transcriptions you set cmake compilation instructions by setting the
 
 ##### Linux
 
-- If you have a Linux machine with OpenBlas installed on a CPU machine (e.g. `apt-get install -y libopenblas-dev`)
+> If you have a Linux machine with OpenBlas installed on a CPU machine (e.g. `apt-get install -y libopenblas-dev`)
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1")
@@ -299,15 +299,15 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- If you have a Linux machine with CUDA enabled GPU
+> If you have a Linux machine with CUDA enabled GPU
 
-    - Make sure the nvcc compiler is in your PATH
-    - Make sure that the LD_LIBRARY_PATH is set such that the package can link to the cuda libraries
-    - Make sure CUDA_PATH is set to the path where CUDA is installed
-    - Example at https://github.com/bnosac/images/blob/main/whisper/Dockerfile.cuda#L7-L13
-    - Change -DCMAKE_CUDA_ARCHITECTURES according to your specs. For example if you run on 
-        - NVIDIA T4 GPU's, `-DCMAKE_CUDA_ARCHITECTURES='75'` (Turing architecture, e.g. g4dn on AWS)
-        - NVIDIA L4 GPU's, `-DCMAKE_CUDA_ARCHITECTURES='89'` (Ada Lovelace architecture, e.g. g6 on AWS)
+- Make sure the nvcc compiler is in your PATH
+- Make sure that the LD_LIBRARY_PATH is set such that the package can link to the cuda libraries
+- Make sure CUDA_PATH is set to the path where CUDA is installed
+- Example at https://github.com/bnosac/images/blob/main/whisper/Dockerfile.cuda#L7-L13
+- Change -DCMAKE_CUDA_ARCHITECTURES according to your specs. For example if you run on 
+  - NVIDIA T4 GPU's, `-DCMAKE_CUDA_ARCHITECTURES='75'` (Turing architecture, e.g. g4dn on AWS)
+  - NVIDIA L4 GPU's, `-DCMAKE_CUDA_ARCHITECTURES='89'` (Ada Lovelace architecture, e.g. g6 on AWS)
     
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
@@ -317,18 +317,18 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 ##### MacOS
 
-- If you have a Mac with Accelerate or GPU with the METAL framework, both are enabled by default. So normally you don't need to do anything.
+> If you have a Mac with Accelerate or GPU with the METAL framework, both are enabled by default. So normally you don't need to do anything.
 You can disable e.g. Accelerate if you prefer that for some reason by setting `-DGGML_ACCELERATE=0`.
 
 ```
-Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=0 -DGGML_METAL=1")
+Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=1 -DGGML_METAL=1")
 remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
 ##### Windows
 
-- If you are on Windows and your hardware allows specific compilation with specific SIMD instructions sets
+> If you are on Windows and your hardware allows specific compilation with specific SIMD instructions sets
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
@@ -336,9 +336,9 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-- If you are on Windows and you have a NVIDIA GPU. 
+> If you are on Windows and you have a NVIDIA GPU. 
 
-  - The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
+- The easiest make the library use the GPU is to install the Vulkan SDK in your ucrt Rtools shell e.g. ´C:\rtools45\ucrt64.exe´ as shown [here](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md#vulkan)
 
 ```
 pacman -S git \
@@ -348,8 +348,7 @@ pacman -S git \
     mingw-w64-ucrt-x86_64-shaderc
 ```
 
-Make sure the compilation can find Vulkan by doing the following steps:
-
+- Make sure the compilation can find Vulkan by doing the following steps:
   - Create an environment variable VULKAN_SDK and set it to the path of Rtools ucrt64 'C:\rtools45\ucrt64' 
   - Add 'C:\rtools45\ucrt64\bin' to your PATH and restart R
   - Make sure you use the C and C++ compilers from Rtools ucrt64 by setting the environment variables and install the package as follows by using the `-DGGML_VULKAN=1` flag
@@ -361,7 +360,7 @@ remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
-    - Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the environment variable
+- Next you can use the package. Note that possibly if you have several devices on your Windows machine, you can specify the device order by setting the environment variable
     
 <details>
   <summary>Uncollapse to show details</summary>
