@@ -38,7 +38,7 @@ If you need specialised models, you can download other gguf whisper.cpp-compatib
 
 For the *stable* version of this package: 
 
-- `remotes::install_github("bnosac/audio.whisper")`                (audio.whisper 0.5.0, uses whisper.cpp 1.8.2)
+- `remotes::install_github("bnosac/audio.whisper", ref = "0.5.0")` (audio.whisper 0.5.0, uses whisper.cpp 1.8.2)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (audio.whisper 0.4.1, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (audio.whisper 0.3.3, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (audio.whisper 0.2.2, uses whisper.cpp 1.2.1)
