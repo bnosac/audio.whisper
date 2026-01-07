@@ -7,6 +7,7 @@
 whisper(
   x,
   use_gpu = FALSE,
+  flash_attn = TRUE,
   overwrite = FALSE,
   model_dir = Sys.getenv("WHISPER_MODEL_DIR", unset = getwd()),
   ...
@@ -17,6 +18,8 @@ whisper(
 the name of the model which can be passed on to \code{\link{whisper_download_model}}}
 
 \item{use_gpu}{logical indicating to use the GPU in case you have Metal or an NVIDIA GPU. Defaults to \code{FALSE}.}
+
+\item{flash_attn}{logical indicating to use flash attention. Defaults to \code{TRUE}.}
 
 \item{overwrite}{logical indicating to overwrite the model file if the model file was already downloaded, passed on to \code{\link{whisper_download_model}}. Defaults to \code{FALSE}.}
 
@@ -51,6 +54,9 @@ model <- whisper("medium")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
 model <- whisper("large-v1")
+trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
+trans
+model <- whisper("large-v3-turbo-q8_0")
 trans <- predict(model, newdata = system.file(package = "audio.whisper", "samples", "jfk.wav"))
 trans
 

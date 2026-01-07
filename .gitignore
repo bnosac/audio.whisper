@@ -9,3 +9,5 @@ src/*.dll
 src/whisper_cpp/*.o
 inst/dev
 inst/model-repository
+src/build
+src/whisper.cpp

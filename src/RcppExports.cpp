@@ -5,21 +5,59 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
+// silero_vad
+Rcpp::List silero_vad(std::string path, std::string vad_model, float vad_threshold, int vad_min_speech_duration_ms, int vad_min_silence_duration_ms, float vad_max_speech_duration_s, int vad_speech_pad_ms, float vad_samples_overlap, bool use_gpu, int n_threads, bool probabilities);
+RcppExport SEXP _audio_whisper_silero_vad(SEXP pathSEXP, SEXP vad_modelSEXP, SEXP vad_thresholdSEXP, SEXP vad_min_speech_duration_msSEXP, SEXP vad_min_silence_duration_msSEXP, SEXP vad_max_speech_duration_sSEXP, SEXP vad_speech_pad_msSEXP, SEXP vad_samples_overlapSEXP, SEXP use_gpuSEXP, SEXP n_threadsSEXP, SEXP probabilitiesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
+    Rcpp::traits::input_parameter< std::string >::type vad_model(vad_modelSEXP);
+    Rcpp::traits::input_parameter< float >::type vad_threshold(vad_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_speech_duration_ms(vad_min_speech_duration_msSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_silence_duration_ms(vad_min_silence_duration_msSEXP);
+    Rcpp::traits::input_parameter< float >::type vad_max_speech_duration_s(vad_max_speech_duration_sSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_speech_pad_ms(vad_speech_pad_msSEXP);
+    Rcpp::traits::input_parameter< float >::type vad_samples_overlap(vad_samples_overlapSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_gpu(use_gpuSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type probabilities(probabilitiesSEXP);
+    rcpp_result_gen = Rcpp::wrap(silero_vad(path, vad_model, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms, vad_max_speech_duration_s, vad_speech_pad_ms, vad_samples_overlap, use_gpu, n_threads, probabilities));
+    return rcpp_result_gen;
+END_RCPP
+}
+// whisper_load_backend
+void whisper_load_backend();
+RcppExport SEXP _audio_whisper_whisper_load_backend() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    whisper_load_backend();
+    return R_NilValue;
+END_RCPP
+}
 // whisper_load_model
-SEXP whisper_load_model(std::string model, bool use_gpu);
-RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP) {
+SEXP whisper_load_model(std::string model, bool use_gpu, bool flash_attn, int gpu_device, bool trace);
+RcppExport SEXP _audio_whisper_whisper_load_model(SEXP modelSEXP, SEXP use_gpuSEXP, SEXP flash_attnSEXP, SEXP gpu_deviceSEXP, SEXP traceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type model(modelSEXP);
     Rcpp::traits::input_parameter< bool >::type use_gpu(use_gpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu));
+    Rcpp::traits::input_parameter< bool >::type flash_attn(flash_attnSEXP);
+    Rcpp::traits::input_parameter< int >::type gpu_device(gpu_deviceSEXP);
+    Rcpp::traits::input_parameter< bool >::type trace(traceSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_load_model(model, use_gpu, flash_attn, gpu_device, trace));
     return rcpp_result_gen;
 END_RCPP
 }
 // whisper_encode
-Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent, bool no_timestamps);
-RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP, SEXP no_timestampsSEXP) {
+Rcpp::List whisper_encode(SEXP model, std::string path, std::string language, bool token_timestamps, bool translate, Rcpp::IntegerVector duration, Rcpp::IntegerVector offset, int trace, int n_threads, int n_processors, float entropy_thold, float logprob_thold, int beam_size, int best_of, bool split_on_word, int max_context, std::string prompt, bool print_special, bool diarize, float diarize_percent, bool no_timestamps, bool vad, std::string vad_model, float vad_threshold, int vad_min_speech_duration_ms, int vad_min_silence_duration_ms);
+RcppExport SEXP _audio_whisper_whisper_encode(SEXP modelSEXP, SEXP pathSEXP, SEXP languageSEXP, SEXP token_timestampsSEXP, SEXP translateSEXP, SEXP durationSEXP, SEXP offsetSEXP, SEXP traceSEXP, SEXP n_threadsSEXP, SEXP n_processorsSEXP, SEXP entropy_tholdSEXP, SEXP logprob_tholdSEXP, SEXP beam_sizeSEXP, SEXP best_ofSEXP, SEXP split_on_wordSEXP, SEXP max_contextSEXP, SEXP promptSEXP, SEXP print_specialSEXP, SEXP diarizeSEXP, SEXP diarize_percentSEXP, SEXP no_timestampsSEXP, SEXP vadSEXP, SEXP vad_modelSEXP, SEXP vad_thresholdSEXP, SEXP vad_min_speech_duration_msSEXP, SEXP vad_min_silence_duration_msSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -44,7 +82,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type diarize(diarizeSEXP);
     Rcpp::traits::input_parameter< float >::type diarize_percent(diarize_percentSEXP);
     Rcpp::traits::input_parameter< bool >::type no_timestamps(no_timestampsSEXP);
-    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent, no_timestamps));
+    Rcpp::traits::input_parameter< bool >::type vad(vadSEXP);
+    Rcpp::traits::input_parameter< std::string >::type vad_model(vad_modelSEXP);
+    Rcpp::traits::input_parameter< float >::type vad_threshold(vad_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_speech_duration_ms(vad_min_speech_duration_msSEXP);
+    Rcpp::traits::input_parameter< int >::type vad_min_silence_duration_ms(vad_min_silence_duration_msSEXP);
+    rcpp_result_gen = Rcpp::wrap(whisper_encode(model, path, language, token_timestamps, translate, duration, offset, trace, n_threads, n_processors, entropy_thold, logprob_thold, beam_size, best_of, split_on_word, max_context, prompt, print_special, diarize, diarize_percent, no_timestamps, vad, vad_model, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -69,12 +112,36 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ggml_devices
+Rcpp::List ggml_devices();
+RcppExport SEXP _audio_whisper_ggml_devices() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(ggml_devices());
+    return rcpp_result_gen;
+END_RCPP
+}
+// ggml_unload
+void ggml_unload(const char * name);
+RcppExport SEXP _audio_whisper_ggml_unload(SEXP nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const char * >::type name(nameSEXP);
+    ggml_unload(name);
+    return R_NilValue;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 2},
-    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 21},
+    {"_audio_whisper_silero_vad", (DL_FUNC) &_audio_whisper_silero_vad, 11},
+    {"_audio_whisper_whisper_load_backend", (DL_FUNC) &_audio_whisper_whisper_load_backend, 0},
+    {"_audio_whisper_whisper_load_model", (DL_FUNC) &_audio_whisper_whisper_load_model, 5},
+    {"_audio_whisper_whisper_encode", (DL_FUNC) &_audio_whisper_whisper_encode, 26},
     {"_audio_whisper_whisper_print_benchmark", (DL_FUNC) &_audio_whisper_whisper_print_benchmark, 2},
     {"_audio_whisper_whisper_language_info", (DL_FUNC) &_audio_whisper_whisper_language_info, 0},
+    {"_audio_whisper_ggml_devices", (DL_FUNC) &_audio_whisper_ggml_devices, 0},
+    {"_audio_whisper_ggml_unload", (DL_FUNC) &_audio_whisper_ggml_unload, 1},
     {NULL, NULL, 0}
 };
 

@@ -1,0 +1,4 @@
+Silero models converted to ggml
+
+- ggml-silero-v5.1.2.bin is the model downloaded from https://huggingface.co/ggml-org/whisper-vad/tree/main - e5614ed76a5dd4b03fad5068c89efcd2617a9d1e
+- ggml-silero-v6.2.0.bin is the model extracted by installing the silero-vad 6.2.0 and running python audio.whisper/inst/models/convert-silero-vad-to-ggml.py --output=ggml-silero.bin

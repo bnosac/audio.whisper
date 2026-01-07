@@ -12,6 +12,15 @@ from coremltools.models.neural_network.quantization_utils import quantize_weight
 from whisper.model import Whisper, AudioEncoder, TextDecoder, ResidualAttentionBlock, MultiHeadAttention, ModelDimensions
 from whisper import load_model
 
+# Disable PyTorch Scaled Dot-Product Attention (SDPA) to avoid compatibility issues.
+# The Whisper implementation expects a specific behavior from
+# torch.nn.functional.scaled_dot_product_attention that differs between PyTorch
+# versions. Setting use_sdpa=False forces Whisper to use its manual attention
+# implementation instead, which is more stable across different PyTorch versions
+# (2.5.0 required by coremltools vs newer versions).
+import whisper.model
+whisper.model.MultiHeadAttention.use_sdpa = False
+
 # Use for changing dim of input in encoder and decoder embeddings
 def linear_to_conv2d_map(state_dict, prefix, local_metadata, strict,
                          missing_keys, unexpected_keys, error_msgs):
@@ -245,10 +254,10 @@ def convert_encoder(hparams, model, quantize=False):
 
     model = ct.convert(
         traced_model,
-        convert_to=None if quantize else "mlprogram", # convert will fail if weights are quantized, not sure why
+        convert_to="mlprogram",
         inputs=[ct.TensorType(name="logmel_data", shape=input_shape)],
         outputs=[ct.TensorType(name="output")],
-        compute_units=ct.ComputeUnit.ALL
+        compute_units=ct.ComputeUnit.ALL,
     )
 
     if quantize:
@@ -260,19 +269,20 @@ def convert_decoder(hparams, model, quantize=False):
     model.eval()
 
     tokens_shape = (1, 1)
-    audio_shape = (1, hparams.n_audio_state, 1, 1500)
+    audio_shape = (1, hparams.n_audio_ctx, hparams.n_audio_state)
 
     audio_data = torch.randn(audio_shape)
-    token_data = torch.randint(50257, tokens_shape).long()
+    token_data = torch.randint(hparams.n_vocab, tokens_shape).long()
+
     traced_model = torch.jit.trace(model, (token_data, audio_data))
 
     model = ct.convert(
         traced_model,
-        convert_to=None if quantize else "mlprogram", # convert will fail if weights are quantized, not sure why
+        convert_to="mlprogram",
         inputs=[
             ct.TensorType(name="token_data", shape=tokens_shape, dtype=int),
             ct.TensorType(name="audio_data", shape=audio_shape)
-        ]
+        ],
     )
 
     if quantize:
@@ -283,13 +293,13 @@ def convert_decoder(hparams, model, quantize=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, help="model to convert (e.g. tiny, tiny.en, base, base.en, small, small.en, medium, medium.en, large-v1, large-v2, large-v3)", required=True)
+    parser.add_argument("--model", type=str, help="model to convert (e.g. tiny, tiny.en, base, base.en, small, small.en, medium, medium.en, large-v1, large-v2, large-v3, large-v3-turbo)", required=True)
     parser.add_argument("--encoder-only", type=bool, help="only convert encoder", default=False)
     parser.add_argument("--quantize",     type=bool, help="quantize weights to F16", default=False)
     parser.add_argument("--optimize-ane", type=bool, help="optimize for ANE execution (currently broken)", default=False)
     args = parser.parse_args()
 
-    if args.model not in ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "small.en-tdrz", "medium", "medium.en", "large-v1", "large-v2", "large-v3"]:
+    if args.model not in ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "small.en-tdrz", "medium", "medium.en", "large-v1", "large-v2", "large-v3", "large-v3-turbo"]:
         raise ValueError("Invalid model name")
 
     whisper = load_model(args.model).cpu()

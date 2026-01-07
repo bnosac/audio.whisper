@@ -26,8 +26,6 @@ jobs:
           - {os: ubuntu-latest,   r: 'oldrel-1'}   
           - {os: ubuntu-latest,   r: 'oldrel-2'} 
           - {os: ubuntu-latest,   r: 'oldrel-3'} 
-          - {os: ubuntu-20.04,   r: '3.5',     rspm: "https://packagemanager.rstudio.com/cran/__linux__/focal/latest"}
-
 
 
     env:
@@ -53,18 +51,19 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
-          Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
+          Rscript -e "#audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny'))"
           
   macOS-latest:
     runs-on: ${{ matrix.config.os }}
@@ -84,6 +83,7 @@ jobs:
       TINYTEST_CI: "yes"  
       WHISPER_ACCELERATE: "1"
       WHISPER_METAL: "1"
+      WHISPER_CMAKE_FLAGS: "-DGGML_ACCELERATE=1 -DGGML_METAL=1"
     steps:
       - uses: actions/checkout@v3
 
@@ -102,17 +102,18 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"
 
   cublas:
@@ -128,7 +129,7 @@ jobs:
         build: [Release]
         arch: [x64]
         cublas: [ON]
-        cuda-toolkit: [12.2.0, 11.8.0]
+        cuda-toolkit: [12.5.0, 11.8.0]
         include:
           - arch: x64
             s2arc: x64
@@ -139,6 +140,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.PAT }}
       TINYTEST_CI: "yes"  
       WHISPER_CUBLAS: "1"
+      WHISPER_CMAKE_FLAGS: "-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native"
 
     steps:
       - uses: actions/checkout@v3
@@ -158,7 +160,7 @@ jobs:
           
       - name: Install CUDA Toolkit - Windows
         if: runner.os == 'Windows'
-        uses: Jimver/cuda-toolkit@v0.2.14
+        uses: Jimver/cuda-toolkit@v0.2.24
         with:
           #sub-packages: '["nvcc", "cudart", "cublas", "cublas_dev", "npp", "npp_dev", "visual_studio_integration"]'
           cuda: '${{ matrix.cuda-toolkit }}'
@@ -166,7 +168,7 @@ jobs:
           
       - name: Install CUDA Toolkit - Linux
         if: runner.os == 'Linux'
-        uses: Jimver/cuda-toolkit@v0.2.14
+        uses: Jimver/cuda-toolkit@v0.2.24
         with:
           cuda: '${{ matrix.cuda-toolkit }}'
           method: 'network'
@@ -197,15 +199,16 @@ jobs:
           
       - name: Installation and compilation configuration test
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
 
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran", "--run-donttest")'
           upload-snapshots: true
+          upload-results: false
           error-on: '"error"' 
           
       - name: Speed
         run: |
-          Rscript -e "install.packages('remotes');remotes::install_local(force = TRUE)"
+          Rscript -e "install.packages('pak');pak::local_install(upgrade = TRUE)"
           Rscript -e "audio.whisper::whisper_benchmark(audio.whisper::whisper('tiny', use_gpu = TRUE))"

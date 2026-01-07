@@ -28,6 +28,10 @@ jobs:
 
       - name: Bootstrap
         run: ./run.sh bootstrap
+        
+      - name: Install cmake
+        run: |
+          sudo apt-get install -y cmake
 
       - name: Dependencies
         run: ./run.sh install_all 

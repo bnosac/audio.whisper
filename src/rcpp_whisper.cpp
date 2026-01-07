@@ -1,7 +1,10 @@
 #include <Rcpp.h>
-#include "common.h"
+#include "read_wav.h"
 
 #include "whisper.h"
+#include "grammar-parser.h"
+#include "ggml.h"
+#include "ggml-backend.h"
 
 #include <cmath>
 #include <fstream>
@@ -10,17 +13,11 @@
 #include <thread>
 #include <vector>
 #include <cstring>
+#include <cfloat>
 
 #if defined(_MSC_VER)
 #pragma warning(disable: 4244 4267) // possible loss of data
 #endif
-
-// Terminal color map. 10 colors grouped in ranges [0.0, 0.1, ..., 0.9]
-// Lowest is red, middle is yellow, highest is green.
-const std::vector<std::string> k_colors = {
-    "\033[38;5;196m", "\033[38;5;202m", "\033[38;5;208m", "\033[38;5;214m", "\033[38;5;220m",
-    "\033[38;5;226m", "\033[38;5;190m", "\033[38;5;154m", "\033[38;5;118m", "\033[38;5;82m",
-};
 
 //  500 -> 00:05.000
 // 6000 -> 01:00.000
@@ -43,34 +40,30 @@ int timestamp_to_sample(int64_t t, int n_samples) {
     return std::max(0, std::min((int) n_samples - 1, (int) ((t*WHISPER_SAMPLE_RATE)/100)));
 }
 
-// helper function to replace substrings
-void replace_all(std::string & s, const std::string & search, const std::string & replace) {
-    for (size_t pos = 0; ; pos += replace.length()) {
-        pos = s.find(search, pos);
-        if (pos == std::string::npos) break;
-        s.erase(pos, search.length());
-        s.insert(pos, replace);
-    }
-}
+static void cb_log_disable(enum ggml_log_level , const char * , void * ) { }
 
 // command-line parameters
 struct whisper_params {
-    int32_t n_threads    = std::min(4, (int32_t) std::thread::hardware_concurrency());
-    int32_t n_processors =  1;
-    int32_t offset_t_ms  =  0;
-    int32_t offset_n     =  0;
-    int32_t duration_ms  =  0;
-    int32_t progress_step =  5;
-    int32_t max_context  = -1;
-    int32_t max_len      =  0;
-    int32_t best_of      = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
-    int32_t beam_size    = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
+    int32_t n_threads     = std::min(4, (int32_t) std::thread::hardware_concurrency());
+    int32_t n_processors  = 1;
+    int32_t offset_t_ms   = 0;
+    int32_t offset_n      = 0;
+    int32_t duration_ms   = 0;
+    int32_t progress_step = 5;
+    int32_t max_context   = -1;
+    int32_t max_len       = 0;
+    int32_t best_of       = whisper_full_default_params(WHISPER_SAMPLING_GREEDY).greedy.best_of;
+    int32_t beam_size     = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH).beam_search.beam_size;
+    int32_t audio_ctx     = 0;
 
-    float word_thold    =  0.01f;
-    float entropy_thold =  2.40f;
-    float logprob_thold = -1.00f;
+    float word_thold      =  0.01f;
+    float entropy_thold   =  2.40f;
+    float logprob_thold   = -1.00f;
+    float no_speech_thold =  0.6f;
+    float grammar_penalty = 100.0f;
+    float temperature     = 0.0f;
+    float temperature_inc = 0.2f;
 
-    bool speed_up        = false;
     bool debug_mode      = false;
     bool translate       = false;
     bool detect_language = false;
@@ -86,25 +79,48 @@ struct whisper_params {
     bool output_jsn      = false;
     bool output_jsn_full = false;
     bool output_lrc      = false;
+    bool no_prints       = false;
     bool print_special   = false;
     bool print_colors    = false;
+    bool print_confidence= false;
     bool print_progress  = false;
     bool no_timestamps   = false;
     bool log_score       = false;
     bool use_gpu         = true;
+    bool flash_attn      = true;
+    bool suppress_nst    = false;
 
     std::string language  = "en";
     std::string prompt;
     std::string font_path = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf";
     std::string model     = "models/ggml-base.en.bin";
+    std::string grammar;
+    std::string grammar_rule;
 
     // [TDRZ] speaker turn string
     std::string tdrz_speaker_turn = " [SPEAKER_TURN]"; // TODO: set from command line
 
+    // A regular expression that matches tokens to suppress
+    std::string suppress_regex;
+
     std::string openvino_encode_device = "CPU";
+
+    std::string dtw = "";
 
     std::vector<std::string> fname_inp = {};
     std::vector<std::string> fname_out = {};
+
+    grammar_parser::parse_state grammar_parsed;
+
+    // Voice Activity Detection (VAD) parameters
+    bool        vad           = false;
+    std::string vad_model     = "";
+    float       vad_threshold = 0.5f;
+    int         vad_min_speech_duration_ms = 250;
+    int         vad_min_silence_duration_ms = 100;
+    float       vad_max_speech_duration_s = FLT_MAX;
+    int         vad_speech_pad_ms = 30;
+    float       vad_samples_overlap = 0.1f;
 };
 
 
@@ -188,15 +204,21 @@ void whisper_print_segment_callback(struct whisper_context * ctx, struct whisper
     }
 }
 
-
+// [[Rcpp::export]]
+void whisper_load_backend() {
+  ggml_backend_load_all();
+}
 
 // Functionality to free the Rcpp::XPtr
 class WhisperModel {
     public: 
         struct whisper_context * ctx;
-        WhisperModel(std::string model, bool use_gpu = false){
-          struct whisper_context_params cparams;
+        WhisperModel(std::string model, bool use_gpu = false, int gpu_device = 0, bool flash_attn = true){
+          
+          struct whisper_context_params cparams = whisper_context_default_params();
           cparams.use_gpu = use_gpu;
+          cparams.gpu_device = gpu_device;
+          cparams.flash_attn = flash_attn;
           ctx = whisper_init_from_file_with_params(model.c_str(), cparams);
         }
         ~WhisperModel(){
@@ -205,11 +227,14 @@ class WhisperModel {
 };
 
 // [[Rcpp::export]]
-SEXP whisper_load_model(std::string model, bool use_gpu = false) {
+SEXP whisper_load_model(std::string model, bool use_gpu = false, bool flash_attn = true, int gpu_device = 0, bool trace = true) {
     // Load language model and return the pointer to be used by whisper_encode
     //struct whisper_context * ctx = whisper_init(model.c_str());
     //Rcpp::XPtr<whisper_context> ptr(ctx, false);
-    WhisperModel * wp = new WhisperModel(model, use_gpu);
+    if(trace > 0){
+      Rprintf("system_info: hardware_concurrency = %d | %s\n", std::thread::hardware_concurrency(), whisper_print_system_info());  
+    }
+    WhisperModel * wp = new WhisperModel(model, use_gpu, gpu_device, flash_attn);
     Rcpp::XPtr<WhisperModel> ptr(wp, false);
     return ptr;
 }
@@ -229,7 +254,13 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
                           bool print_special = false,
                           bool diarize = false,
                           float diarize_percent = 1.1,
-                          bool no_timestamps = false) {
+                          bool no_timestamps = false,
+                          bool vad = false,
+                          std::string vad_model = "",
+                          float vad_threshold = 0.5,
+                          int vad_min_speech_duration_ms = 250,
+                          int vad_min_silence_duration_ms = 100) {
+  
     float audio_duration=0;
   
     whisper_params params;
@@ -258,7 +289,12 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
         Rcpp::stop("Unknown language");
     }
-    
+    params.vad = vad;
+    params.vad_model = vad_model;
+    params.vad_threshold = vad_threshold;
+    params.vad_min_speech_duration_ms = vad_min_speech_duration_ms;
+    params.vad_min_silence_duration_ms = vad_min_silence_duration_ms;
+
     // whisper init
     Rcpp::XPtr<WhisperModel> whispermodel(model);
     struct whisper_context * ctx = whispermodel->ctx;
@@ -277,6 +313,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
     if(trace > 0){
       Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads*params.n_processors, std::thread::hardware_concurrency(), whisper_print_system_info());  
     }
+    if(trace <= 1) {
+      whisper_log_set(cb_log_disable, NULL);
+    }
     
     {
       if (!whisper_is_multilingual(ctx)) {
@@ -287,7 +326,7 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         }
       }
       if(trace > 0){
-        Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
+        Rcpp::Rcout << "Processing " << fname_inp << " (" << int(pcmf32.size()) << " samples, " << float(pcmf32.size())/WHISPER_SAMPLE_RATE << " sec)" << ", n_threads = " << params.n_threads << ", n_processors = " << params.n_processors << ", lang = " << params.language << ", translate = " << params.translate << ", timestamps = " << token_timestamps << ", beam_size = " << params.beam_size << ", best_of = " << params.best_of << "\n";
       }
     }
     audio_duration = float(pcmf32.size())/WHISPER_SAMPLE_RATE;
@@ -312,8 +351,9 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
         // run the inference
         {
             whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-            
-            wparams.strategy = params.beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
+
+            const bool use_grammar = (!params.grammar_parsed.rules.empty() && !params.grammar_rule.empty());
+            wparams.strategy = (params.beam_size > 1 || use_grammar) ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY;
 
             wparams.print_realtime   = false;
             wparams.print_progress   = false;
@@ -329,29 +369,46 @@ Rcpp::List whisper_encode(SEXP model, std::string path, std::string language,
             wparams.n_threads        = params.n_threads;
             wparams.n_max_text_ctx   = params.max_context >= 0 ? params.max_context : wparams.n_max_text_ctx;
             wparams.offset_ms        = (int) offset[f];
-            wparams.duration_ms      = (int) duration[f];
-
+            wparams.duration_ms      = (int) duration[f];     
+            
             wparams.token_timestamps = token_timestamps;
             wparams.thold_pt         = params.word_thold;
             wparams.max_len          = params.output_wts && params.max_len == 0 ? 60 : params.max_len;
             wparams.split_on_word    = params.split_on_word;
+            wparams.audio_ctx        = params.audio_ctx;
 
-            wparams.speed_up         = params.speed_up;
             wparams.debug_mode       = params.debug_mode;
 
             wparams.tdrz_enable      = params.tinydiarize; // [TDRZ]
 
+            wparams.suppress_regex   = params.suppress_regex.empty() ? nullptr : params.suppress_regex.c_str();
+
             wparams.initial_prompt   = params.prompt.c_str();
-            
-            
 
             wparams.greedy.best_of        = params.best_of;
             wparams.beam_search.beam_size = params.beam_size;
 
-            wparams.temperature_inc  = params.no_fallback ? 0.0f : wparams.temperature_inc;
+            wparams.temperature_inc  = params.no_fallback ? 0.0f : params.temperature_inc;
+            wparams.temperature      = params.temperature;
+
             wparams.entropy_thold    = params.entropy_thold;
             wparams.logprob_thold    = params.logprob_thold;
-            
+            wparams.no_speech_thold  = params.no_speech_thold;
+
+            wparams.no_timestamps    = params.no_timestamps;
+
+            wparams.suppress_nst     = params.suppress_nst;
+
+            wparams.vad            = params.vad;
+            wparams.vad_model_path = params.vad_model.c_str();
+
+            wparams.vad_params.threshold               = params.vad_threshold;
+            wparams.vad_params.min_speech_duration_ms  = params.vad_min_speech_duration_ms;
+            wparams.vad_params.min_silence_duration_ms = params.vad_min_silence_duration_ms;
+            wparams.vad_params.max_speech_duration_s   = params.vad_max_speech_duration_s;
+            wparams.vad_params.speech_pad_ms           = params.vad_speech_pad_ms;
+            wparams.vad_params.samples_overlap         = params.vad_samples_overlap;
+
             whisper_print_user_data user_data = { &params, &pcmf32s, 0 };
             
             // this callback is called on each new segment
@@ -478,12 +535,63 @@ void whisper_print_benchmark(SEXP model, int n_threads = 1) {
   struct whisper_context * ctx = whispermodel->ctx;
   Rprintf("\n");
   Rprintf("system_info: n_threads = %d / %d | %s\n", params.n_threads, std::thread::hardware_concurrency(), whisper_print_system_info());
+  
   const int n_mels = whisper_model_n_mels(ctx);
+  
   if (int ret = whisper_set_mel(ctx, nullptr, 0, n_mels)) {
     Rprintf("error: failed to set mel: %d\n", ret);
   }
+  // heat encoder
   if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
     Rprintf("error: failed to encode model: %d\n", ret);
+  }
+  
+  whisper_token tokens[512];
+  memset(tokens, 0, sizeof(tokens));
+  
+  // prompt heat
+  if (int ret = whisper_decode(ctx, tokens, 256, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to decode: %d\n", ret);
+  }
+  
+  // text-generation heat
+  for (int i = 0; i < 256; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 1, i, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // batched heat
+  if (int ret = whisper_decode(ctx, tokens, 5, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to decode: %d\n", ret);
+  }
+  
+  whisper_reset_timings(ctx);
+  
+  // actual run
+  if (int ret = whisper_encode(ctx, 0, params.n_threads) != 0) {
+    Rprintf("error: failed to encode: %d\n", ret);
+  }
+  
+  // text-generation
+  for (int i = 0; i < 256; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 1, i, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // batched decoding
+  for (int i = 0; i < 64; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 5, 0, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
+  }
+  
+  // prompt processing
+  for (int i = 0; i < 16; i++) {
+    if (int ret = whisper_decode(ctx, tokens, 256, 0, params.n_threads) != 0) {
+      Rprintf("error: failed to decode: %d\n", ret);
+    }
   }
   whisper_print_timings(ctx);
 }
@@ -506,4 +614,90 @@ Rcpp::DataFrame whisper_language_info() {
     Rcpp::Named("language") = language, 
     Rcpp::Named("language_label") = label, 
     Rcpp::Named("stringsAsFactors") = false);
+}
+
+
+
+// [[Rcpp::export]]
+Rcpp::List ggml_devices() {
+  std::vector<std::string> dev_id;
+  std::vector<std::string> dev_name;
+  std::vector<std::string> dev_description;
+  std::vector<std::string> dev_type;
+  std::vector<std::string> dev_features;
+  std::string s;
+  for (size_t i = 0; i < ggml_backend_dev_count(); ++i) {
+    ggml_backend_dev_t dev = ggml_backend_dev_get(i);
+    s = ggml_backend_dev_name(dev);
+    dev_name.push_back(s);
+    s = ggml_backend_dev_description(dev);
+    dev_description.push_back(s);
+    s = "unknown";
+    if (ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_GPU) {
+      s = "GGML_BACKEND_DEVICE_TYPE_GPU";   // GPU device using dedicated memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_CPU){
+      s = "GGML_BACKEND_DEVICE_TYPE_CPU";   // CPU device using system memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_IGPU){
+      s = "GGML_BACKEND_DEVICE_TYPE_IGPU";  // integrated GPU device using host memory
+    }
+    if(ggml_backend_dev_type(dev) == GGML_BACKEND_DEVICE_TYPE_ACCEL){
+      s = "GGML_BACKEND_DEVICE_TYPE_ACCEL"; // accelerator devices intended to be used together with the CPU backend (e.g. BLAS or AMX)
+    }
+    dev_type.push_back(s);
+    ggml_backend_dev_props props;
+    ggml_backend_dev_get_props(dev, &props);
+    s = props.device_id ? props.device_id : "unknown id";
+    dev_id.push_back(s);
+  }
+  for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+    s.clear();
+    auto * reg = ggml_backend_reg_get(i);
+    auto * get_features_fn = (ggml_backend_get_features_t) ggml_backend_reg_get_proc_address(reg, "ggml_backend_get_features");
+    s += ggml_backend_reg_name(reg);
+    if (get_features_fn) {
+      ggml_backend_feature * features = get_features_fn(reg);
+      s += " : ";
+      for (; features->name; features++) {
+        s += features->name;
+        s += " = ";
+        s += features->value;
+        s += " | ";
+      }
+    }
+    dev_features.push_back(s);
+  }
+  Rcpp::List output = Rcpp::List::create(
+    Rcpp::Named("n") = ggml_backend_dev_count(),
+    Rcpp::Named("devices") = Rcpp::DataFrame::create(
+      Rcpp::Named("id") = dev_id, 
+      Rcpp::Named("name") = dev_name, 
+      Rcpp::Named("description") = dev_description, 
+      Rcpp::Named("type") = dev_type, 
+      Rcpp::Named("stringsAsFactors") = false),
+    Rcpp::Named("backends_registered") = dev_features
+  );
+  return output;
+}
+
+
+static bool striequals(const char * a, const char * b) {
+  for (; *a && *b; a++, b++) {
+    if (std::tolower(*a) != std::tolower(*b)) {
+      return false;
+    }
+  }
+  return *a == *b;
+}
+
+// [[Rcpp::export]]
+void ggml_unload(const char * name) {
+  for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+    ggml_backend_reg_t reg = ggml_backend_reg_get(i);
+    if (striequals(ggml_backend_reg_name(reg), name)) {
+      Rprintf("Unloading backend");
+      ggml_backend_unload(reg);
+    }
+  }
 }
