@@ -38,7 +38,7 @@ If you need specialised models, you can download other gguf whisper.cpp-compatib
 
 For the *stable* version of this package: 
 
-- `remotes::install_github("bnosac/audio.whisper@v1.8.2")`         (audio.whisper 0.5.0, uses whisper.cpp 1.8.2)
+- `remotes::install_github("bnosac/audio.whisper")`                (audio.whisper 0.5.0, uses whisper.cpp 1.8.2)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.4.1")` (audio.whisper 0.4.1, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.3.3")` (audio.whisper 0.3.3, uses whisper.cpp 1.5.4)
 - `remotes::install_github("bnosac/audio.whisper", ref = "0.2.2")` (audio.whisper 0.2.2, uses whisper.cpp 1.2.1)
@@ -295,7 +295,7 @@ To speed up transcriptions you set cmake compilation instructions by setting the
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_BLAS=1")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -311,7 +311,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
     
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_CUDA=1 -DCMAKE_CUDA_COMPILER=nvcc -DCMAKE_CUDA_ARCHITECTURES=native -DGGML_BLAS=1 -DGGML_BLAS_VENDOR=OpenBlas")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -321,7 +321,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS = "-DGGML_ACCELERATE=1 -DGGML_METAL=1")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -331,7 +331,7 @@ Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 
 ```
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
@@ -355,7 +355,7 @@ pacman -S git \
 ```
 Sys.setenv(CC = "C:/rtools45/ucrt64/bin/gcc.exe", CXX = "C:/rtools45/ucrt64/bin/g++.exe")
 Sys.setenv(WHISPER_CMAKE_FLAGS="-DGGML_VULKAN=1 -DGGML_AVX=0 -DGGML_AVX2=1 -DGGML_SSE42=0 -DGGML_F16C=1 -DGGML_FMA=1 -DGGML_BMI2=0 -DGGML_OPENMP=0")
-remotes::install_github("bnosac/audio.whisper@v1.8.2", force = TRUE)
+remotes::install_github("bnosac/audio.whisper", force = TRUE)
 Sys.unsetenv("WHISPER_CMAKE_FLAGS")
 ```
 
